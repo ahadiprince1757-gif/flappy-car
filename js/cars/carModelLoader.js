@@ -144,14 +144,16 @@ function configureCarGroup(group, info) {
   const center = new THREE.Vector3();
   bbox.getCenter(center);
 
-  // Shift geometry pivot
+  // Shift geometry so base sits on ground at y=0, centered at (0,0)
   group.position.set(-center.x, -bbox.min.y, -center.z);
 
-  const wrapper = new THREE.Group();
-  wrapper.add(group);
+  // Rotate the inner mesh 180 deg so car front faces inward down the highway (-Z)
+  const innerPivot = new THREE.Group();
+  innerPivot.add(group);
+  innerPivot.rotation.y = Math.PI;
 
-  // Cars naturally face +Z in Blender OBJ; rotate by Math.PI so front faces -Z (forward down the highway)
-  wrapper.rotation.y = Math.PI;
+  const wrapper = new THREE.Group();
+  wrapper.add(innerPivot);
 
   const scale = info.scale ?? 1.0;
   wrapper.scale.set(scale, scale, scale);
