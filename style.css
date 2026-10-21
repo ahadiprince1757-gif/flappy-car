@@ -1,0 +1,935 @@
+/* =====================================================
+   FLAPPY CAR — Premium Arcade CSS
+   Reference: coastal highway, arcade title, neon buttons
+===================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,800;0,900;1,800;1,900&family=Outfit:wght@600;700;800;900&family=Permanent+Marker&family=Space+Grotesk:wght@700&display=swap');
+
+/* ── Design Tokens ──────────────────────────────── */
+:root {
+  color-scheme: dark;
+  --bg:         #020c18;
+  --cyan:       #00efff;
+  --cyan-glow:  rgba(0, 239, 255, 0.65);
+  --cyan-soft:  rgba(0, 239, 255, 0.18);
+  --navy-glass: rgba(0, 20, 46, 0.80);
+  --gold:       #ffb703;
+  --red-fire:   #ff3b00;
+  --orange:     #ff6800;
+  --text-main:  #ffffff;
+  --text-muted: #94a3b8;
+  --font-arc:   'Montserrat', 'Outfit', sans-serif;
+  --font-mark:  'Permanent Marker', cursive, sans-serif;
+  --font-mono:  'Space Grotesk', monospace;
+  --shadow-btn: 0 8px 28px rgba(0,0,0,0.55);
+}
+
+/* ── Reset ──────────────────────────────────────── */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: var(--font-arc);
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text-main);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+button {
+  font-family: var(--font-arc);
+  touch-action: manipulation;
+  border: none;
+  outline: none;
+  cursor: pointer;
+}
+
+/* ── Fullscreen Container ───────────────────────── */
+#gameContainer {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: #020c18;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* ── Three.js Canvas ────────────────────────────── */
+#game {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  outline: none;
+  z-index: 1;
+}
+
+/* =====================================================
+   ARCADE LANDING SCREEN
+   Full-bleed reference image, portrait-first layout
+===================================================== */
+.arcade-home {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  /* Subtle centre vignette over the background photo */
+  background-color: #020c18;
+  background-image:
+    radial-gradient(ellipse 80% 100% at 50% 50%,
+      rgba(0, 8, 20, 0.10) 0%,
+      rgba(0, 4, 14, 0.55) 100%),
+    url('./assets/landing_bg.jpg');
+  background-size:    cover;
+  background-position: center top;
+  background-repeat: no-repeat;
+
+  padding: 0;
+  animation: fadeIn 0.35s ease-out;
+}
+
+.arcade-home[hidden] {
+  display: none !important;
+}
+
+/* ── Top Bar ─────────────────────────────────────── */
+.arcade-top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  width: 100%;
+  padding: 22px 24px 0;
+}
+
+/* Coin capsule (left) */
+.coin-capsule {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 42px;
+  padding: 4px 18px 4px 5px;
+  border: 2.5px solid var(--cyan);
+  border-radius: 9999px;
+  background: rgba(0, 16, 36, 0.72);
+  box-shadow:
+    0 0 14px rgba(0, 239, 255, 0.55),
+    inset 0 0 10px rgba(0, 239, 255, 0.20);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.coin-coin-icon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+}
+
+.svg-coin {
+  width: 28px;
+  height: 28px;
+  filter: drop-shadow(0 2px 5px rgba(0,0,0,0.45));
+}
+
+.coin-value {
+  color: #fff;
+  font-size: 17px;
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: 0.04em;
+  text-shadow: 0 2px 5px rgba(0,0,0,0.6);
+}
+
+/* Audio toggle (right) */
+.sound-toggle-btn {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 2.5px solid var(--cyan);
+  border-radius: 50%;
+  background: rgba(0, 16, 36, 0.72);
+  color: var(--cyan);
+  box-shadow:
+    0 0 14px rgba(0, 239, 255, 0.55),
+    inset 0 0 8px rgba(0, 239, 255, 0.20);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: all 0.2s ease;
+}
+
+.sound-toggle-btn:hover {
+  transform: scale(1.10);
+  box-shadow: 0 0 22px rgba(0, 239, 255, 0.85);
+}
+
+.sound-toggle-btn:active { transform: scale(0.93); }
+
+.svg-sound {
+  width: 20px;
+  height: 20px;
+}
+
+/* ── Logo block ──────────────────────────────────── */
+/*
+  Layout:  top-bar | (flex-spacer) | logo-area | buttons | graffiti
+  The logo sits roughly 25% from top, matching reference.
+*/
+.arcade-logo-area {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  /* Push logo to ~25-30 % from top on desktop */
+  margin-top: clamp(18px, 7vh, 72px);
+  pointer-events: none;
+}
+
+.arcade-logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* Slight italic tilt like the reference */
+  transform: skewY(-3.5deg);
+  filter:
+    drop-shadow(0 0 28px rgba(0, 220, 255, 0.55))
+    drop-shadow(0 8px 6px rgba(0, 0, 0, 0.7));
+}
+
+/* "FLAPPY" in cyan-to-white gradient */
+.logo-flappy {
+  font-size: clamp(54px, 13vw, 96px);
+  font-weight: 900;
+  font-style: italic;
+  line-height: 0.88;
+  letter-spacing: 0.02em;
+
+  /* Gradient fill via background-clip trick */
+  background: linear-gradient(170deg, #ffffff 0%, #9af6ff 35%, #00d8ff 65%, #007dc5 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+
+  /* Dark stroke outline */
+  paint-order: stroke fill;
+  -webkit-text-stroke: 4px #03111e;
+}
+
+/* "—= CAR =—" row */
+.logo-car-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: -4px;
+}
+
+.logo-wing {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.logo-wing span {
+  display: block;
+  border-radius: 3px;
+  background: var(--cyan);
+  box-shadow: 0 0 10px var(--cyan-glow);
+}
+
+/* Two-bar wing chevron */
+.logo-wing span:nth-child(1) { width: clamp(22px, 4.5vw, 40px); height: 5px; }
+.logo-wing span:nth-child(2) { width: clamp(14px, 2.8vw, 26px); height: 4px; margin-top: -1px; }
+
+.logo-wing.right span:nth-child(2) {
+  align-self: flex-end;
+}
+
+/* "CAR" in hot orange-red gradient */
+.logo-car {
+  font-size: clamp(50px, 12vw, 88px);
+  font-weight: 900;
+  font-style: italic;
+  line-height: 0.90;
+  letter-spacing: 0.05em;
+
+  background: linear-gradient(170deg, #ffe600 0%, #ff7c00 40%, #ff2200 75%, #990000 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+
+  paint-order: stroke fill;
+  -webkit-text-stroke: 4px #03111e;
+}
+
+/* ── Button stack ─────────────────────────────────── */
+.arcade-buttons-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  width: min(340px, 88vw);
+  margin-top: clamp(22px, 5.5vh, 56px);
+}
+
+/* Base button */
+.arcade-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 13px;
+  width: 100%;
+  height: 58px;
+  border-radius: 9999px;
+  font-size: clamp(17px, 4vw, 22px);
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: 0.06em;
+  transition: transform 0.17s cubic-bezier(0.4,0,0.2,1),
+              box-shadow 0.17s cubic-bezier(0.4,0,0.2,1);
+}
+
+/* ▶ PLAY — bright cyan hero button */
+.btn-play {
+  background: linear-gradient(180deg, #00f4ff 0%, #00b8d8 55%, #0090b0 100%);
+  color: #011a28;
+  border: none;
+  box-shadow:
+    0 0 30px rgba(0, 230, 255, 0.75),
+    0 6px 20px rgba(0, 0, 0, 0.45),
+    inset 0 2px 5px rgba(255,255,255,0.85);
+  text-shadow: none;
+}
+
+.btn-play:hover {
+  transform: translateY(-3px) scale(1.025);
+  box-shadow:
+    0 0 42px rgba(0, 230, 255, 1),
+    0 10px 24px rgba(0,0,0,0.55);
+}
+
+.btn-play-triangle {
+  font-size: 19px;
+  color: #011a28;
+  margin-top: 1px;
+}
+
+/* 🚗 GARAGE / 🏆 LEVELS / ⚙ SETTINGS — dark glass capsules */
+.btn-glass {
+  background: rgba(0, 14, 34, 0.72);
+  color: #fff;
+  border: 2.5px solid var(--cyan);
+  box-shadow:
+    0 0 18px rgba(0, 239, 255, 0.42),
+    0 5px 16px rgba(0,0,0,0.45),
+    inset 0 0 10px rgba(0,239,255,0.14);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.btn-glass:hover {
+  transform: translateY(-2px) scale(1.015);
+  background: rgba(0, 26, 58, 0.86);
+  border-color: #80fcff;
+  box-shadow:
+    0 0 28px rgba(0, 239, 255, 0.70),
+    0 8px 20px rgba(0,0,0,0.55);
+}
+
+.btn-glass .btn-icon {
+  display: flex;
+  align-items: center;
+}
+
+.svg-btn-icon {
+  width: 22px;
+  height: 22px;
+  color: var(--cyan);
+  filter: drop-shadow(0 0 6px rgba(0,239,255,0.9));
+}
+
+.btn-text {
+  letter-spacing: 0.07em;
+}
+
+.arcade-btn:active {
+  transform: scale(0.95) !important;
+}
+
+/* ── Bottom-right graffiti tagline ────────────────── */
+.arcade-graffiti {
+  align-self: flex-end;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin: auto 28px 26px 0;
+  transform: rotate(-8deg);
+  pointer-events: none;
+}
+
+.graffiti-line {
+  font-family: var(--font-mark);
+  font-size: clamp(13px, 3vw, 18px);
+  line-height: 1.15;
+  color: var(--cyan);
+  text-shadow:
+    0 0 12px rgba(0, 239, 255, 0.90),
+    1px 1px 0 #000,
+    -1px -1px 0 #000;
+  letter-spacing: 0.1em;
+}
+
+.arcade-graffiti::after {
+  content: '';
+  display: block;
+  width: 88%;
+  height: 3px;
+  background: var(--cyan);
+  border-radius: 2px;
+  margin-top: 4px;
+  box-shadow: 0 0 8px var(--cyan);
+}
+
+/* =====================================================
+   SUB-SCREENS  (GARAGE / LEVELS / PAUSE / SETTINGS)
+===================================================== */
+.sub-screen {
+  position: absolute;
+  inset: 0;
+  z-index: 35;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding: 30px 20px;
+  background: radial-gradient(circle at 50% 30%,
+    rgba(0, 30, 60, 0.95) 0%,
+    rgba(1, 8, 20, 0.98) 100%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  animation: fadeIn 0.22s ease-out;
+}
+
+.sub-screen[hidden] { display: none !important; }
+
+.screen-top-bar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.screen-top-bar h2 {
+  font-size: 28px;
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: 0.05em;
+  color: var(--cyan);
+  text-shadow: 0 0 18px var(--cyan-glow);
+}
+
+.section-desc {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.screen-bottom-bar {
+  width: 100%;
+  max-width: 320px;
+  margin-top: 14px;
+}
+
+/* ── Tab switch ─────────────────────────── */
+.tab-switch {
+  display: flex;
+  gap: 8px;
+  padding: 4px;
+  border-radius: 9999px;
+  background: rgba(0, 16, 40, 0.82);
+  border: 2px solid var(--cyan);
+  box-shadow: 0 0 14px rgba(0,239,255,0.30);
+  margin: 12px 0;
+  width: 100%;
+  max-width: 340px;
+}
+
+.tabBtn {
+  flex: 1;
+  min-height: 38px;
+  border-radius: 9999px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: 0.05em;
+  transition: all 0.2s ease;
+}
+
+.tabBtn.active {
+  background: var(--cyan);
+  color: #011a28;
+  box-shadow: 0 0 14px rgba(0,239,255,0.70);
+}
+
+/* ── Card grid ──────────────────────────── */
+.grid-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  width: 100%;
+  max-width: 860px;
+  max-height: 56vh;
+  padding: 8px 12px 20px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--cyan) transparent;
+}
+
+.grid-container.active { display: grid; }
+.grid-container[hidden] { display: none !important; }
+
+.carCard, .stageCard, .level-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px;
+  border: 1.5px solid rgba(0,239,255,0.28);
+  border-radius: 18px;
+  background: rgba(0, 18, 42, 0.72);
+  backdrop-filter: blur(10px);
+  text-align: left;
+  transition: all 0.2s ease;
+}
+
+.carCard:hover, .stageCard:hover, .level-card:hover {
+  border-color: var(--cyan);
+  background: rgba(0, 30, 64, 0.85);
+  transform: translateY(-2px);
+  box-shadow: 0 0 22px rgba(0,239,255,0.30);
+}
+
+.carCard.selected, .stageCard.selected {
+  border-color: var(--cyan);
+  background: rgba(0,239,255,0.11);
+  box-shadow: 0 0 26px rgba(0,239,255,0.38);
+}
+
+.card-top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.card-title {
+  font-size: 18px;
+  font-weight: 800;
+  font-style: italic;
+  color: #fff;
+}
+
+.car-color-swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 0 8px rgba(0,0,0,0.5);
+}
+
+.badge-tag {
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.badge-tag.equipped {
+  background: rgba(16,185,129,0.20);
+  color: #34d399;
+  border: 1px solid rgba(16,185,129,0.40);
+}
+
+.badge-tag.owned {
+  background: var(--cyan-soft);
+  color: var(--cyan);
+}
+
+.stat-bars { display: flex; flex-direction: column; gap: 6px; }
+
+.stat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.stat-bar-track {
+  width: 120px; height: 5px;
+  border-radius: 3px;
+  background: rgba(255,255,255,0.1);
+  overflow: hidden;
+}
+
+.stat-bar-fill {
+  height: 100%;
+  background: var(--cyan);
+  border-radius: 3px;
+}
+
+.stage-preview-banner {
+  height: 54px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 800;
+  font-style: italic;
+  color: #fff;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.7);
+}
+
+.level-info-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--cyan);
+}
+
+/* =====================================================
+   HUD  (in-game overlay)
+===================================================== */
+#ui {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 20px 24px;
+}
+
+.hud-top { display: flex; gap: 12px; }
+
+.hud-stat {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 16px;
+  border: 1.5px solid rgba(0,239,255,0.38);
+  border-radius: 14px;
+  background: var(--navy-glass);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.hud-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--cyan);
+  letter-spacing: 0.12em;
+}
+
+.hud-stat strong {
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.hud-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 18px;
+  border: 1.5px solid rgba(0,239,255,0.38);
+  border-radius: 14px;
+  background: var(--navy-glass);
+  backdrop-filter: blur(10px);
+  max-width: 420px;
+}
+
+.hud-progress-heading {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.hud-progress-track {
+  width: 100%; height: 6px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.hud-progress-fill {
+  height: 100%; width: 0%;
+  background: linear-gradient(90deg, var(--cyan), var(--gold));
+  border-radius: 3px;
+}
+
+.hud-race-details {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--gold);
+}
+
+/* =====================================================
+   RESULT / MODAL
+===================================================== */
+.modal-overlay { background: rgba(1, 6, 18, 0.88); }
+
+.minimal-modal, .result-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  max-width: 340px;
+  padding: 28px 24px;
+  border: 2px solid var(--cyan);
+  border-radius: 24px;
+  background: var(--navy-glass);
+  box-shadow: 0 0 32px rgba(0,239,255,0.38);
+  backdrop-filter: blur(18px);
+}
+
+.result-title {
+  font-size: 26px;
+  font-weight: 900;
+  font-style: italic;
+  color: var(--cyan);
+  text-shadow: 0 0 18px var(--cyan-glow);
+}
+
+.result-title.win {
+  color: var(--gold);
+  text-shadow: 0 0 18px rgba(255,183,3,0.65);
+}
+
+.result-stats-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  padding: 14px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.04);
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.result-stat-line {
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-muted);
+}
+
+.result-stat-line strong { color: #fff; }
+
+.modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+/* ── Generic menu buttons ─────────────────────────── */
+.menuBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 20px;
+  border-radius: 9999px;
+  font-size: 15px;
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: 0.05em;
+  transition: all 0.18s ease;
+}
+
+.primary-action-btn {
+  background: linear-gradient(180deg, #00f4ff 0%, #00b4d8 100%);
+  color: #011a28;
+  box-shadow: 0 0 18px rgba(0,239,255,0.62);
+}
+
+.primary-action-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 28px rgba(0,239,255,0.90);
+}
+
+.secondary-action-btn {
+  background: var(--navy-glass);
+  border: 2px solid var(--cyan);
+  color: #fff;
+}
+
+.secondary-action-btn:hover {
+  background: rgba(0,30,68,0.90);
+  transform: translateY(-2px);
+}
+
+.outline-action-btn {
+  background: transparent;
+  border: 1.5px solid rgba(255,255,255,0.25);
+  color: var(--text-muted);
+}
+
+.outline-action-btn:hover { border-color: #fff; color: #fff; }
+
+/* =====================================================
+   TOUCH CONTROLS
+===================================================== */
+#controls {
+  position: absolute;
+  bottom: 24px;
+  left: 0; right: 0;
+  z-index: 25;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  padding: 0 16px;
+  pointer-events: none;
+}
+
+.ctrl {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 68px;
+  height: 68px;
+  border: 2px solid var(--cyan);
+  border-radius: 20px;
+  background: var(--navy-glass);
+  box-shadow: 0 0 16px rgba(0,239,255,0.35);
+  backdrop-filter: blur(10px);
+  color: #fff;
+  pointer-events: auto;
+  transition: all 0.15s ease;
+}
+
+.ctrl-icon { font-size: 16px; color: var(--cyan); }
+
+.ctrl-text {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.ctrl-jump .ctrl-icon, .ctrl-slide .ctrl-icon { color: #a855f7; }
+
+.ctrl:hover { background: rgba(0,38,88,0.90); transform: translateY(-2px); }
+.ctrl:active { transform: scale(0.91); }
+
+/* ── Pause button ──────────────────────────────────── */
+#pauseBtn {
+  position: absolute;
+  top: 18px; right: 18px;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 2px solid var(--cyan);
+  border-radius: 12px;
+  background: var(--navy-glass);
+  color: var(--cyan);
+  font-weight: 900;
+  box-shadow: 0 0 14px rgba(0,239,255,0.38);
+  backdrop-filter: blur(8px);
+  transition: transform 0.15s ease;
+}
+
+#pauseBtn:hover { transform: scale(1.09); }
+
+/* =====================================================
+   ANIMATIONS
+===================================================== */
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.985); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 22px rgba(0,239,255,0.55); }
+  50%       { box-shadow: 0 0 40px rgba(0,239,255,0.90); }
+}
+
+.btn-play { animation: pulse-glow 2.8s ease-in-out infinite; }
+
+/* =====================================================
+   RESPONSIVE
+===================================================== */
+@media (max-width: 520px) {
+  .arcade-top-bar { padding: 16px 16px 0; }
+
+  .arcade-logo-area {
+    margin-top: clamp(10px, 4vh, 32px);
+  }
+
+  .logo-flappy { font-size: clamp(46px, 15vw, 72px); }
+  .logo-car    { font-size: clamp(42px, 14vw, 68px); }
+
+  .arcade-buttons-stack {
+    width: min(300px, 86vw);
+    gap: 9px;
+    margin-top: clamp(16px, 4vh, 36px);
+  }
+
+  .arcade-btn {
+    height: 52px;
+    font-size: 17px;
+  }
+
+  .arcade-graffiti {
+    margin: auto 16px 18px 0;
+  }
+
+  .grid-container {
+    grid-template-columns: 1fr;
+    max-height: 50vh;
+  }
+
+  #controls { bottom: 14px; gap: 10px; }
+  .ctrl { width: 60px; height: 60px; }
+}
+
+/* Wide / landscape tweak — keep content centered */
+@media (min-width: 900px) and (min-height: 700px) {
+  .arcade-logo-area { margin-top: clamp(40px, 9vh, 90px); }
+  .arcade-buttons-stack { gap: 13px; }
+  .arcade-btn { height: 62px; }
+}

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#001830" />
+    <meta name="description" content="Flappy Car — 3D Highway Drive with dynamic curved roads, city scenery, and racing stages." />
+    <title>FLAPPY CAR</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <div id="gameContainer">
+      <!-- Full-screen 3D Canvas -->
+      <canvas id="game" tabindex="0"></canvas>
+
+      <!-- Minimal HUD Overlay during Gameplay -->
+      <div id="ui" hidden></div>
+
+      <!-- Quick Action Controls during Gameplay -->
+      <button id="pauseBtn" type="button" aria-label="Pause" title="Pause" hidden>
+        <span>II</span>
+      </button>
+      <!-- Authentic Arcade Landing Screen -->
+      <section id="homeScreen" class="menu-screen arcade-home" aria-label="Main menu">
+        <!-- Top Navigation Bar -->
+        <header class="arcade-top-bar">
+          <div class="coin-capsule" id="coinCapsule">
+            <span class="coin-coin-icon">
+              <svg viewBox="0 0 32 32" class="svg-coin">
+                <circle cx="16" cy="16" r="14" fill="#ffb703" stroke="#ffd166" stroke-width="2"/>
+                <circle cx="16" cy="16" r="11" fill="#f59e0b" stroke="#fef08a" stroke-width="1.5"/>
+                <text x="16" y="21" font-size="14" font-weight="900" font-family="'Montserrat', sans-serif" fill="#ffffff" text-anchor="middle">$</text>
+              </svg>
+            </span>
+            <span id="coinDisplay" class="coin-value">0</span>
+          </div>
+
+          <button id="muteBtn" class="sound-toggle-btn" type="button" aria-label="Toggle Sound" title="Sound">
+            <svg id="soundOnSvg" viewBox="0 0 24 24" class="svg-sound">
+              <path d="M11 5L6 9H2v6h4l5 4V5z" fill="currentColor"/>
+              <path d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </header>
+
+        <!-- Center 3D Logo Block -->
+        <div class="arcade-logo-area">
+          <div class="arcade-logo">
+            <div class="logo-flappy">FLAPPY</div>
+            <div class="logo-car-row">
+              <div class="logo-wing left">
+                <span></span>
+                <span></span>
+              </div>
+              <span class="logo-car">CAR</span>
+              <div class="logo-wing right">
+                <span></span>
+                <span></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Vertical Interactive Menu Button Stack -->
+        <div class="arcade-buttons-stack">
+          <button class="arcade-btn btn-play" id="adventureBtn" type="button">
+            <span class="btn-play-triangle">▶</span>
+            <span class="btn-text">PLAY</span>
+          </button>
+
+          <button class="arcade-btn btn-glass" id="garageBtn" type="button">
+            <span class="btn-icon">
+              <svg viewBox="0 0 24 24" class="svg-btn-icon">
+                <path fill="currentColor" d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>
+              </svg>
+            </span>
+            <span class="btn-text">GARAGE</span>
+          </button>
+
+          <button class="arcade-btn btn-glass" id="racingBtn" type="button">
+            <span class="btn-icon">
+              <svg viewBox="0 0 24 24" class="svg-btn-icon">
+                <path fill="currentColor" d="M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94A5.01 5.01 0 0 0 11 15.9V19H7v2h10v-2h-4v-3.1a5.01 5.01 0 0 0 3.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2zM5 8V7h2v3.82C5.84 10.4 5 9.3 5 8zm14 0c0 1.3-.84 2.4-2 2.82V7h2v1z"/>
+              </svg>
+            </span>
+            <span class="btn-text">LEVELS</span>
+          </button>
+
+          <button class="arcade-btn btn-glass" id="settingsBtn" type="button">
+            <span class="btn-icon">
+              <svg viewBox="0 0 24 24" class="svg-btn-icon">
+                <path fill="currentColor" d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+              </svg>
+            </span>
+            <span class="btn-text">SETTINGS</span>
+          </button>
+        </div>
+
+        <!-- Bottom Tagline Graffiti -->
+        <div class="arcade-graffiti">
+          <span class="graffiti-line">DRIVE</span>
+          <span class="graffiti-line">JUMP</span>
+          <span class="graffiti-line">SURVIVE</span>
+        </div>
+      </section>
+
+      <!-- Garage Screen -->
+      <section id="garageScreen" class="menu-screen sub-screen" aria-label="Garage" hidden>
+        <div class="screen-top-bar">
+          <h2>GARAGE</h2>
+          <p class="section-desc">Select vehicle model and driving environment</p>
+        </div>
+
+        <div id="garageTabs" class="tab-switch">
+          <button class="tabBtn active" id="carsTab" type="button">VEHICLES</button>
+          <button class="tabBtn" id="stagesTab" type="button">ENVIRONMENTS</button>
+        </div>
+
+        <div id="garageCars" class="grid-container active"></div>
+        <div id="garageStages" class="grid-container" hidden></div>
+
+        <div class="screen-bottom-bar">
+          <button class="menuBtn secondary-action-btn" id="backBtn" type="button">
+            ← BACK TO MENU
+          </button>
+        </div>
+      </section>
+
+      <!-- Racing Levels Screen -->
+      <section id="levelSelectScreen" class="menu-screen sub-screen" aria-label="Racing levels" hidden>
+        <div class="screen-top-bar">
+          <h2>RACING CIRCUITS</h2>
+          <p class="section-desc">Progress through challenging stages with distance and time goals</p>
+        </div>
+
+        <div id="levelsContainer" class="grid-container"></div>
+
+        <div class="screen-bottom-bar">
+          <button class="menuBtn secondary-action-btn" id="backFromLevelsBtn" type="button">
+            ← BACK TO MENU
+          </button>
+        </div>
+      </section>
+
+      <!-- Minimal Pause Menu -->
+      <section id="pauseMenu" class="menu-screen modal-overlay" aria-label="Pause menu" hidden>
+        <div class="minimal-modal">
+          <h3>PAUSED</h3>
+          <div class="modal-actions">
+            <button class="menuBtn primary-action-btn" id="resumeBtn" type="button">RESUME</button>
+            <button class="menuBtn secondary-action-btn" id="restartBtn" type="button">RESTART</button>
+            <button class="menuBtn outline-action-btn" id="homeBtn" type="button">MAIN MENU</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Responsive Touch Driving Controls -->
+      <nav id="controls" aria-label="Driving controls" hidden>
+        <button class="ctrl" id="leftBtn" type="button" aria-label="Move left">
+          <span class="ctrl-icon">◀</span>
+          <span class="ctrl-text">LEFT</span>
+        </button>
+        <button class="ctrl ctrl-jump" id="jumpBtn" type="button" aria-label="Jump">
+          <span class="ctrl-icon">▲</span>
+          <span class="ctrl-text">JUMP</span>
+        </button>
+        <button class="ctrl ctrl-slide" id="slideBtn" type="button" aria-label="Slide">
+          <span class="ctrl-icon">▼</span>
+          <span class="ctrl-text">SLIDE</span>
+        </button>
+        <button class="ctrl" id="rightBtn" type="button" aria-label="Move right">
+          <span class="ctrl-icon">▶</span>
+          <span class="ctrl-text">RIGHT</span>
+        </button>
+      </nav>
+    </div>
+
+    <script type="module" src="./js/main.js"></script>
+  </body>
+</html>
