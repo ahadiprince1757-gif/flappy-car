@@ -288,6 +288,42 @@ function bindTouchControl(id, actionName) {
   button.dataset.touchBound = "true";
 }
 
+function bindContinuousTouchControl(id, startActionName, stopActionName) {
+  const button = byId(id);
+  if (!button || button.dataset.touchBound === "true") return;
+
+  const startAction = playerControls[startActionName];
+  const stopAction = playerControls[stopActionName];
+
+  const handleStart = (event) => {
+    event.preventDefault();
+    if (gameState.status !== "playing") return;
+    try {
+      button.setPointerCapture(event.pointerId);
+    } catch {
+      // Ignored
+    }
+    if (typeof startAction === "function") startAction();
+  };
+
+  const handleEnd = (event) => {
+    event.preventDefault();
+    try {
+      button.releasePointerCapture(event.pointerId);
+    } catch {
+      // Ignored
+    }
+    if (typeof stopAction === "function") stopAction();
+  };
+
+  button.addEventListener("pointerdown", handleStart);
+  button.addEventListener("pointerup", handleEnd);
+  button.addEventListener("pointercancel", handleEnd);
+  button.addEventListener("pointerleave", handleEnd);
+
+  button.dataset.touchBound = "true";
+}
+
 function bindGameEvents() {
   window.addEventListener("flappycar:gameover", () => {
     playCrashSound();
@@ -352,7 +388,8 @@ export function initializeUI() {
   bindTouchControl("leftBtn", "left");
   bindTouchControl("rightBtn", "right");
   bindTouchControl("jumpBtn", "jump");
-  bindTouchControl("slideBtn", "slide");
+  bindContinuousTouchControl("gasBtn", "startAccelerate", "stopAccelerate");
+  bindContinuousTouchControl("brakeBtn", "startBrake", "stopBrake");
 
   bindButton("muteBtn", () => {
     toggleMute();

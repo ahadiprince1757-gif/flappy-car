@@ -156,25 +156,45 @@
         </div>
       </section>
 
-      <!-- Responsive Touch Driving Controls -->
-      <nav id="controls" aria-label="Driving controls" hidden>
-        <button class="ctrl" id="leftBtn" type="button" aria-label="Move left">
-          <span class="ctrl-icon">◀</span>
-          <span class="ctrl-text">LEFT</span>
-        </button>
-        <button class="ctrl ctrl-jump" id="jumpBtn" type="button" aria-label="Jump">
-          <span class="ctrl-icon">▲</span>
-          <span class="ctrl-text">JUMP</span>
-        </button>
-        <button class="ctrl ctrl-slide" id="slideBtn" type="button" aria-label="Slide">
-          <span class="ctrl-icon">▼</span>
-          <span class="ctrl-text">SLIDE</span>
-        </button>
-        <button class="ctrl" id="rightBtn" type="button" aria-label="Move right">
-          <span class="ctrl-icon">▶</span>
-          <span class="ctrl-text">RIGHT</span>
-        </button>
-      </nav>
+      <!-- Faded Realistic Game Driving HUD Controls -->
+      <div id="controls" class="game-cockpit-controls" aria-label="Driving controls" hidden>
+        <!-- Bottom Left: Steering Controls -->
+        <div class="control-zone control-zone-left">
+          <button class="cockpit-btn steer-btn" id="leftBtn" type="button" aria-label="Steer Left">
+            <svg viewBox="0 0 24 24" class="cockpit-icon"><path d="M15 19l-7-7 7-7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span class="cockpit-label">LEFT</span>
+          </button>
+          <button class="cockpit-btn steer-btn" id="rightBtn" type="button" aria-label="Steer Right">
+            <svg viewBox="0 0 24 24" class="cockpit-icon"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span class="cockpit-label">RIGHT</span>
+          </button>
+        </div>
+
+        <!-- Bottom Right: Pedals & Rocket Boost -->
+        <div class="control-zone control-zone-right">
+          <!-- Brake Pedal -->
+          <button class="cockpit-btn pedal-btn pedal-brake" id="brakeBtn" type="button" aria-label="Brake">
+            <div class="pedal-ribs"><span></span><span></span><span></span></div>
+            <span class="cockpit-label">BRAKE</span>
+          </button>
+
+          <!-- Jump / Rocket Booster -->
+          <button class="cockpit-btn boost-btn" id="jumpBtn" type="button" aria-label="Jump Rocket Boost">
+            <svg viewBox="0 0 24 24" class="cockpit-icon icon-rocket">
+              <path d="M12 2.5c-3 3-4 7-4 10.5 0 2 .5 3.5 1.5 4.5l1.5-1.5-.5-2.5 1.5-1 1.5 1-.5 2.5 1.5 1.5c1-1 1.5-2.5 1.5-4.5 0-3.5-1-7.5-4-10.5z" fill="currentColor"/>
+              <path d="M7 14l-3 2 1 3 3-1-1-4zM17 14l3 2-1 3-3-1 1-4z" fill="currentColor"/>
+              <path d="M10 20l2 3 2-3h-4z" fill="#ff7b00"/>
+            </svg>
+            <span class="cockpit-label">JUMP</span>
+          </button>
+
+          <!-- Gas / Accelerate Pedal -->
+          <button class="cockpit-btn pedal-btn pedal-gas" id="gasBtn" type="button" aria-label="Accelerate">
+            <div class="pedal-ribs"><span></span><span></span><span></span><span></span></div>
+            <span class="cockpit-label">GAS</span>
+          </button>
+        </div>
+      </div>
     </div>
 
     <script type="module" src="./js/main.js"></script>

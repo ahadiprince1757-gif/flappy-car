@@ -334,9 +334,90 @@ export function createCarModel(carId = "cyber") {
     exhaust.rotation.x = Math.PI / 2;
   }
 
+  /* ----- ROCKET FUEL THRUSTERS (activates on Jump) ----- */
+  const rocketGroup = new THREE.Group();
+  rocketGroup.name = "rocket-thrusters";
+  rocketGroup.visible = false;
+
+  const rocketCoreMat = new THREE.MeshBasicMaterial({
+    color: "#ffffff"
+  });
+
+  const rocketPlumeMat = new THREE.MeshStandardMaterial({
+    color: "#ff3700",
+    emissive: "#ff5500",
+    emissiveIntensity: 4.8,
+    roughness: 0.2,
+    transparent: true,
+    opacity: 0.90
+  });
+
+  const rocketNozzleMat = mat("#1e293b", { roughness: 0.35, metalness: 0.9 });
+
+  const thrusterFlames = [];
+  const thrusterPositions = [
+    [-0.42, 0.15, -0.45],
+    [0.42, 0.15, -0.45],
+    [-0.42, 0.15, 0.75],
+    [0.42, 0.15, 0.75]
+  ];
+
+  for (const [tx, ty, tz] of thrusterPositions) {
+    // Metal nozzle
+    const nozzle = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.11, 0.14, 0.09, 10),
+      rocketNozzleMat
+    );
+    nozzle.position.set(tx, ty, tz);
+    rocketGroup.add(nozzle);
+
+    // Inner bright plasma core
+    const core = new THREE.Mesh(
+      new THREE.ConeGeometry(0.08, 0.40, 8),
+      rocketCoreMat
+    );
+    core.rotation.x = Math.PI; // point downwards
+    core.position.set(tx, ty - 0.20, tz);
+    rocketGroup.add(core);
+
+    // Outer fiery rocket fuel flame
+    const plume = new THREE.Mesh(
+      new THREE.ConeGeometry(0.18, 0.85, 8),
+      rocketPlumeMat
+    );
+    plume.rotation.x = Math.PI; // point downwards
+    plume.position.set(tx, ty - 0.42, tz);
+    rocketGroup.add(plume);
+    thrusterFlames.push(plume);
+  }
+
+  // Dual rear exhaust booster jets
+  for (const sx of [-1, 1]) {
+    const rearJet = new THREE.Mesh(
+      new THREE.ConeGeometry(0.12, 0.75, 8),
+      rocketPlumeMat
+    );
+    rearJet.rotation.x = -Math.PI / 2; // point backwards
+    rearJet.position.set(sx * 0.42, 0.30, 2.38);
+    rocketGroup.add(rearJet);
+    thrusterFlames.push(rearJet);
+  }
+
+  // Dynamic rocket glow point light beneath the chassis
+  const rocketLight = new THREE.PointLight("#ff6600", 0, 7.5, 2);
+  rocketLight.position.set(0, 0.05, 0.15);
+  rocketGroup.add(rocketLight);
+
+  car.add(rocketGroup);
+
   /* ----- USER DATA ----- */
   car.userData.wheels = wheels;
   car.userData.originalScale = car.scale.clone();
+  car.userData.rocketThrusters = {
+    group: rocketGroup,
+    light: rocketLight,
+    flames: thrusterFlames
+  };
 
   return car;
 }

@@ -20,40 +20,59 @@ function handleKeyDown(event) {
     "a",
     "d",
     "w",
-    "s"
+    "s",
+    "shift"
   ];
 
   if (controlledKeys.includes(key)) {
     event.preventDefault();
   }
 
-  if (event.repeat) return;
   if (gameState.status !== "playing") return;
 
   switch (key) {
     case "arrowleft":
     case "a":
-      gameState.input.left = true;
-      moveLeft();
+      if (!event.repeat) {
+        gameState.input.left = true;
+        moveLeft();
+      }
       break;
 
     case "arrowright":
     case "d":
-      gameState.input.right = true;
-      moveRight();
+      if (!event.repeat) {
+        gameState.input.right = true;
+        moveRight();
+      }
       break;
 
+    // Up / W: Accelerate
     case "arrowup":
     case "w":
-    case " ":
-      gameState.input.jump = true;
-      jump();
+      gameState.input.accelerate = true;
       break;
 
+    // Down / S: Brake
     case "arrowdown":
     case "s":
-      gameState.input.slide = true;
-      slide();
+      gameState.input.brake = true;
+      break;
+
+    // Space: Jump (ignites rocket fuel booster!)
+    case " ":
+      if (!event.repeat) {
+        gameState.input.jump = true;
+        jump();
+      }
+      break;
+
+    // Shift: Slide
+    case "shift":
+      if (!event.repeat) {
+        gameState.input.slide = true;
+        slide();
+      }
       break;
   }
 }
@@ -72,12 +91,19 @@ function handleKeyUp(event) {
 
     case "arrowup":
     case "w":
-    case " ":
-      gameState.input.jump = false;
+      gameState.input.accelerate = false;
       break;
 
     case "arrowdown":
     case "s":
+      gameState.input.brake = false;
+      break;
+
+    case " ":
+      gameState.input.jump = false;
+      break;
+
+    case "shift":
       gameState.input.slide = false;
       break;
   }
@@ -88,6 +114,24 @@ function handleBlur() {
   gameState.input.right = false;
   gameState.input.jump = false;
   gameState.input.slide = false;
+  gameState.input.accelerate = false;
+  gameState.input.brake = false;
+}
+
+export function startAccelerate() {
+  gameState.input.accelerate = true;
+}
+
+export function stopAccelerate() {
+  gameState.input.accelerate = false;
+}
+
+export function startBrake() {
+  gameState.input.brake = true;
+}
+
+export function stopBrake() {
+  gameState.input.brake = false;
 }
 
 export function initializeControls() {
@@ -115,5 +159,9 @@ export const playerControls = {
   left: moveLeft,
   right: moveRight,
   jump,
-  slide
+  slide,
+  startAccelerate,
+  stopAccelerate,
+  startBrake,
+  stopBrake
 };

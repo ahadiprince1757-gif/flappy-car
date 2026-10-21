@@ -118,6 +118,27 @@ function updateJump(player, deltaTime) {
     }
   }
 
+  // Animate fiery rocket fuel thrusters below the car while airborne
+  const rocket = player.group?.userData.rocketThrusters;
+  if (rocket) {
+    if (player.isJumping && (player.jumpHeight || 0) > 0.05) {
+      rocket.group.visible = true;
+      if (rocket.light) {
+        rocket.light.intensity = 3.8 + Math.random() * 1.8;
+      }
+      const pulseTime = Date.now() * 0.045;
+      for (let i = 0; i < rocket.flames.length; i++) {
+        const flame = rocket.flames[i];
+        const stretch = 1.0 + Math.sin(pulseTime + i * 1.2) * 0.35 + Math.random() * 0.3;
+        flame.scale.y = stretch;
+        flame.scale.x = flame.scale.z = 0.85 + Math.random() * 0.3;
+      }
+    } else {
+      rocket.group.visible = false;
+      if (rocket.light) rocket.light.intensity = 0;
+    }
+  }
+
   player.groundY = groundElevation;
   player.group.position.y = groundElevation + (player.jumpHeight || 0);
 }
@@ -181,10 +202,46 @@ function updateCamera(player, deltaTime) {
   camera.lookAt(lookTarget);
 }
 
+function updatePlayerSpeed(deltaTime) {
+  if (gameState.boostActive) return; // boost power-up controls speed directly
+
+  const base = gameState.baseSpeed || 18;
+  const max = gameState.maxSpeed || 36;
+  const min = 8;
+
+  let targetSpeed = base;
+  if (gameState.input.accelerate) {
+    targetSpeed = max;
+  } else if (gameState.input.brake) {
+    targetSpeed = min;
+  }
+
+  // Smooth realistic acceleration / deceleration
+  const rate = targetSpeed > gameState.speed ? 18.0 : 28.0;
+  gameState.speed = THREE.MathUtils.damp(gameState.speed, targetSpeed, rate, deltaTime);
+
+  // Dynamic visual brake feedback on car's rear LED bar
+  const player = gameState.player;
+  if (player?.group) {
+    const isBraking = Boolean(gameState.input.brake);
+    const tailLed = player.group.getObjectByName("tail-led-bar");
+    if (tailLed?.material) {
+      tailLed.material.emissiveIntensity = isBraking ? 6.5 : 2.5;
+    }
+    for (const sx of [-1, 1]) {
+      const tl = player.group.getObjectByName(`taillight-${sx}`);
+      if (tl?.material) {
+        tl.material.emissiveIntensity = isBraking ? 5.2 : 1.8;
+      }
+    }
+  }
+}
+
 export function updatePlayerMovement(deltaTime) {
   const player = gameState.player;
   if (!player || gameState.status !== "playing") return;
 
+  updatePlayerSpeed(deltaTime);
   updateLaneMovement(player, deltaTime);
   updateJump(player, deltaTime);
   updateRoadTilt(player, deltaTime);

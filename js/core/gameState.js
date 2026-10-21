@@ -50,7 +50,9 @@ export const gameState = {
     left: false,
     right: false,
     jump: false,
-    slide: false
+    slide: false,
+    accelerate: false,
+    brake: false
   }
 };
 
@@ -82,4 +84,6 @@ export function resetGameState() {
   gameState.input.right = false;
   gameState.input.jump = false;
   gameState.input.slide = false;
+  gameState.input.accelerate = false;
+  gameState.input.brake = false;
 }

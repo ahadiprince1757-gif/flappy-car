@@ -807,52 +807,167 @@ button {
 .outline-action-btn:hover { border-color: #fff; color: #fff; }
 
 /* =====================================================
-   TOUCH CONTROLS
+   REALISTIC FADED COCKPIT DRIVING CONTROLS
 ===================================================== */
-#controls {
+.game-cockpit-controls {
   position: absolute;
-  bottom: 24px;
-  left: 0; right: 0;
+  inset: 0;
   z-index: 25;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 16px;
-  padding: 0 16px;
   pointer-events: none;
+  overflow: hidden;
 }
 
-.ctrl {
+.control-zone {
+  position: absolute;
+  bottom: 24px;
+  display: flex;
+  align-items: flex-end;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.control-zone-left {
+  left: 28px;
+  gap: 12px;
+}
+
+.control-zone-right {
+  right: 28px;
+  gap: 14px;
+}
+
+/* Subtle, faded semi-transparent realistic game controls */
+.cockpit-btn {
+  pointer-events: auto;
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  background: rgba(15, 23, 42, 0.28);
+  border: 1.5px solid rgba(255, 255, 255, 0.22);
+  border-radius: 16px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: rgba(255, 255, 255, 0.75);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+  opacity: 0.28; /* Faded by default like authentic console/mobile driving HUD */
+  transition: opacity 0.2s ease, transform 0.12s ease, border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  touch-action: none;
+}
+
+.cockpit-btn:hover {
+  opacity: 0.70;
+  border-color: rgba(0, 240, 255, 0.5);
+  box-shadow: 0 0 16px rgba(0, 240, 255, 0.3);
+}
+
+.cockpit-btn:active {
+  opacity: 0.95;
+  transform: scale(0.92);
+}
+
+/* Steering Buttons */
+.steer-btn {
+  width: 58px;
+  height: 58px;
+  border-radius: 18px;
   gap: 2px;
+}
+
+.steer-btn .cockpit-icon {
+  width: 22px;
+  height: 22px;
+  color: var(--cyan);
+}
+
+/* Pedals */
+.pedal-btn {
+  gap: 6px;
+  background: linear-gradient(180deg, rgba(30, 41, 59, 0.40) 0%, rgba(15, 23, 42, 0.60) 100%);
+}
+
+.pedal-brake {
   width: 68px;
-  height: 68px;
-  border: 2px solid var(--cyan);
-  border-radius: 20px;
-  background: var(--navy-glass);
-  box-shadow: 0 0 16px rgba(0,239,255,0.35);
-  backdrop-filter: blur(10px);
-  color: #fff;
-  pointer-events: auto;
-  transition: all 0.15s ease;
+  height: 64px;
+  border-radius: 14px;
+  border-color: rgba(239, 68, 68, 0.35);
 }
 
-.ctrl-icon { font-size: 16px; color: var(--cyan); }
-
-.ctrl-text {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--text-muted);
+.pedal-brake:hover,
+.pedal-brake:active {
+  border-color: #ef4444;
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.55);
 }
 
-.ctrl-jump .ctrl-icon, .ctrl-slide .ctrl-icon { color: #a855f7; }
+.pedal-brake:active {
+  background: rgba(239, 68, 68, 0.25);
+}
 
-.ctrl:hover { background: rgba(0,38,88,0.90); transform: translateY(-2px); }
-.ctrl:active { transform: scale(0.91); }
+.pedal-gas {
+  width: 56px;
+  height: 94px;
+  border-radius: 16px;
+  border-color: rgba(16, 185, 129, 0.35);
+}
+
+.pedal-gas:hover,
+.pedal-gas:active {
+  border-color: #10b981;
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.55);
+}
+
+.pedal-gas:active {
+  background: rgba(16, 185, 129, 0.25);
+}
+
+/* Metallic pedal friction ribs */
+.pedal-ribs {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+}
+
+.pedal-ribs span {
+  display: block;
+  width: 28px;
+  height: 2.5px;
+  background: rgba(255, 255, 255, 0.35);
+  border-radius: 2px;
+}
+
+/* Jump / Rocket Boost Button */
+.boost-btn {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  border-color: rgba(245, 158, 11, 0.45);
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.2);
+}
+
+.boost-btn .icon-rocket {
+  width: 24px;
+  height: 24px;
+  color: #fbbf24;
+}
+
+.boost-btn:hover,
+.boost-btn:active {
+  opacity: 0.95;
+  border-color: #f59e0b;
+  box-shadow: 0 0 24px rgba(245, 158, 11, 0.65);
+}
+
+.cockpit-label {
+  font-family: var(--font-mono, monospace);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: rgba(255, 255, 255, 0.85);
+}
 
 /* ── Pause button ──────────────────────────────────── */
 #pauseBtn {
