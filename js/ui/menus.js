@@ -23,11 +23,9 @@ function bindClick(id, callback) {
   const element = byId(id);
   if (!element || element.dataset.menuBound === "true") return;
 
-  // pointerdown fires ~300ms before click — instant feel
-  element.addEventListener("pointerdown", (e) => {
-    e.preventDefault();
-    callback(e);
-  });
+  // touch-action:manipulation in CSS removes 300ms tap delay,
+  // so click is instant and safe — pointerdown + preventDefault breaks focus/capture
+  element.addEventListener("click", callback);
   element.dataset.menuBound = "true";
 }
 

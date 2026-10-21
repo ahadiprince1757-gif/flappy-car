@@ -261,11 +261,8 @@ function bindButton(id, handler) {
   const button = byId(id);
   if (!button || button.dataset.uiBound === "true") return;
 
-  // Use pointerdown for ~300ms faster response than click
-  button.addEventListener("pointerdown", (e) => {
-    e.preventDefault();
-    handler(e);
-  });
+  // touch-action:manipulation in CSS removes 300ms tap delay — click is instant and safe
+  button.addEventListener("click", handler);
   button.dataset.uiBound = "true";
 }
 
