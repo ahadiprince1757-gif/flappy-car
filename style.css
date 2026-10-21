@@ -93,11 +93,10 @@ button {
 
   /* Subtle centre vignette over the background photo */
   background-color: #020c18;
-  background-image:
-    radial-gradient(ellipse 80% 100% at 50% 50%,
-      rgba(0, 8, 20, 0.10) 0%,
-      rgba(0, 4, 14, 0.55) 100%),
-    url('./assets/landing_bg.jpg');
+  background-image: url('./assets/tixar.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   background-size:    cover;
   background-position: center top;
   background-repeat: no-repeat;
@@ -378,6 +377,10 @@ button {
 }
 
 /* ── Bottom-right graffiti tagline ────────────────── */
+
+/* Minimal landing page: hide all but PLAY button */
+/* Minimal landing page hide rules removed – full landing UI now visible */
+
 .arcade-graffiti {
   align-self: flex-end;
   display: flex;
