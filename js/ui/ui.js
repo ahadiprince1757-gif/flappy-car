@@ -261,7 +261,11 @@ function bindButton(id, handler) {
   const button = byId(id);
   if (!button || button.dataset.uiBound === "true") return;
 
-  button.addEventListener("click", handler);
+  // Use pointerdown for ~300ms faster response than click
+  button.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    handler(e);
+  });
   button.dataset.uiBound = "true";
 }
 

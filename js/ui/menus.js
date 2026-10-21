@@ -23,7 +23,11 @@ function bindClick(id, callback) {
   const element = byId(id);
   if (!element || element.dataset.menuBound === "true") return;
 
-  element.addEventListener("click", callback);
+  // pointerdown fires ~300ms before click — instant feel
+  element.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    callback(e);
+  });
   element.dataset.menuBound = "true";
 }
 

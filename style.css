@@ -302,6 +302,9 @@ button {
   font-weight: 900;
   font-style: italic;
   letter-spacing: 0.06em;
+  /* GPU-composite so touch never waits on main thread */
+  will-change: transform;
+  touch-action: manipulation;
   transition: transform 0.17s cubic-bezier(0.4,0,0.2,1),
               box-shadow 0.17s cubic-bezier(0.4,0,0.2,1);
 }
@@ -370,7 +373,8 @@ button {
 }
 
 .arcade-btn:active {
-  transform: scale(0.95) !important;
+  transform: scale(0.93) !important;
+  transition: transform 0.06s ease !important; /* snap-fast on press */
 }
 
 /* ── Bottom-right graffiti tagline ────────────────── */
@@ -777,7 +781,14 @@ button {
   font-weight: 800;
   font-style: italic;
   letter-spacing: 0.05em;
+  will-change: transform;
+  touch-action: manipulation;
   transition: all 0.18s ease;
+}
+
+.menuBtn:active {
+  transform: scale(0.93) !important;
+  transition: transform 0.06s ease !important;
 }
 
 .primary-action-btn {

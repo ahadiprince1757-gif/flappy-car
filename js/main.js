@@ -120,13 +120,23 @@ function start() {
   try {
     loadSavedSelections();
 
-    // 0. Kick off async 3D model loading for cars & buildings
-    preloadBuildingModels();
-    preloadCarModels(() => {
-      if (gameState.scene && gameState.player) {
-        createPlayer(gameState.selectedCar);
+    // 0. Kick off async 3D model loading for cars & buildings (deferred so UI is instantly responsive)
+    const scheduleModelLoad = (fn) => {
+      if (typeof requestIdleCallback === "function") {
+        requestIdleCallback(fn, { timeout: 3000 });
+      } else {
+        setTimeout(fn, 100);
       }
-    });
+    };
+
+    scheduleModelLoad(() => preloadBuildingModels());
+    scheduleModelLoad(() =>
+      preloadCarModels(() => {
+        if (gameState.scene && gameState.player) {
+          createPlayer(gameState.selectedCar);
+        }
+      })
+    );
 
     // 1. Initialize 3D Engine & Viewport
     initializeGame(canvas);

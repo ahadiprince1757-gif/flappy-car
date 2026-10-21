@@ -22,7 +22,7 @@ export const MARKING_OFFSETS = [-1.8, 1.8];
 const TRACK_START_Z = 20;
 const TRACK_END_Z = -260;
 const TRACK_LENGTH = TRACK_START_Z - TRACK_END_Z; // 280m
-const LONGITUDINAL_SEGMENTS = 200;
+const LONGITUDINAL_SEGMENTS = 80; // Reduced from 200 — still smooth, much less geometry
 
 export function getRoadHeight(z) {
   // Ultra-smooth gentle crest along track (peak 0.45m at mid-track, zero slope at endpoints)
@@ -207,7 +207,7 @@ function createLaneDashes(stage, parent) {
   });
 
   const dashes = [];
-  const dashCount = 40;
+  const dashCount = 24; // Reduced from 40 — less per-frame updates
   const spacing = TRACK_LENGTH / dashCount; // 7m spacing
 
   for (const offset of MARKING_OFFSETS) {
@@ -252,7 +252,7 @@ function createRoadsidePosts(stage, parent) {
   });
 
   const posts = [];
-  const postCount = 16;
+  const postCount = 10; // Reduced from 16 — less per-frame updates
   const postSpacing = TRACK_LENGTH / postCount; // 17.5m
 
   for (let i = 0; i < postCount; i++) {
