@@ -1,7 +1,7 @@
-
 import { gameState } from "../core/gameState.js";
 import { removeObstacle } from "../obstacles/obstacles.js";
 import { handleRaceCollision } from "../racing/racing.js";
+import { getTrafficPool } from "../traffic/trafficCars.js";
 
 const COLLISION_FORWARD_DISTANCE = 1.4;
 const COLLISION_LANE_DISTANCE = 1.25;
@@ -72,6 +72,32 @@ export function checkCollisions() {
       type: obstacle.type
     });
 
+    return true;
+  }
+
+  // ── Traffic car collisions ────────────────────────────────────
+  const trafficPool = getTrafficPool();
+  for (const entry of trafficPool) {
+    if (!entry.active) continue;
+
+    const forwardDist = Math.abs(entry.roadZ - playerZ);
+    if (forwardDist >= COLLISION_FORWARD_DISTANCE + 0.6) continue;
+
+    const lateralDist = Math.abs(entry.laneOffset - playerLaneOffset);
+    if (lateralDist >= COLLISION_LANE_DISTANCE + 0.2) continue;
+
+    // Can jump over traffic cars
+    if (player.isJumping && (player.jumpHeight || 0) > JUMP_CLEARANCE) continue;
+
+    if (gameState.shieldActive) {
+      gameState.shieldActive = false;
+      continue;
+    }
+
+    entry.active = false;
+    entry.group.visible = false;
+
+    handleRaceCollision({ type: "traffic" });
     return true;
   }
 

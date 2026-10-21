@@ -43,6 +43,12 @@ import {
 import { updateRacing } from "./racing/racing.js";
 
 import {
+  initTraffic,
+  updateTraffic,
+  resetTraffic
+} from "./traffic/trafficCars.js";
+
+import {
   updateEngineSound,
   stopEngineSound
 } from "./systems/audio.js";
@@ -76,6 +82,8 @@ function updateGame(deltaTime) {
 
     updateCoins(deltaTime);
     updatePowerUps(deltaTime);
+
+    updateTraffic(deltaTime);
 
     checkCollisions();
     updateRacing(deltaTime);
@@ -127,6 +135,10 @@ function start() {
     resetCoins();
     resetPowerUps();
     clearEffects();
+    resetTraffic();
+
+    // 5b. Initialise traffic after scene is ready
+    initTraffic(gameState.scene);
 
     // 6. Initialize UI & Menus
     initializeUI();
