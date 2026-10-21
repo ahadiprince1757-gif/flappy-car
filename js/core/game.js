@@ -16,7 +16,7 @@ export function initializeGame(canvas) {
   /* ── Scene ── */
   const scene = new THREE.Scene();
   scene.background = new THREE.Color("#7dd3fc");
-  scene.fog = new THREE.FogExp2("#b8e0f7", 0.0048);
+  scene.fog = new THREE.Fog("#bae6fd", 85, 240);
 
   /* ── Camera ── */
   const camera = new THREE.PerspectiveCamera(

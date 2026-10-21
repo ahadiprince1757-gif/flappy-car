@@ -87,7 +87,7 @@ function createBuilding(stage, rng, sideSign) {
   /* Awning */
   const awningCols = ["#ef4444","#3b82f6","#10b981","#f59e0b","#8b5cf6","#ec4899","#14b8a6"];
   const awCol = awningCols[Math.floor(rng() * awningCols.length)];
-  const aw = box(group, [w * 0.9, 0.32, 1.6], [0, 3.9, frontZ + 0.75],
+  const aw = box(group, [w * 0.85, 0.22, 0.85], [0, 3.9, frontZ + 0.42],
     mat(awCol, { roughness: 0.55 }));
   aw.rotation.x = 0.2;
 
@@ -135,51 +135,28 @@ function createTree(stage, rng) {
   const group = new THREE.Group();
 
   const isJungle = stage.scenery === "jungle";
-  const trunkH   = 2.8 + rng() * 1.6;
+  const trunkH   = 2.4 + rng() * 0.9;
 
-  /* Trunk with texture-like colour variation */
+  /* Trunk */
   const trunkMat = mat("#3b1a08", { roughness: 0.92, metalness: 0.0 });
-  cyl(group, 0.16, 0.28, trunkH, 8, [0, trunkH / 2, 0], trunkMat);
+  cyl(group, 0.14, 0.22, trunkH, 8, [0, trunkH / 2, 0], trunkMat);
 
-  /* Bark groove ring near base */
-  const barkMat = mat("#4e2910", { roughness: 0.95 });
-  cyl(group, 0.30, 0.30, 0.12, 8, [0, 0.5, 0], barkMat);
-
-  /* Foliage clusters */
+  /* Foliage clusters - crisp, controlled canopy bounded away from highway */
   const palette = isJungle
-    ? ["#14532d","#15803d","#166534","#16a34a","#4ade80"]
-    : ["#1a4731","#2d6a4f","#40916c","#52b788","#74c69d"];
+    ? ["#14532d","#15803d","#166534","#16a34a"]
+    : ["#1a4731","#2d6a4f","#40916c","#52b788"];
 
-  const layers = isJungle ? 4 : 3;
+  const layers = isJungle ? 3 : 2;
   for (let l = 0; l < layers; l++) {
-    const r     = 1.2 + (layers - l) * 0.45 + rng() * 0.5;
-    const yOff  = trunkH + l * 0.9 - 0.3;
+    const r     = (layers - l) * 0.45 + 0.85 + rng() * 0.25; // max radius ~1.8m
+    const yOff  = trunkH + l * 0.75 + 0.2;
     const lMat  = mat(palette[Math.floor(rng() * palette.length)], { roughness: 0.75 });
 
-    const seg  = 6 + l;
-    // Central canopy sphere
-    const canopy = new THREE.Mesh(new THREE.SphereGeometry(r, seg, seg - 1), lMat);
-    canopy.position.set((rng() - 0.5) * 0.4, yOff, (rng() - 0.5) * 0.4);
-    canopy.scale.set(1, 0.72 + rng() * 0.35, 1);
+    const canopy = new THREE.Mesh(new THREE.SphereGeometry(r, 7, 6), lMat);
+    canopy.position.set((rng() - 0.5) * 0.25, yOff, (rng() - 0.5) * 0.25);
+    canopy.scale.set(1, 0.82, 1);
     canopy.castShadow = true;
     group.add(canopy);
-
-    // Side clusters for density
-    for (let s = 0; s < 3; s++) {
-      const sr  = r * (0.55 + rng() * 0.35);
-      const ang = (s / 3) * Math.PI * 2 + rng() * 0.8;
-      const sph = new THREE.Mesh(
-        new THREE.SphereGeometry(sr, Math.max(5, seg - 2), Math.max(4, seg - 2)),
-        mat(palette[Math.floor(rng() * palette.length)], { roughness: 0.78 })
-      );
-      sph.position.set(
-        Math.cos(ang) * r * 0.7,
-        yOff - 0.2 + rng() * 0.6,
-        Math.sin(ang) * r * 0.7
-      );
-      sph.castShadow = true;
-      group.add(sph);
-    }
   }
 
   return group;
@@ -193,24 +170,24 @@ function createStreetLamp() {
   const pMat   = mat("#334155", { roughness: 0.35, metalness: 0.85 });
 
   // Tapered pole
-  cyl(group, 0.06, 0.14, 6.0, 8, [0, 3.0, 0], pMat);
+  cyl(group, 0.05, 0.11, 5.4, 8, [0, 2.7, 0], pMat);
 
-  // Curved arm
-  const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.6, 6), pMat);
-  arm.rotation.z = Math.PI / 3.2;
-  arm.position.set(0.72, 5.6, 0);
+  // Sleek cantilever arm extending 0.9m towards road
+  const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 1.05, 6), pMat);
+  arm.rotation.z = Math.PI / 3.4;
+  arm.position.set(0.44, 5.15, 0);
   group.add(arm);
 
   // Lamp housing
-  box(group, [0.38, 0.14, 0.22], [1.25, 5.35, 0],
+  box(group, [0.32, 0.10, 0.18], [0.84, 5.0, 0],
     mat("#1e293b", { roughness: 0.4, metalness: 0.7 }));
 
-  // LED emitter
-  box(group, [0.32, 0.04, 0.18], [1.25, 5.25, 0],
+  // Warm LED emitter
+  box(group, [0.26, 0.03, 0.14], [0.84, 4.93, 0],
     new THREE.MeshStandardMaterial({
       color: "#fef9c3",
       emissive: "#fde68a",
-      emissiveIntensity: 3.5,
+      emissiveIntensity: 2.8,
       roughness: 0.1,
     }), false);
 
@@ -291,13 +268,13 @@ export function createBackground(stageId = "city") {
   const rng    = makeRNG(stageId.length * 937 + 41);
   const items  = [];   // recycling list
 
-  /* Ground plane */
+  /* Ground plane positioned safely beneath raised road assembly (-0.02m) */
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(500, WORLD_LENGTH + 140, 24, 40),
     mat(stage.groundColor, { roughness: 0.94, metalness: 0.02 })
   );
   ground.rotation.x = -Math.PI / 2;
-  ground.position.set(0, -0.25, -WORLD_LENGTH / 2);
+  ground.position.set(0, -0.02, -WORLD_LENGTH / 2);
   ground.receiveShadow = true;
   group.add(ground);
 
@@ -313,16 +290,38 @@ export function createBackground(stageId = "city") {
   const mountains = createMountainRange(stage);
   group.add(mountains);
 
-  /* === Scenery strip along both sides of road === */
-  for (let z = 20; z > -WORLD_LENGTH; z -= 12) {
+  /* 1. Modern Highway Street Lamps placed on an even, clean cadence every 44m */
+  for (let z = 10; z > -WORLD_LENGTH; z -= 44) {
+    for (const side of [-1, 1]) {
+      const lamp = createStreetLamp();
+      const lampLat = side * 8.6; // Cleanly positioned at sidewalk outer edge
+      const lampPt = getRoadPoint(z, lampLat);
+      const lampRotOffset = side > 0 ? -Math.PI : 0;
+
+      lamp.position.set(lampPt.x, lampPt.y + 0.08, lampPt.z);
+      lamp.rotation.y = lampPt.heading + lampRotOffset;
+      group.add(lamp);
+      items.push({
+        object: lamp,
+        lateralDist: lampLat,
+        side,
+        rotationOffset: lampRotOffset,
+        roadZ: z,
+        yOffset: 0.08
+      });
+    }
+  }
+
+  /* 2. Primary Architecture & Landscaping spaced gracefully every 22m */
+  for (let z = 18; z > -WORLD_LENGTH; z -= 22) {
     for (const side of [-1, 1]) {
       const isCity = stage.scenery === "city" || stage.scenery === "village";
-      const isBuilding = isCity && rng() > 0.28;
+      // Alternate cleanly between landmark architecture and greenery
+      const isBuilding = isCity && ((Math.abs(Math.round(z / 22)) % 2 === 0) || rng() > 0.4);
 
-      // Buildings set back generously so facades never infringe road/sidewalk
       const lateralDist = isBuilding
-        ? side * (17.5 + rng() * 6.0)
-        : side * (10.5 + rng() * 4.5);
+        ? side * (18.5 + rng() * 2.5) // Generous building setback
+        : side * (12.8 + rng() * 1.5); // Tree setback completely clear of sidewalk
 
       const pt = getRoadPoint(z, lateralDist);
       const rotOffset = side > 0 ? -Math.PI / 2 : Math.PI / 2;
@@ -342,44 +341,6 @@ export function createBackground(stageId = "city") {
         roadZ: z,
         yOffset: 0
       });
-
-      /* Street lamp on sidewalk */
-      if (rng() > 0.45) {
-        const lamp = createStreetLamp();
-        const lampLat = side * 7.0; // Cleanly positioned on sidewalk
-        const lampPt = getRoadPoint(z - 2, lampLat);
-        const lampRotOffset = side > 0 ? -Math.PI : 0;
-
-        lamp.position.set(lampPt.x, lampPt.y + 0.12, lampPt.z);
-        lamp.rotation.y = lampPt.heading + lampRotOffset;
-        group.add(lamp);
-        items.push({
-          object: lamp,
-          lateralDist: lampLat,
-          side,
-          rotationOffset: lampRotOffset,
-          roadZ: z - 2,
-          yOffset: 0.12
-        });
-      }
-
-      /* Extra trees along sidewalk/verge */
-      if (rng() > 0.5) {
-        const t2 = createTree(stage, rng);
-        const tLat = side * (12.0 + rng() * 6.0);
-        const tZ = z + 5;
-        const tPt = getRoadPoint(tZ, tLat);
-        t2.position.set(tPt.x, tPt.y, tPt.z);
-        group.add(t2);
-        items.push({
-          object: t2,
-          lateralDist: tLat,
-          side,
-          rotationOffset: rotOffset,
-          roadZ: tZ,
-          yOffset: 0
-        });
-      }
     }
   }
 

@@ -154,7 +154,7 @@ export function updatePowerUps(deltaTime) {
       continue;
     }
 
-    if (powerUp.roadZ > playerPosition.z + 18) {
+    if (powerUp.roadZ > playerPosition.z + 10) {
       removePowerUp(powerUp);
     }
   }

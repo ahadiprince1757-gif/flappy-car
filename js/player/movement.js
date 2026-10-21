@@ -10,7 +10,7 @@ import { playJumpSound } from "../systems/audio.js";
 const CAMERA_OFFSET = new THREE.Vector3(0, 4.8, 9.0);
 const SLIDE_DURATION = 0.7;
 const SLIDE_SCALE_Y = 0.58;
-const ROAD_LOOK_AHEAD = 14;
+const ROAD_LOOK_AHEAD = 20;
 
 export function changeLane(direction) {
   const player = gameState.player;

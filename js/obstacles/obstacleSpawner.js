@@ -2,50 +2,34 @@ import { gameState } from "../core/gameState.js";
 import { createObstacle } from "./obstacles.js";
 
 const SPAWNER_CONFIG = {
-  initialInterval: 1.65,
+  initialInterval: 1.75,
   minimumInterval: 0.95,
 
-  // Obstacles appear ahead of the player.
-  spawnDistance: -85,
+  // Spawn cleanly down the road in front of player
+  spawnDistance: -90,
 
-  // Keep consecutive obstacles from appearing too close together.
-  minimumGap: 18,
-
-  // Prevent the same lane being chosen repeatedly.
-  avoidSameLane: true,
-
-  // Avoid making every obstacle a difficult one.
-  obstacleWeights: {
-    barrier: 28,
-    cone: 24,
-    crate: 22,
-    oil: 16,
-    gate: 10
-  }
+  // Safe minimum distance between obstacles
+  minimumGap: 20
 };
 
-let spawnTimer = 1.0;
+let spawnTimer = 1.2;
 let lastLane = -1;
 let lastObstacleZ = -Infinity;
 
 /**
- * Select a random lane from the available lanes.
- * Lane indices are 0, 1 and 2 for a three-lane road.
+ * Procedural lane selection ensuring alternating flow
  */
-function randomLane() {
+function selectProceduralLane() {
   const laneCount = gameState.lanePositions?.length || 3;
-
   if (laneCount <= 1) return 0;
 
   let lane = Math.floor(Math.random() * laneCount);
+  let attempts = 0;
 
-  if (SPAWNER_CONFIG.avoidSameLane && laneCount > 1) {
-    let attempts = 0;
-
-    while (lane === lastLane && attempts < 8) {
-      lane = Math.floor(Math.random() * laneCount);
-      attempts++;
-    }
+  // Prevent same lane being picked repeatedly
+  while (lane === lastLane && attempts < 8) {
+    lane = Math.floor(Math.random() * laneCount);
+    attempts++;
   }
 
   lastLane = lane;
@@ -53,34 +37,39 @@ function randomLane() {
 }
 
 /**
- * Choose an obstacle using weighted probabilities.
- * Gates are less common because they require precise timing.
+ * Progressive Level Generation:
+ * Tailors obstacle difficulty and types dynamically based on distance traveled.
  */
-function randomObstacleType() {
-  const weights = SPAWNER_CONFIG.obstacleWeights;
+function getProgressiveObstacleType() {
+  const dist = gameState.distance || 0;
 
-  const entries = Object.entries(weights);
-  const totalWeight = entries.reduce(
-    (sum, [, weight]) => sum + weight,
-    0
-  );
-
-  let roll = Math.random() * totalWeight;
-
-  for (const [type, weight] of entries) {
-    roll -= weight;
-
-    if (roll <= 0) {
-      return type;
-    }
+  // Phase 1 (0 - 120m): Introductory highway drive with jumpable barriers and cones
+  if (dist < 120) {
+    const pool = ["cone", "barrier", "barrier", "cone"];
+    return pool[Math.floor(Math.random() * pool.length)];
   }
 
-  return "barrier";
+  // Phase 2 (120m - 350m): Introduce sliding gates, crates, and oil slicks
+  if (dist < 350) {
+    const roll = Math.random();
+    if (roll < 0.28) return "barrier";
+    if (roll < 0.52) return "cone";
+    if (roll < 0.74) return "crate";
+    if (roll < 0.88) return "gate";
+    return "oil";
+  }
+
+  // Phase 3 (350m+): Full high-speed arcade variety with varied timing challenges
+  const roll = Math.random();
+  if (roll < 0.22) return "barrier";
+  if (roll < 0.42) return "gate";
+  if (roll < 0.62) return "crate";
+  if (roll < 0.82) return "cone";
+  return "oil";
 }
 
 /**
- * Calculate the time between spawns.
- * Higher speed produces a shorter interval, with a safe minimum.
+ * Calculate dynamic spawn interval based on current speed and progression
  */
 function getSpawnInterval() {
   const baseSpeed = Math.max(gameState.baseSpeed || 1, 1);
@@ -94,28 +83,18 @@ function getSpawnInterval() {
 }
 
 /**
- * Spawn one obstacle.
- *
- * Optional arguments allow specific obstacles or lanes to be spawned.
+ * Spawn one obstacle ahead along the continuous road
  */
 export function spawnObstacleNow(
-  type = randomObstacleType(),
-  lane = randomLane()
+  type = getProgressiveObstacleType(),
+  lane = selectProceduralLane()
 ) {
   const laneCount = gameState.lanePositions?.length || 3;
+  const safeLane = Math.max(0, Math.min(laneCount - 1, Math.floor(lane)));
 
-  const safeLane = Math.max(
-    0,
-    Math.min(laneCount - 1, Math.floor(lane))
-  );
-
-  // Don't create a second obstacle at almost the same distance.
   const spawnZ = SPAWNER_CONFIG.spawnDistance;
 
-  if (
-    Math.abs(spawnZ - lastObstacleZ) <
-    SPAWNER_CONFIG.minimumGap
-  ) {
+  if (Math.abs(spawnZ - lastObstacleZ) < SPAWNER_CONFIG.minimumGap) {
     return null;
   }
 
@@ -129,11 +108,10 @@ export function spawnObstacleNow(
 }
 
 /**
- * Called once per frame by the main game loop.
+ * Called once per frame by the main game loop
  */
 export function updateObstacleSpawner(dt) {
   if (gameState.status !== "playing") return;
-
   if (!Number.isFinite(dt) || dt <= 0) return;
 
   spawnTimer -= Math.min(dt, 0.05);
@@ -141,15 +119,14 @@ export function updateObstacleSpawner(dt) {
   if (spawnTimer > 0) return;
 
   spawnObstacleNow();
-
   spawnTimer = getSpawnInterval();
 }
 
 /**
- * Reset the spawner when starting or restarting a run.
+ * Reset spawner state when starting or restarting
  */
 export function resetObstacleSpawner() {
-  spawnTimer = 1.0;
+  spawnTimer = 1.2;
   lastLane = -1;
   lastObstacleZ = -Infinity;
 }

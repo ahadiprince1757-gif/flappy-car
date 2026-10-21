@@ -137,7 +137,7 @@ export function updateCoins(deltaTime) {
       continue;
     }
 
-    if (collectible.roadZ > playerPosition.z + 18) {
+    if (collectible.roadZ > playerPosition.z + 10) {
       removeCoin(collectible);
     }
   }

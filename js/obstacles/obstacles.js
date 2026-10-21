@@ -1,13 +1,11 @@
-
 import { gameState } from "../core/gameState.js";
 import { createObstacleModel } from "./obstacleRenderer.js";
 import { getRoadPoint } from "../stages/stageRenderer.js";
 
 const PLAYER_Z_DEFAULT = 4;
-const CLEANUP_DISTANCE = 24;
+// Despawn cleanly right behind camera view
+const CLEANUP_DISTANCE = 10;
 
-// Keep obstacle dimensions consistent with their actual models.
-// The gate is narrowed so it does not visually invade adjacent lanes.
 const OBSTACLE_DATA = {
   barrier: {
     width: 2.2,
@@ -51,6 +49,15 @@ const OBSTACLE_DATA = {
   }
 };
 
+/* ── High-Performance Object Pool ────────────────────────────── */
+const obstaclePool = {
+  barrier: [],
+  crate: [],
+  cone: [],
+  gate: [],
+  oil: []
+};
+
 export function getObstacleData(type) {
   return OBSTACLE_DATA[type] ?? OBSTACLE_DATA.barrier;
 }
@@ -81,9 +88,7 @@ function positionObstacle(obstacle, z) {
 
 export function createObstacle(type, lane, z = -85) {
   if (!gameState.scene) {
-    throw new Error(
-      "Initialize the 3D scene before creating obstacles."
-    );
+    throw new Error("Initialize the 3D scene before creating obstacles.");
   }
 
   const safeLane = Math.max(
@@ -92,15 +97,32 @@ export function createObstacle(type, lane, z = -85) {
   );
 
   const config = getObstacleData(type);
+  const laneOffset = getLaneOffset(safeLane);
+
+  // Reuse from object pool if available to eliminate GC hitching
+  const pool = obstaclePool[type];
+  if (pool && pool.length > 0) {
+    const pooled = pool.pop();
+    pooled.lane = safeLane;
+    pooled.laneOffset = laneOffset;
+    pooled.roadZ = z;
+    pooled.active = true;
+    pooled.passed = false;
+    pooled.model.visible = true;
+
+    positionObstacle(pooled, z);
+    gameState.obstacles.push(pooled);
+    return pooled;
+  }
+
+  // Create new model once and add to scene
   const model = createObstacleModel(type);
 
   const obstacle = {
-    id: `${type}-${Date.now()}-${Math.random()
-      .toString(36)
-      .slice(2, 8)}`,
+    id: `${type}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     type,
     lane: safeLane,
-    laneOffset: getLaneOffset(safeLane),
+    laneOffset,
     config,
     model,
     group: model,
@@ -122,15 +144,12 @@ export function updateObstacles(deltaTime) {
   if (gameState.status !== "playing") return;
 
   const speed = Math.max(0, gameState.speed);
-  const playerZ =
-    gameState.player?.group.position.z ?? PLAYER_Z_DEFAULT;
+  const playerZ = gameState.player?.group.position.z ?? PLAYER_Z_DEFAULT;
 
   for (const obstacle of gameState.obstacles) {
     if (!obstacle.active) continue;
 
-    // Keep the obstacle's progress separate from its curved world position.
     obstacle.roadZ += speed * deltaTime;
-
     positionObstacle(obstacle, obstacle.roadZ);
 
     if (!obstacle.passed && obstacle.roadZ > playerZ) {
@@ -146,42 +165,26 @@ export function removeObstacle(obstacle) {
   if (!obstacle) return;
 
   obstacle.active = false;
-
-  if (gameState.scene && obstacle.model) {
-    gameState.scene.remove(obstacle.model);
-
-    // Dispose resources owned by this obstacle model.
-    obstacle.model.traverse((object) => {
-      if (!object.isMesh) return;
-
-      object.geometry?.dispose();
-
-      const materials = Array.isArray(object.material)
-        ? object.material
-        : [object.material];
-
-      for (const material of materials) {
-        material?.dispose();
-      }
-    });
+  if (obstacle.model) {
+    obstacle.model.visible = false;
   }
 
   const index = gameState.obstacles.indexOf(obstacle);
-
   if (index !== -1) {
     gameState.obstacles.splice(index, 1);
+  }
+
+  // Return to pool for zero-garbage recycling
+  if (obstaclePool[obstacle.type]) {
+    obstaclePool[obstacle.type].push(obstacle);
   }
 }
 
 export function cleanupObstacles() {
-  const playerZ =
-    gameState.player?.group.position.z ?? PLAYER_Z_DEFAULT;
+  const playerZ = gameState.player?.group.position.z ?? PLAYER_Z_DEFAULT;
 
   for (const obstacle of [...gameState.obstacles]) {
-    if (
-      !obstacle.active ||
-      obstacle.roadZ > playerZ + CLEANUP_DISTANCE
-    ) {
+    if (!obstacle.active || obstacle.roadZ > playerZ + CLEANUP_DISTANCE) {
       removeObstacle(obstacle);
     }
   }

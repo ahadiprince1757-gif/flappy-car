@@ -22,29 +22,29 @@ export const MARKING_OFFSETS = [-1.8, 1.8];
 const TRACK_START_Z = 20;
 const TRACK_END_Z = -260;
 const TRACK_LENGTH = TRACK_START_Z - TRACK_END_Z; // 280m
-const LONGITUDINAL_SEGMENTS = 160;
+const LONGITUDINAL_SEGMENTS = 200;
 
 export function getRoadHeight(z) {
-  return (
-    1.0 * Math.sin((Math.PI * 2 * z) / 145) +
-    0.35 * Math.sin((Math.PI * 2 * z) / 62 + 0.9)
-  );
+  // Ultra-smooth gentle crest along track (peak 0.45m at mid-track, zero slope at endpoints)
+  // Guarantees y >= 0 everywhere so road surface never sinks or clips into ground plane
+  const theta = (Math.PI * 2 * (z - TRACK_START_Z)) / TRACK_LENGTH;
+  return 0.22 * (1 - Math.cos(theta));
 }
 
 export function getRoadSlope(z) {
-  const step = 0.2;
+  const step = 0.5;
   return (getRoadHeight(z + step) - getRoadHeight(z - step)) / (2 * step);
 }
 
 export function getRoadX(z) {
-  return (
-    4.0 * Math.sin((Math.PI * 2 * z) / 175) +
-    1.5 * Math.sin((Math.PI * 2 * z) / 82 + 1.1)
-  );
+  // Majestic, smooth highway sweeping curve
+  // Straight along immediate starting zone and perfectly continuous across wrap-around
+  const theta = (Math.PI * 2 * (z - TRACK_START_Z)) / TRACK_LENGTH;
+  return 2.4 * Math.sin(theta) - 1.2 * Math.sin(2 * theta);
 }
 
 export function getRoadHeading(z) {
-  const step = 0.2;
+  const step = 0.5;
   const dx = getRoadX(z + step) - getRoadX(z - step);
   return Math.atan2(-dx, 2 * step);
 }
@@ -384,6 +384,25 @@ export function createStage(stageId = "city") {
   );
   group.add(createMeshStrip(rightSidewalkGeo, sidewalkMat));
 
+  // 4b. Smooth Roadside Shoulder / Verge Strip (2.6m wide at ±9.9m, raised +0.02m)
+  const shoulderMat = new THREE.MeshStandardMaterial({
+    color: config.groundColor || "#475569",
+    roughness: 0.95,
+    metalness: 0.02,
+    side: THREE.DoubleSide
+  });
+  const leftShoulderGeo = buildContinuousStripGeometry(
+    TRACK_START_Z, TRACK_END_Z, LONGITUDINAL_SEGMENTS,
+    -9.9, 2.6, 0.02, 1, 10
+  );
+  group.add(createMeshStrip(leftShoulderGeo, shoulderMat));
+
+  const rightShoulderGeo = buildContinuousStripGeometry(
+    TRACK_START_Z, TRACK_END_Z, LONGITUDINAL_SEGMENTS,
+    9.9, 2.6, 0.02, 1, 10
+  );
+  group.add(createMeshStrip(rightShoulderGeo, shoulderMat));
+
   // 5. Dynamic Scrolling Lane Dashes
   const dashesData = createLaneDashes(config, group);
 
@@ -399,8 +418,8 @@ export function createStage(stageId = "city") {
 
   if (gameState.scene.fog) {
     gameState.scene.fog.color.set(config.fogColor);
-    gameState.scene.fog.near = 58;
-    gameState.scene.fog.far = 210;
+    gameState.scene.fog.near = 85;
+    gameState.scene.fog.far = 240;
   }
 
   gameState.road = {
@@ -422,12 +441,15 @@ export function createStage(stageId = "city") {
       leftCurbGeo,
       rightCurbGeo,
       leftSidewalkGeo,
-      rightSidewalkGeo
+      rightSidewalkGeo,
+      leftShoulderGeo,
+      rightShoulderGeo
     ],
     materials: [
       asphaltMat,
       curbMat,
       sidewalkMat,
+      shoulderMat,
       edgeLineMat,
       dashesData.material,
       ...postData.materials
@@ -446,10 +468,10 @@ export function updateStage(deltaTime) {
 
   const movement = Math.max(0, gameState.speed) * deltaTime;
 
-  // 1. Smooth Highway Texture Scrolling
-  if (road.asphaltTex) road.asphaltTex.offset.y -= movement / 7.0;
-  if (road.curbTex) road.curbTex.offset.y -= movement / 7.0;
-  if (road.sidewalkTex) road.sidewalkTex.offset.y -= movement / 7.0;
+  // 1. Smooth Highway Texture Scrolling with exact physical repeats
+  if (road.asphaltTex) road.asphaltTex.offset.y -= movement / (TRACK_LENGTH / 40);
+  if (road.curbTex) road.curbTex.offset.y -= movement / (TRACK_LENGTH / 50);
+  if (road.sidewalkTex) road.sidewalkTex.offset.y -= movement / (TRACK_LENGTH / 35);
 
   // 2. Scroll Lane Dashes smoothly along curve
   for (const dash of road.markings) {
