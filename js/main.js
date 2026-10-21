@@ -13,6 +13,8 @@ import {
   updateStage
 } from "./stages/stageRenderer.js";
 
+import { preloadBuildingModels } from "./stages/backgrounds.js";
+
 import {
   updateObstacles,
   clearObstacles
@@ -116,6 +118,9 @@ function start() {
 
   try {
     loadSavedSelections();
+
+    // 0. Kick off async OBJ model loading as early as possible
+    preloadBuildingModels();
 
     // 1. Initialize 3D Engine & Viewport
     initializeGame(canvas);
