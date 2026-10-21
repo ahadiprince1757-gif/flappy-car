@@ -1,6 +1,6 @@
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
-import { OBJLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/OBJLoader.js";
-import { MTLLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/MTLLoader.js";
+import { OBJLoader } from "../core/OBJLoader.js";
+import { MTLLoader } from "../core/MTLLoader.js";
 import { getStageConfig } from "./stages.js";
 import { getRoadPoint } from "./stageRenderer.js";
 

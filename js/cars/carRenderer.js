@@ -1,5 +1,6 @@
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
 import { getCarConfig } from "./cars.js";
+import { spawnCarModel, tintCarBody } from "./carModelLoader.js";
 
 /* ---------------------------------------------------------------
    Ultra-premium supercar renderer
@@ -147,10 +148,110 @@ function createRearDiffuser(parent, mats) {
 }
 
 /* ================================================================
+   ROCKET FUEL THRUSTERS HELPER
+================================================================ */
+function createRocketThrusters() {
+  const rocketGroup = new THREE.Group();
+  rocketGroup.name = "rocket-thrusters";
+  rocketGroup.visible = false;
+
+  const rocketCoreMat = new THREE.MeshBasicMaterial({ color: "#ffffff" });
+  const rocketPlumeMat = new THREE.MeshStandardMaterial({
+    color: "#ff3700",
+    emissive: "#ff5500",
+    emissiveIntensity: 4.8,
+    roughness: 0.2,
+    transparent: true,
+    opacity: 0.90
+  });
+  const rocketNozzleMat = mat("#1e293b", { roughness: 0.35, metalness: 0.9 });
+
+  const thrusterFlames = [];
+  const thrusterPositions = [
+    [-0.42, 0.15, -0.45],
+    [0.42, 0.15, -0.45],
+    [-0.42, 0.15, 0.75],
+    [0.42, 0.15, 0.75]
+  ];
+
+  for (const [tx, ty, tz] of thrusterPositions) {
+    const nozzle = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.11, 0.14, 0.09, 10),
+      rocketNozzleMat
+    );
+    nozzle.position.set(tx, ty, tz);
+    rocketGroup.add(nozzle);
+
+    const core = new THREE.Mesh(
+      new THREE.ConeGeometry(0.08, 0.40, 8),
+      rocketCoreMat
+    );
+    core.rotation.x = Math.PI;
+    core.position.set(tx, ty - 0.20, tz);
+    rocketGroup.add(core);
+
+    const plume = new THREE.Mesh(
+      new THREE.ConeGeometry(0.18, 0.85, 8),
+      rocketPlumeMat
+    );
+    plume.rotation.x = Math.PI;
+    plume.position.set(tx, ty - 0.42, tz);
+    rocketGroup.add(plume);
+    thrusterFlames.push(plume);
+  }
+
+  for (const sx of [-1, 1]) {
+    const rearJet = new THREE.Mesh(
+      new THREE.ConeGeometry(0.12, 0.75, 8),
+      rocketPlumeMat
+    );
+    rearJet.rotation.x = -Math.PI / 2;
+    rearJet.position.set(sx * 0.42, 0.30, 2.38);
+    rocketGroup.add(rearJet);
+    thrusterFlames.push(rearJet);
+  }
+
+  const rocketLight = new THREE.PointLight("#ff6600", 0, 7.5, 2);
+  rocketLight.position.set(0, 0.05, 0.15);
+  rocketGroup.add(rocketLight);
+
+  return {
+    group: rocketGroup,
+    light: rocketLight,
+    flames: thrusterFlames
+  };
+}
+
+/* ================================================================
    MAIN CAR MODEL
 ================================================================ */
 export function createCarModel(carId = "cyber") {
   const config = getCarConfig(carId);
+
+  // 1. Try real 3D model first
+  const realModel = spawnCarModel(carId, { bodyColor: config.bodyColor });
+  if (realModel) {
+    const thrusters = createRocketThrusters();
+    realModel.add(thrusters.group);
+
+    // Dynamic neon underglow light
+    const glow = new THREE.PointLight(config.accentColor || "#38bdf8", 1.2, 5.0);
+    glow.position.set(0, 0.15, 0);
+    realModel.add(glow);
+
+    realModel.userData.originalScale = realModel.scale.clone();
+    realModel.userData.rocketThrusters = thrusters;
+    realModel.userData.carId = config.id;
+    realModel.userData.config = config;
+    realModel.name = `car-${config.id}`;
+    return realModel;
+  }
+
+  // 2. Procedural supercar fallback while models load
+  return buildProceduralCar(carId, config);
+}
+
+function buildProceduralCar(carId, config) {
   const car = new THREE.Group();
   car.name = `car-${config.id}`;
   car.userData.carId = config.id;
@@ -334,96 +435,20 @@ export function createCarModel(carId = "cyber") {
     exhaust.rotation.x = Math.PI / 2;
   }
 
-  /* ----- ROCKET FUEL THRUSTERS (activates on Jump) ----- */
-  const rocketGroup = new THREE.Group();
-  rocketGroup.name = "rocket-thrusters";
-  rocketGroup.visible = false;
-
-  const rocketCoreMat = new THREE.MeshBasicMaterial({
-    color: "#ffffff"
-  });
-
-  const rocketPlumeMat = new THREE.MeshStandardMaterial({
-    color: "#ff3700",
-    emissive: "#ff5500",
-    emissiveIntensity: 4.8,
-    roughness: 0.2,
-    transparent: true,
-    opacity: 0.90
-  });
-
-  const rocketNozzleMat = mat("#1e293b", { roughness: 0.35, metalness: 0.9 });
-
-  const thrusterFlames = [];
-  const thrusterPositions = [
-    [-0.42, 0.15, -0.45],
-    [0.42, 0.15, -0.45],
-    [-0.42, 0.15, 0.75],
-    [0.42, 0.15, 0.75]
-  ];
-
-  for (const [tx, ty, tz] of thrusterPositions) {
-    // Metal nozzle
-    const nozzle = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.11, 0.14, 0.09, 10),
-      rocketNozzleMat
-    );
-    nozzle.position.set(tx, ty, tz);
-    rocketGroup.add(nozzle);
-
-    // Inner bright plasma core
-    const core = new THREE.Mesh(
-      new THREE.ConeGeometry(0.08, 0.40, 8),
-      rocketCoreMat
-    );
-    core.rotation.x = Math.PI; // point downwards
-    core.position.set(tx, ty - 0.20, tz);
-    rocketGroup.add(core);
-
-    // Outer fiery rocket fuel flame
-    const plume = new THREE.Mesh(
-      new THREE.ConeGeometry(0.18, 0.85, 8),
-      rocketPlumeMat
-    );
-    plume.rotation.x = Math.PI; // point downwards
-    plume.position.set(tx, ty - 0.42, tz);
-    rocketGroup.add(plume);
-    thrusterFlames.push(plume);
-  }
-
-  // Dual rear exhaust booster jets
-  for (const sx of [-1, 1]) {
-    const rearJet = new THREE.Mesh(
-      new THREE.ConeGeometry(0.12, 0.75, 8),
-      rocketPlumeMat
-    );
-    rearJet.rotation.x = -Math.PI / 2; // point backwards
-    rearJet.position.set(sx * 0.42, 0.30, 2.38);
-    rocketGroup.add(rearJet);
-    thrusterFlames.push(rearJet);
-  }
-
-  // Dynamic rocket glow point light beneath the chassis
-  const rocketLight = new THREE.PointLight("#ff6600", 0, 7.5, 2);
-  rocketLight.position.set(0, 0.05, 0.15);
-  rocketGroup.add(rocketLight);
-
-  car.add(rocketGroup);
+  const thrusters = createRocketThrusters();
+  car.add(thrusters.group);
 
   /* ----- USER DATA ----- */
   car.userData.wheels = wheels;
   car.userData.originalScale = car.scale.clone();
-  car.userData.rocketThrusters = {
-    group: rocketGroup,
-    light: rocketLight,
-    flames: thrusterFlames
-  };
+  car.userData.rocketThrusters = thrusters;
 
   return car;
 }
 
 export function setCarColor(car, color) {
   if (!car) return;
+  tintCarBody(car, color);
   car.traverse((obj) => {
     if (!obj.isMesh) return;
     const n = obj.name;

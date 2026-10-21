@@ -14,6 +14,7 @@ import {
 } from "./stages/stageRenderer.js";
 
 import { preloadBuildingModels } from "./stages/backgrounds.js";
+import { preloadCarModels } from "./cars/carModelLoader.js";
 
 import {
   updateObstacles,
@@ -119,8 +120,13 @@ function start() {
   try {
     loadSavedSelections();
 
-    // 0. Kick off async OBJ model loading as early as possible
+    // 0. Kick off async 3D model loading for buildings & cars
     preloadBuildingModels();
+    preloadCarModels(() => {
+      if (gameState.scene && gameState.player) {
+        createPlayer(gameState.selectedCar);
+      }
+    });
 
     // 1. Initialize 3D Engine & Viewport
     initializeGame(canvas);
