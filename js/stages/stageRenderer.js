@@ -416,10 +416,13 @@ export function createStage(stageId = "city") {
   gameState.scene.add(group);
   gameState.scene.background = new THREE.Color(config.skyColor);
 
-  if (gameState.scene.fog) {
+  // Realistic atmospheric horizon depth fog: road & props smoothly fade into the mist
+  if (!gameState.scene.fog) {
+    gameState.scene.fog = new THREE.Fog(config.fogColor, 35, 115);
+  } else {
     gameState.scene.fog.color.set(config.fogColor);
-    gameState.scene.fog.near = 85;
-    gameState.scene.fog.far = 240;
+    gameState.scene.fog.near = 35;
+    gameState.scene.fog.far = 115;
   }
 
   gameState.road = {

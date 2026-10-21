@@ -120,8 +120,7 @@ function start() {
   try {
     loadSavedSelections();
 
-    // 0. Kick off async 3D model loading for buildings & cars
-    preloadBuildingModels();
+    // 0. Kick off async 3D model loading for cars
     preloadCarModels(() => {
       if (gameState.scene && gameState.player) {
         createPlayer(gameState.selectedCar);
