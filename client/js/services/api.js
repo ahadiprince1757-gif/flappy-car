@@ -7,6 +7,13 @@
 ================================================================ */
 
 const getApiBase = () => {
+  if (typeof window !== 'undefined' && window.__API_URL__) {
+    return window.__API_URL__.replace(/\/+$/, '') + '/api';
+  }
+  const customApi = typeof localStorage !== 'undefined' && localStorage.getItem('flappy_car_api_url');
+  if (customApi) {
+    return customApi.replace(/\/+$/, '') + '/api';
+  }
   const origin = window.location.origin || '';
   if (!origin || origin.includes('550') || origin.startsWith('file:')) {
     return 'http://localhost:5000/api';
