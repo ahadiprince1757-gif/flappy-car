@@ -1,22 +1,60 @@
+/**
+ * Flappy Car 3D — Dual-Channel Audio & Custom Music Jukebox System
+ * 
+ * Features:
+ * - Channel 1 (SFX & Engine): Real-time WebAudio synthesis (engine revs, crashes, drifts, coins)
+ * - Channel 2 (Custom BGM): HTML5 Audio element loading user-selected local audio files
+ * - Independent volume sliders for Engine/SFX vs Music
+ * - Mobile / Android & Capacitor lifecycle protection (auto-pause on background / lock screen)
+ * - Safe memory management with URL.revokeObjectURL
+ */
+
 let audioContext = null;
 let masterGain = null;
 let muted = false;
-let volume = 0.35;
+let sfxVolume = 0.35;
+let musicVolume = 0.60;
 let engineOscillator = null;
 let engineGain = null;
+
+// Custom music player state
+let musicPlayer = null;
+let musicPicker = null;
+let musicUrl = null;
+let currentTrackName = "";
+let wasMusicPlayingBeforeHide = false;
+let audioInitialized = false;
+
+// Storage keys
+const STORAGE_MUSIC_VOL = "flappyCar.musicVol";
+const STORAGE_SFX_VOL = "flappyCar.sfxVol";
+const STORAGE_MUTED = "flappyCar.muted";
+
+function loadSavedSettings() {
+  try {
+    const savedMusic = localStorage.getItem(STORAGE_MUSIC_VOL);
+    if (savedMusic !== null) musicVolume = Math.min(1, Math.max(0, parseFloat(savedMusic)));
+
+    const savedSfx = localStorage.getItem(STORAGE_SFX_VOL);
+    if (savedSfx !== null) sfxVolume = Math.min(1, Math.max(0, parseFloat(savedSfx)));
+
+    const savedMuted = localStorage.getItem(STORAGE_MUTED);
+    if (savedMuted !== null) muted = savedMuted === "true";
+  } catch {}
+}
+
+loadSavedSettings();
 
 function initializeAudioContext() {
   if (typeof window === "undefined") return null;
 
-  const AudioContextClass =
-    window.AudioContext || window.webkitAudioContext;
-
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
   if (!AudioContextClass) return null;
 
   if (!audioContext) {
     audioContext = new AudioContextClass();
     masterGain = audioContext.createGain();
-    masterGain.gain.value = muted ? 0 : volume;
+    masterGain.gain.value = muted ? 0 : sfxVolume;
     masterGain.connect(audioContext.destination);
   }
 
@@ -26,6 +64,384 @@ function initializeAudioContext() {
 
   return audioContext;
 }
+
+/**
+ * Connect and setup the custom music file picker and audio player
+ */
+export function setupCustomMusicPlayer() {
+  if (typeof document === "undefined") return;
+
+  musicPicker = document.getElementById("musicPicker");
+  musicPlayer = document.getElementById("player");
+
+  if (!musicPlayer) {
+    musicPlayer = document.createElement("audio");
+    musicPlayer.id = "player";
+    musicPlayer.loop = true;
+    musicPlayer.preload = "none";
+    document.body.appendChild(musicPlayer);
+  }
+
+  musicPlayer.volume = muted ? 0 : musicVolume;
+
+  // File Picker Change Event
+  if (musicPicker) {
+    musicPicker.addEventListener("change", () => {
+      const file = musicPicker.files && musicPicker.files[0];
+      if (!file) return;
+
+      loadCustomMusicFile(file);
+    });
+  }
+
+  // Mobile / Android / Capacitor Visibility & Lock-Screen Protection
+  document.addEventListener("visibilitychange", handleVisibilityChange);
+  window.addEventListener("pagehide", handlePageHide);
+
+  // Play/pause button hooks
+  bindMusicButtons();
+  updateMusicUI();
+}
+
+/**
+ * Load user-selected audio file into player
+ */
+export function loadCustomMusicFile(file) {
+  if (!file) return;
+
+  if (!musicPlayer) {
+    musicPlayer = document.getElementById("player");
+  }
+
+  // Revoke previous blob URL to prevent memory leaks on mobile / desktop
+  if (musicUrl) {
+    URL.revokeObjectURL(musicUrl);
+    musicUrl = null;
+  }
+
+  musicUrl = URL.createObjectURL(file);
+  currentTrackName = file.name ? file.name.replace(/\.[^/.]+$/, "") : "Custom Track";
+
+  if (musicPlayer) {
+    musicPlayer.src = musicUrl;
+    musicPlayer.volume = muted ? 0 : musicVolume;
+    musicPlayer.play().then(() => {
+      updateMusicUI();
+    }).catch((err) => {
+      console.warn("[CustomMusic] Play prevented by browser gesture policy:", err.message);
+      updateMusicUI();
+    });
+  }
+
+  updateMusicUI();
+}
+
+/**
+ * Toggle custom music playback
+ */
+export async function toggleCustomMusic() {
+  if (!musicPlayer) {
+    musicPlayer = document.getElementById("player");
+  }
+  if (!musicPicker) {
+    musicPicker = document.getElementById("musicPicker");
+  }
+
+  // If no track is loaded yet, open file picker directly
+  if (!musicPlayer || !musicPlayer.src) {
+    if (musicPicker) {
+      musicPicker.click();
+    }
+    return false;
+  }
+
+  if (musicPlayer.paused) {
+    try {
+      musicPlayer.volume = muted ? 0 : musicVolume;
+      await musicPlayer.play();
+      updateMusicUI();
+      return true;
+    } catch (err) {
+      console.error("[CustomMusic] Play error:", err);
+      return false;
+    }
+  } else {
+    musicPlayer.pause();
+    updateMusicUI();
+    return false;
+  }
+}
+
+/**
+ * Eject / unload custom music
+ */
+export function ejectCustomMusic() {
+  if (musicPlayer) {
+    musicPlayer.pause();
+    musicPlayer.removeAttribute("src");
+    musicPlayer.load();
+  }
+
+  if (musicUrl) {
+    URL.revokeObjectURL(musicUrl);
+    musicUrl = null;
+  }
+
+  currentTrackName = "";
+  if (musicPicker) musicPicker.value = "";
+  updateMusicUI();
+}
+
+/**
+ * Handle Android / Browser app pause when screen locks or app loses focus
+ */
+function handleVisibilityChange() {
+  if (document.hidden) {
+    if (musicPlayer && !musicPlayer.paused) {
+      wasMusicPlayingBeforeHide = true;
+      musicPlayer.pause();
+    }
+    if (audioContext && audioContext.state === "running") {
+      audioContext.suspend().catch(() => {});
+    }
+  } else {
+    if (wasMusicPlayingBeforeHide && musicPlayer && musicPlayer.src && !muted) {
+      musicPlayer.play().catch(() => {});
+      wasMusicPlayingBeforeHide = false;
+    }
+    if (audioContext && audioContext.state === "suspended") {
+      audioContext.resume().catch(() => {});
+    }
+    updateMusicUI();
+  }
+}
+
+function handlePageHide() {
+  if (musicPlayer && !musicPlayer.paused) {
+    musicPlayer.pause();
+  }
+}
+
+/**
+ * Update UI buttons and badges showing track name and playing state
+ */
+export function updateMusicUI() {
+  const isPlaying = musicPlayer && !musicPlayer.paused && Boolean(musicPlayer.src);
+  const trackText = currentTrackName || "Add Music";
+
+  // Top header button
+  const trackTitle = document.getElementById("trackTitle");
+  if (trackTitle) {
+    trackTitle.textContent = currentTrackName ? `🎶 ${currentTrackName}` : "Add Music";
+    trackTitle.title = currentTrackName ? `Now Playing: ${currentTrackName}` : "Click to select your music file";
+  }
+
+  const jukeboxIcon = document.getElementById("jukeboxIcon");
+  if (jukeboxIcon) {
+    jukeboxIcon.textContent = isPlaying ? "⏸" : "🎵";
+  }
+
+  const playMusicBtn = document.getElementById("playMusic");
+  if (playMusicBtn) {
+    playMusicBtn.classList.toggle("is-playing", isPlaying);
+  }
+
+  // Audio Mixer modal elements
+  const mixerTrackStatus = document.getElementById("mixerTrackStatus");
+  if (mixerTrackStatus) {
+    mixerTrackStatus.textContent = currentTrackName ? `${currentTrackName} (${isPlaying ? "Playing" : "Paused"})` : "No file loaded";
+    mixerTrackStatus.classList.toggle("active-track", Boolean(currentTrackName));
+  }
+
+  const mixerPlayBtn = document.getElementById("mixerPlayBtn");
+  if (mixerPlayBtn) {
+    mixerPlayBtn.textContent = isPlaying ? "⏸ PAUSE" : "▶ PLAY";
+  }
+
+  // Pause menu elements
+  const pauseTrackName = document.getElementById("pauseTrackName");
+  if (pauseTrackName) {
+    pauseTrackName.textContent = currentTrackName || "Music Off";
+  }
+  const pauseMusicIcon = document.getElementById("pauseMusicIcon");
+  if (pauseMusicIcon) {
+    pauseMusicIcon.textContent = isPlaying ? "⏸" : "▶";
+  }
+
+  // Volume text displays
+  const musicVolText = document.getElementById("musicVolText");
+  if (musicVolText) musicVolText.textContent = `${Math.round(musicVolume * 100)}%`;
+
+  const sfxVolText = document.getElementById("sfxVolText");
+  if (sfxVolText) sfxVolText.textContent = `${Math.round(sfxVolume * 100)}%`;
+
+  const musicVolSlider = document.getElementById("musicVolSlider");
+  if (musicVolSlider) musicVolSlider.value = Math.round(musicVolume * 100);
+
+  const sfxVolSlider = document.getElementById("sfxVolSlider");
+  if (sfxVolSlider) sfxVolSlider.value = Math.round(sfxVolume * 100);
+
+  const mixerMuteToggle = document.getElementById("mixerMuteToggle");
+  if (mixerMuteToggle) {
+    mixerMuteToggle.textContent = muted ? "MUTED 🔇" : "SOUND ON 🔊";
+    mixerMuteToggle.classList.toggle("is-muted", muted);
+  }
+}
+
+function bindMusicButtons() {
+  const playBtn = document.getElementById("playMusic");
+  if (playBtn && !playBtn.__bound) {
+    playBtn.__bound = true;
+    playBtn.addEventListener("click", () => {
+      toggleCustomMusic();
+    });
+  }
+
+  const mixerPickBtn = document.getElementById("mixerPickBtn");
+  if (mixerPickBtn && !mixerPickBtn.__bound) {
+    mixerPickBtn.__bound = true;
+    mixerPickBtn.addEventListener("click", () => {
+      if (musicPicker) musicPicker.click();
+    });
+  }
+
+  const mixerPlayBtn = document.getElementById("mixerPlayBtn");
+  if (mixerPlayBtn && !mixerPlayBtn.__bound) {
+    mixerPlayBtn.__bound = true;
+    mixerPlayBtn.addEventListener("click", () => {
+      toggleCustomMusic();
+    });
+  }
+
+  const mixerEjectBtn = document.getElementById("mixerEjectBtn");
+  if (mixerEjectBtn && !mixerEjectBtn.__bound) {
+    mixerEjectBtn.__bound = true;
+    mixerEjectBtn.addEventListener("click", () => {
+      ejectCustomMusic();
+    });
+  }
+
+  const musicVolSlider = document.getElementById("musicVolSlider");
+  if (musicVolSlider && !musicVolSlider.__bound) {
+    musicVolSlider.__bound = true;
+    musicVolSlider.addEventListener("input", (e) => {
+      setMusicVolume(e.target.value / 100);
+    });
+  }
+
+  const sfxVolSlider = document.getElementById("sfxVolSlider");
+  if (sfxVolSlider && !sfxVolSlider.__bound) {
+    sfxVolSlider.__bound = true;
+    sfxVolSlider.addEventListener("input", (e) => {
+      setSfxVolume(e.target.value / 100);
+    });
+  }
+
+  const pauseMusicToggleBtn = document.getElementById("pauseMusicToggleBtn");
+  if (pauseMusicToggleBtn && !pauseMusicToggleBtn.__bound) {
+    pauseMusicToggleBtn.__bound = true;
+    pauseMusicToggleBtn.addEventListener("click", () => {
+      toggleCustomMusic();
+    });
+  }
+}
+
+// ── Master Mute & Volume Channels ───────────────────
+
+export function setMuted(value) {
+  muted = Boolean(value);
+  try {
+    localStorage.setItem(STORAGE_MUTED, String(muted));
+  } catch {}
+
+  if (masterGain && audioContext) {
+    masterGain.gain.setTargetAtTime(
+      muted ? 0 : sfxVolume,
+      audioContext.currentTime,
+      0.03
+    );
+  }
+
+  if (musicPlayer) {
+    musicPlayer.volume = muted ? 0 : musicVolume;
+  }
+
+  updateMusicUI();
+  return muted;
+}
+
+export function toggleMute() {
+  return setMuted(!muted);
+}
+
+export function isMuted() {
+  return muted;
+}
+
+export function setSfxVolume(value) {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) return sfxVolume;
+
+  sfxVolume = Math.min(1, Math.max(0, numericValue));
+  try {
+    localStorage.setItem(STORAGE_SFX_VOL, String(sfxVolume));
+  } catch {}
+
+  if (masterGain && audioContext) {
+    masterGain.gain.setTargetAtTime(
+      muted ? 0 : sfxVolume,
+      audioContext.currentTime,
+      0.03
+    );
+  }
+
+  updateMusicUI();
+  return sfxVolume;
+}
+
+export function getSfxVolume() {
+  return sfxVolume;
+}
+
+export function setMusicVolume(value) {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) return musicVolume;
+
+  musicVolume = Math.min(1, Math.max(0, numericValue));
+  try {
+    localStorage.setItem(STORAGE_MUSIC_VOL, String(musicVolume));
+  } catch {}
+
+  if (musicPlayer) {
+    musicPlayer.volume = muted ? 0 : musicVolume;
+  }
+
+  updateMusicUI();
+  return musicVolume;
+}
+
+export function getMusicVolume() {
+  return musicVolume;
+}
+
+// Backward-compatible alias for existing callers
+export function setVolume(value) {
+  return setSfxVolume(value);
+}
+
+export function getVolume() {
+  return sfxVolume;
+}
+
+export function isMusicPlaying() {
+  return Boolean(musicPlayer && !musicPlayer.paused && musicPlayer.src);
+}
+
+export function getTrackTitle() {
+  return currentTrackName;
+}
+
+// ── WebAudio Tone Synthesizer for SFX ────────────────
 
 function playTone({
   frequency = 440,
@@ -75,50 +491,10 @@ function playTone({
 }
 
 export function initializeAudio() {
+  if (audioInitialized) return;
+  audioInitialized = true;
   initializeAudioContext();
-}
-
-export function setMuted(value) {
-  muted = Boolean(value);
-
-  if (masterGain && audioContext) {
-    masterGain.gain.setTargetAtTime(
-      muted ? 0 : volume,
-      audioContext.currentTime,
-      0.03
-    );
-  }
-
-  return muted;
-}
-
-export function toggleMute() {
-  return setMuted(!muted);
-}
-
-export function isMuted() {
-  return muted;
-}
-
-export function setVolume(value) {
-  const numericValue = Number(value);
-  if (!Number.isFinite(numericValue)) return volume;
-
-  volume = Math.min(1, Math.max(0, numericValue));
-
-  if (masterGain && audioContext) {
-    masterGain.gain.setTargetAtTime(
-      muted ? 0 : volume,
-      audioContext.currentTime,
-      0.03
-    );
-  }
-
-  return volume;
-}
-
-export function getVolume() {
-  return volume;
+  setupCustomMusicPlayer();
 }
 
 export function playCoinSound() {

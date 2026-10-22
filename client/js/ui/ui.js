@@ -27,6 +27,7 @@ import {
   initializeAudio,
   toggleMute,
   isMuted,
+  updateMusicUI,
   playCrashSound,
   playRaceCompleteSound,
   playRaceFailedSound
@@ -466,9 +467,10 @@ export function initializeUI() {
 
   bindButton("muteBtn", () => {
     toggleMute();
-    const icon = byId("muteIcon");
-    if (icon) {
-      icon.textContent = isMuted() ? "🔇" : "🔊";
+    updateMusicUI();
+    const muteBtn = byId("muteBtn");
+    if (muteBtn) {
+      muteBtn.style.opacity = isMuted() ? "0.5" : "1";
     }
   });
 

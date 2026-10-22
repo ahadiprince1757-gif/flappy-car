@@ -48,12 +48,23 @@
             <span id="coinDisplay" class="coin-value">0</span>
           </div>
 
-          <button id="muteBtn" class="sound-toggle-btn" type="button" aria-label="Toggle Sound" title="Sound">
-            <svg id="soundOnSvg" viewBox="0 0 24 24" class="svg-sound">
-              <path d="M11 5L6 9H2v6h4l5 4V5z" fill="currentColor"/>
-              <path d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-          </button>
+          <div class="arcade-sound-controls">
+            <!-- Custom Music Local File Picker & Audio Player -->
+            <input id="musicPicker" type="file" accept="audio/*" style="display: none;" />
+            <audio id="player" loop preload="none"></audio>
+
+            <button id="playMusic" class="jukebox-btn" type="button" aria-label="Play / Pause Music" title="Play or select music file">
+              <span class="jukebox-icon" id="jukeboxIcon">🎵</span>
+              <span class="jukebox-track-name" id="trackTitle">Add Music</span>
+            </button>
+
+            <button id="muteBtn" class="sound-toggle-btn" type="button" aria-label="Toggle Sound" title="Sound">
+              <svg id="soundOnSvg" viewBox="0 0 24 24" class="svg-sound">
+                <path d="M11 5L6 9H2v6h4l5 4V5z" fill="currentColor"/>
+                <path d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </button>
+          </div>
         </header>
 
         <!-- Center Official Graphic Logo Block -->
@@ -173,10 +184,70 @@
       <section id="pauseMenu" class="menu-screen modal-overlay" aria-label="Pause menu" hidden>
         <div class="minimal-modal">
           <h3>PAUSED</h3>
+          <div class="pause-music-row">
+            <button id="pauseMusicToggleBtn" class="jukebox-mini-toggle" type="button" aria-label="Toggle Custom Music">
+              <span id="pauseMusicIcon">🎵</span>
+              <span id="pauseTrackName">Music</span>
+            </button>
+          </div>
           <div class="modal-actions">
             <button class="menuBtn primary-action-btn" id="resumeBtn" type="button">RESUME</button>
+            <button class="menuBtn secondary-action-btn" id="pauseSettingsBtn" type="button">AUDIO MIXER</button>
             <button class="menuBtn secondary-action-btn" id="restartBtn" type="button">RESTART</button>
             <button class="menuBtn outline-action-btn" id="homeBtn" type="button">MAIN MENU</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Settings & Audio Mixer Modal -->
+      <section id="settingsModal" class="menu-screen modal-overlay" aria-label="Settings and audio mixer" hidden>
+        <div class="minimal-modal settings-modal-card">
+          <div class="modal-header">
+            <h3>AUDIO & SETTINGS</h3>
+            <p class="modal-sub">Custom local soundtrack & racing sound mixer</p>
+          </div>
+
+          <div class="mixer-controls">
+            <!-- Custom Jukebox Section -->
+            <div class="mixer-group">
+              <div class="mixer-label-row">
+                <span class="mixer-title">🎵 Custom Jukebox Track</span>
+                <span class="track-status-pill" id="mixerTrackStatus">No file loaded</span>
+              </div>
+              <div class="jukebox-action-row">
+                <button class="menuBtn compact-btn" id="mixerPickBtn" type="button">📁 CHOOSE FILE</button>
+                <button class="menuBtn compact-btn" id="mixerPlayBtn" type="button">▶ PLAY</button>
+                <button class="menuBtn compact-btn danger-btn" id="mixerEjectBtn" type="button" title="Eject Track">⏏</button>
+              </div>
+            </div>
+
+            <!-- Music Volume Slider -->
+            <div class="mixer-group">
+              <div class="mixer-label-row">
+                <span>Music Volume</span>
+                <strong id="musicVolText">60%</strong>
+              </div>
+              <input type="range" id="musicVolSlider" class="arcade-slider" min="0" max="100" value="60" />
+            </div>
+
+            <!-- Engine & SFX Volume Slider -->
+            <div class="mixer-group">
+              <div class="mixer-label-row">
+                <span>Engine & Racing SFX</span>
+                <strong id="sfxVolText">35%</strong>
+              </div>
+              <input type="range" id="sfxVolSlider" class="arcade-slider" min="0" max="100" value="35" />
+            </div>
+
+            <!-- Master Mute Toggle -->
+            <div class="mixer-group toggle-row">
+              <span>Master Audio</span>
+              <button class="menuBtn toggle-btn" id="mixerMuteToggle" type="button">SOUND ON 🔊</button>
+            </div>
+          </div>
+
+          <div class="modal-actions">
+            <button class="menuBtn primary-action-btn" id="closeSettingsBtn" type="button">DONE</button>
           </div>
         </div>
       </section>

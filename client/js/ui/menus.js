@@ -1,7 +1,7 @@
 import { getAllRacingLevels } from "../racing/racingLevels.js";
 import { getUnlockedRacingLevels } from "../racing/racing.js";
 import { renderGarage } from "../cars/garage.js";
-import { toggleMute, isMuted } from "../systems/audio.js";
+import { toggleMute, isMuted, updateMusicUI } from "../systems/audio.js";
 import { showHUDMessage } from "./hud.js";
 import { fetchLeaderboard } from "../services/api.js";
 
@@ -80,6 +80,15 @@ export function showPauseMenu() {
 
 export function hidePauseMenu() {
   hide(byId("pauseMenu"));
+}
+
+export function showSettingsModal() {
+  updateMusicUI();
+  show(byId("settingsModal"));
+}
+
+export function hideSettingsModal() {
+  hide(byId("settingsModal"));
 }
 
 export function renderRacingLevels() {
@@ -201,8 +210,23 @@ export function initializeMenus(options = {}) {
     showLeaderboardScreen();
   });
 
+
+
   bindClick("settingsBtn", () => {
+    showSettingsModal();
+  });
+
+  bindClick("pauseSettingsBtn", () => {
+    showSettingsModal();
+  });
+
+  bindClick("closeSettingsBtn", () => {
+    hideSettingsModal();
+  });
+
+  bindClick("mixerMuteToggle", () => {
     toggleMute();
+    updateMusicUI();
     const muted = isMuted();
     const muteBtn = byId("muteBtn");
     if (muteBtn) {

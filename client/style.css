@@ -187,6 +187,73 @@ button {
   height: 20px;
 }
 
+/* Jukebox & Header Sound Controls */
+.arcade-sound-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.jukebox-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 42px;
+  max-width: clamp(140px, 34vw, 220px);
+  padding: 0 14px 0 12px;
+  border: 2px solid rgba(0, 239, 255, 0.6);
+  border-radius: 9999px;
+  background: rgba(0, 16, 36, 0.72);
+  color: #fff;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  box-shadow:
+    0 0 14px rgba(0, 239, 255, 0.35),
+    inset 0 0 8px rgba(0, 239, 255, 0.15);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.jukebox-btn:hover {
+  border-color: var(--cyan);
+  box-shadow: 0 0 20px rgba(0, 239, 255, 0.75);
+  transform: translateY(-1px);
+}
+
+.jukebox-btn:active {
+  transform: scale(0.96);
+}
+
+.jukebox-btn.is-playing {
+  border-color: #ff3366;
+  box-shadow:
+    0 0 16px rgba(255, 51, 102, 0.65),
+    inset 0 0 10px rgba(255, 51, 102, 0.25);
+  animation: pulseJukebox 2s infinite ease-in-out;
+}
+
+@keyframes pulseJukebox {
+  0%, 100% { box-shadow: 0 0 14px rgba(255, 51, 102, 0.6); }
+  50% { box-shadow: 0 0 22px rgba(255, 80, 130, 0.9); }
+}
+
+.jukebox-icon {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.jukebox-track-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
+}
+
 /* ── Logo block ──────────────────────────────────── */
 /*
   Layout:  top-bar | (flex-spacer) | logo-area | buttons | graffiti
@@ -1867,4 +1934,218 @@ button {
   .arcade-logo-area { margin-top: clamp(40px, 9vh, 90px); }
   .arcade-buttons-stack { gap: 13px; }
   .arcade-btn { height: 62px; }
+}
+
+/* ── Modals & Audio Mixer ─────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(2, 8, 16, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  animation: fadeIn 0.25s ease-out;
+}
+
+.minimal-modal {
+  width: min(440px, 92vw);
+  background: linear-gradient(175deg, rgba(8, 24, 44, 0.95) 0%, rgba(3, 12, 24, 0.98) 100%);
+  border: 2px solid rgba(0, 239, 255, 0.45);
+  border-radius: 20px;
+  padding: 28px 24px;
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.85),
+    0 0 35px rgba(0, 239, 255, 0.25),
+    inset 0 0 20px rgba(0, 239, 255, 0.08);
+  color: #fff;
+  text-align: center;
+}
+
+.minimal-modal h3 {
+  font-size: 26px;
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: 0.06em;
+  margin: 0 0 6px 0;
+  background: linear-gradient(135deg, #fff 0%, #00efff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.modal-sub {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0 0 20px 0;
+}
+
+.modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.pause-music-row {
+  margin-bottom: 16px;
+}
+
+.jukebox-mini-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  border-radius: 9999px;
+  border: 1.5px solid rgba(0, 239, 255, 0.4);
+  background: rgba(0, 20, 40, 0.6);
+  color: #fff;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.jukebox-mini-toggle:hover {
+  border-color: var(--cyan);
+  box-shadow: 0 0 12px var(--cyan-glow);
+}
+
+/* Mixer Controls */
+.mixer-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  text-align: left;
+}
+
+.mixer-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  background: rgba(0, 16, 32, 0.6);
+  border: 1px solid rgba(0, 239, 255, 0.2);
+  border-radius: 12px;
+}
+
+.mixer-group.toggle-row {
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mixer-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.mixer-title {
+  color: var(--cyan);
+}
+
+.track-status-pill {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.6);
+  max-width: 170px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.track-status-pill.active-track {
+  background: rgba(0, 239, 255, 0.15);
+  color: #00efff;
+  border: 1px solid rgba(0, 239, 255, 0.35);
+}
+
+.jukebox-action-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.compact-btn {
+  flex: 1;
+  height: 38px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 0 10px;
+  border-radius: 8px;
+}
+
+.danger-btn {
+  flex: 0 0 38px;
+  padding: 0;
+  color: #ff4d6d;
+  border-color: rgba(255, 77, 109, 0.4);
+}
+
+.danger-btn:hover {
+  background: rgba(255, 77, 109, 0.2);
+  border-color: #ff4d6d;
+}
+
+.toggle-btn {
+  height: 36px;
+  padding: 0 14px;
+  font-size: 12px;
+  font-weight: 800;
+  border-radius: 8px;
+}
+
+.toggle-btn.is-muted {
+  border-color: #ff4d6d;
+  color: #ff4d6d;
+}
+
+/* Custom Arcade Range Slider */
+.arcade-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 8px;
+  border-radius: 6px;
+  background: rgba(0, 239, 255, 0.15);
+  outline: none;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.arcade-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--cyan);
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 12px var(--cyan-glow), 0 2px 4px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.arcade-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+
+.arcade-slider::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--cyan);
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 12px var(--cyan-glow);
+  cursor: pointer;
 }
