@@ -43,7 +43,10 @@ function byId(id) {
 
 function setHidden(id, hidden) {
   const element = byId(id);
-  if (element) element.hidden = hidden;
+  if (element) {
+    element.hidden = hidden;
+    element.style.display = hidden ? "none" : "";
+  }
 }
 
 function setGameplayVisible(visible) {
@@ -106,6 +109,7 @@ function removeResultOverlay() {
     resultOverlay.remove();
     resultOverlay = null;
   }
+  document.querySelectorAll(".modal-overlay:not(#pauseMenu), .result-card").forEach(el => el.remove());
 }
 
 function showResultOverlay(title, isWin, stats = [], actions = []) {
@@ -257,6 +261,9 @@ function startSelectedRace(levelId) {
 }
 
 function restartRun() {
+  removeResultOverlay();
+  hidePauseMenu();
+
   if (gameState.gameMode === "racing") {
     startSelectedRace(gameState.currentLevel || 1);
   } else {
@@ -273,10 +280,13 @@ function pauseGame() {
 }
 
 function resumeGame() {
+  hidePauseMenu();
+  removeResultOverlay();
+
   if (gameState.status !== "paused") return;
 
-  hidePauseMenu();
   gameState.status = "playing";
+  setGameplayVisible(true);
 
   initializeAudio();
   startEngineSound();
@@ -284,8 +294,8 @@ function resumeGame() {
 
 function returnHome() {
   removeResultOverlay();
-  stopEngineSound();
   hidePauseMenu();
+  stopEngineSound();
 
   if (gameState.gameMode === "racing") {
     abandonRace();

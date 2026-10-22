@@ -18,6 +18,9 @@ const RECYCLE_DIST = 35;
 const BUILDING_BASE = "./assets/models/buildings/";
 const TEXTURE_BASE  = "./assets/textures/buildings/";
 
+const TREE_BASE     = "./assets/models/trees/";
+const TREE_TEX_BASE = "./assets/textures/trees/";
+
 // Curated selection of FBX buildings
 const FBX_BUILDINGS = [
   { file: "1Story",         stories: 1, type: "shop" },
@@ -30,6 +33,22 @@ const FBX_BUILDINGS = [
   { file: "4Story",         stories: 4, type: "tower" },
   { file: "6Story_Stack",   stories: 6, type: "tower" },
 ];
+
+const ALL_TREE_FILES = [
+  "Tree_1", "Tree_2", "Tree_3", "Tree_4", "Tree_5",
+  "Pine_1", "Pine_2", "Pine_3",
+  "Birch_1", "Birch_2", "Birch_3",
+  "DeadTree_1", "DeadTree_2", "DeadBirch_1"
+];
+
+const STAGE_TREES = {
+  city:    ["Tree_1", "Tree_2", "Tree_3", "Birch_1", "Birch_2"],
+  beach:   ["Tree_1", "Tree_4", "Pine_1", "Pine_2"],
+  jungle:  ["Tree_1", "Tree_2", "Tree_3", "Tree_5", "Pine_1"],
+  desert:  ["DeadTree_1", "DeadTree_2", "DeadBirch_1"],
+  village: ["Pine_1", "Pine_2", "Birch_1", "Birch_2"],
+  _default:["Tree_1", "Tree_2", "Pine_1", "Birch_1"]
+};
 
 const STAGE_TEXTURES = {
   city:    ["Texture_Blue", "Texture_Light", "Texture_Grey", "Texture_Signs", "Texture_Light2"],
@@ -51,11 +70,146 @@ function getTexture(name) {
   return tex;
 }
 
+// Tree Texture cache
+const _treeTexCache = new Map();
+function getTreeTexture(relPath) {
+  if (_treeTexCache.has(relPath)) return _treeTexCache.get(relPath);
+  const tex = _texLoader.load(`${TREE_TEX_BASE}${relPath}`);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  _treeTexCache.set(relPath, tex);
+  return tex;
+}
+
 // FBX Model cache
 const _buildingCache = new Map();
 let _buildingsReady = false;
 let _buildingsLoading = false;
 const _readyCallbacks = [];
+
+// FBX Tree Model cache
+const _treeCache = new Map();
+let _treesReady = false;
+let _treesLoading = false;
+const _treeReadyCallbacks = [];
+
+export function preloadTreeModels(onComplete) {
+  if (onComplete) _treeReadyCallbacks.push(onComplete);
+  if (_treesReady) {
+    if (onComplete) onComplete();
+    return;
+  }
+  if (_treesLoading) return;
+  _treesLoading = true;
+
+  const fbxLoader = new FBXLoader();
+  fbxLoader.setPath(TREE_BASE);
+
+  let pending = ALL_TREE_FILES.length;
+
+  for (const file of ALL_TREE_FILES) {
+    fbxLoader.load(
+      `${file}.fbx`,
+      (group) => {
+        const rawBox = new THREE.Box3().setFromObject(group);
+        const rawSize = new THREE.Vector3();
+        rawBox.getSize(rawSize);
+
+        if (rawSize.y > 40) {
+          group.scale.setScalar(0.01);
+        }
+
+        const bbox = new THREE.Box3().setFromObject(group);
+        const size = new THREE.Vector3();
+        bbox.getSize(size);
+
+        // Normalize height: pines are taller (~7.2m), deciduous trees are ~5.8m
+        const targetH = file.startsWith("Pine") ? 7.2 : 5.8;
+        const scaleF = targetH / Math.max(size.y, 0.1);
+
+        const wrapper = new THREE.Group();
+        group.position.set(-bbox.min.x - size.x / 2, -bbox.min.y, -bbox.min.z - size.z / 2);
+        wrapper.add(group);
+        wrapper.scale.setScalar(scaleF);
+
+        wrapper.traverse((obj) => {
+          if (obj.isMesh) {
+            obj.castShadow = true;
+            obj.receiveShadow = true;
+
+            const matName = (obj.material?.name || obj.name || "").toLowerCase();
+            const isBark = /bark/i.test(matName);
+
+            if (isBark) {
+              let barkTex;
+              if (file.startsWith("Birch")) {
+                barkTex = getTreeTexture("Birch_Bark.png");
+              } else if (file.startsWith("DeadBirch")) {
+                barkTex = getTreeTexture("Color Variations/Birch_Bark_Dead.png");
+              } else if (file.startsWith("Dead")) {
+                barkTex = getTreeTexture("Color Variations/Bark_Dead.png");
+              } else {
+                barkTex = getTreeTexture("Tree_Bark.jpg");
+              }
+              obj.material = new THREE.MeshStandardMaterial({
+                map: barkTex,
+                roughness: 0.88,
+                metalness: 0.05
+              });
+            } else {
+              let leafTex;
+              if (file.startsWith("Pine")) {
+                leafTex = getTreeTexture("Pine_Leaves.png");
+              } else if (file.startsWith("Birch")) {
+                leafTex = getTreeTexture("Birch_Leaves_Green.png");
+              } else {
+                leafTex = getTreeTexture("Tree_Leaves.png");
+              }
+              obj.material = new THREE.MeshStandardMaterial({
+                map: leafTex,
+                transparent: true,
+                alphaTest: 0.35,
+                roughness: 0.65,
+                metalness: 0.02,
+                side: THREE.DoubleSide
+              });
+            }
+          }
+        });
+
+        _treeCache.set(file, wrapper);
+        checkTreeDone();
+      },
+      undefined,
+      (err) => {
+        console.warn(`Tree model load failed: ${file}.fbx`, err);
+        checkTreeDone();
+      }
+    );
+  }
+
+  function checkTreeDone() {
+    pending--;
+    if (pending <= 0) {
+      _treesReady = true;
+      _treesLoading = false;
+      for (const cb of _treeReadyCallbacks) {
+        try { cb(); } catch (e) { console.error(e); }
+      }
+      _treeReadyCallbacks.length = 0;
+    }
+  }
+}
+
+function spawnFBXTree(file) {
+  const proto = _treeCache.get(file);
+  if (!proto) return null;
+
+  const clone = proto.clone(true);
+  const varScale = 0.88 + Math.random() * 0.28;
+  clone.scale.multiplyScalar(varScale);
+  clone.rotation.y = Math.random() * Math.PI * 2;
+  return clone;
+}
 
 export function preloadBuildingModels(onComplete) {
   if (onComplete) _readyCallbacks.push(onComplete);
@@ -235,26 +389,7 @@ function createStreetLamp() {
   return group;
 }
 
-/* ── Roadside Tree ───────────────────────────────────────────── */
-function createTree(stage) {
-  const group = new THREE.Group();
-  cyl(group, 0.12, 0.20, 2.8, 6, [0, 1.4, 0], getMat("#3d2212", { roughness: 0.9 }), false);
-
-  const foliageColor = stage.scenery === "jungle" ? "#15803d" : "#2d6a4f";
-  const foliageMat = getMat(foliageColor, { roughness: 0.8 });
-
-  const c1 = new THREE.Mesh(new THREE.ConeGeometry(1.4, 3.2, 6), foliageMat);
-  c1.position.set(0, 3.6, 0);
-  c1.castShadow = true;
-  group.add(c1);
-
-  const c2 = new THREE.Mesh(new THREE.ConeGeometry(1.1, 2.6, 6), foliageMat);
-  c2.position.set(0, 4.8, 0);
-  c2.castShadow = true;
-  group.add(c2);
-
-  return group;
-}
+/* ── Old Procedural Cone Trees Permanently Removed — Replaced with Real 3D FBX Models ── */
 
 /* ── Panoramic Horizon Backdrop ──────────────────────────────── */
 function createHorizonTexture(stage) {
@@ -386,15 +521,39 @@ export function createBackground(stageId = "city") {
         isFBX
       });
 
-      // Roadside tree
-      if (rng() > 0.3) {
-        const tree = createTree(stage);
-        const treeDist = side * 11.8;
+      // Roadside Real 3D FBX Tree
+      if (rng() > 0.25) {
+        const treesList = STAGE_TREES[stageId] || STAGE_TREES._default;
+        const treeFile = treesList[Math.floor(rng() * treesList.length)];
+
+        let treeObj = null;
+        let isFBX = false;
+
+        if (_treesReady) {
+          treeObj = spawnFBXTree(treeFile);
+          if (treeObj) isFBX = true;
+        }
+
+        if (!treeObj) {
+          treeObj = new THREE.Group();
+        }
+
+        const treeDist = side * (10.5 + rng() * 2.6);
         const treePt = getRoadPoint(z - 11, treeDist);
-        tree.position.set(treePt.x, treePt.y, treePt.z);
-        tree.rotation.y = treePt.heading;
-        group.add(tree);
-        items.push({ object: tree, lateralDist: treeDist, side, rotationOffset: 0, roadZ: z - 11, yOffset: 0 });
+        treeObj.position.set(treePt.x, treePt.y, treePt.z);
+        group.add(treeObj);
+
+        items.push({
+          object: treeObj,
+          lateralDist: treeDist,
+          side,
+          rotationOffset: 0,
+          roadZ: z - 11,
+          yOffset: 0,
+          isTree: true,
+          treeFile,
+          isFBX
+        });
       }
     }
   }
@@ -423,7 +582,7 @@ export function createBackground(stageId = "city") {
 
 /* ================================================================
    updateBackground
-================================================================ */
+=============================================================== */
 export function updateBackground(background, deltaTime, speed) {
   if (!background) return;
 
@@ -453,6 +612,18 @@ export function updateBackground(background, deltaTime, speed) {
         background.remove(obj);
         background.add(realFBX);
         entry.object = realFBX;
+        entry.isFBX = true;
+      }
+    }
+
+    // Hot-swap fallback → real FBX 3D tree when ready
+    if (entry.isTree && !entry.isFBX && _treesReady) {
+      const realTree = spawnFBXTree(entry.treeFile);
+      if (realTree) {
+        realTree.position.copy(obj.position);
+        background.remove(obj);
+        background.add(realTree);
+        entry.object = realTree;
         entry.isFBX = true;
       }
     }

@@ -52,6 +52,47 @@ export function createBurst(position, color = 0x00ffff, count = 12) {
   return effect;
 }
 
+export function createTireSmoke(position, scale = 1.0) {
+  const scene = gameState.scene;
+  if (!scene) return null;
+
+  if (gameState.effects.length >= EFFECT_LIMIT) {
+    removeEffect(gameState.effects[0]);
+  }
+
+  const group = new THREE.Group();
+  group.position.copy(position);
+
+  const particles = [];
+  const geom = new THREE.SphereGeometry(0.12 * scale, 4, 4);
+  const mat = new THREE.MeshBasicMaterial({
+    color: 0xd1d5db,
+    transparent: true,
+    opacity: 0.5
+  });
+
+  const p = new THREE.Mesh(geom, mat);
+  group.add(p);
+  particles.push({
+    mesh: p,
+    velocity: new THREE.Vector3(
+      (Math.random() - 0.5) * 1.2,
+      Math.random() * 0.8 + 0.2,
+      Math.random() * 2.0 + 1.0
+    )
+  });
+
+  scene.add(group);
+  const effect = {
+    group,
+    particles,
+    age: 0,
+    duration: 0.35
+  };
+  gameState.effects.push(effect);
+  return effect;
+}
+
 function removeEffect(effect) {
   if (!effect) return;
 

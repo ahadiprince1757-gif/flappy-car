@@ -13,11 +13,17 @@ function byId(id) {
 }
 
 function show(element) {
-  if (element) element.hidden = false;
+  if (element) {
+    element.hidden = false;
+    element.style.display = "";
+  }
 }
 
 function hide(element) {
-  if (element) element.hidden = true;
+  if (element) {
+    element.hidden = true;
+    element.style.display = "none";
+  }
 }
 
 function bindClick(id, callback) {

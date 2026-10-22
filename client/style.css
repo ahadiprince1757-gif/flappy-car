@@ -1139,17 +1139,22 @@ button {
    MODAL & RESULT OVERLAY (GAME OVER / FAILED / PAUSE)
 ===================================================== */
 .modal-overlay {
-  position: fixed !important;
-  inset: 0 !important;
-  z-index: 1000 !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  background: rgba(2, 12, 24, 0.88) !important;
-  backdrop-filter: blur(12px) !important;
-  -webkit-backdrop-filter: blur(12px) !important;
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(2, 12, 24, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   padding: 20px;
   animation: modalFadeIn 0.25s ease-out;
+}
+
+.modal-overlay[hidden],
+[hidden] {
+  display: none !important;
 }
 
 @keyframes modalFadeIn {

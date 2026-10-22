@@ -13,7 +13,7 @@ import {
   updateStage
 } from "./stages/stageRenderer.js";
 
-import { preloadBuildingModels } from "./stages/backgrounds.js";
+import { preloadBuildingModels, preloadTreeModels } from "./stages/backgrounds.js";
 import { preloadCarModels } from "./cars/carModelLoader.js";
 
 import {
@@ -166,6 +166,7 @@ function start() {
     }
 
     preloadBuildingModels();
+    preloadTreeModels();
 
     preloadCarModels(() => {
       if (gameState.scene) {
