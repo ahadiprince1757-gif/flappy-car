@@ -2,10 +2,13 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#001830" />
     <meta name="description" content="Flappy Car — 3D Highway Drive with dynamic curved roads, city scenery, and racing stages." />
     <title>FLAPPY CAR</title>
+    <link rel="manifest" href="./manifest.json" />
+    <link rel="icon" type="image/png" href="./assets/logo.png" />
+    <link rel="apple-touch-icon" href="./assets/logo.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="./style.css" />
@@ -53,22 +56,9 @@
           </button>
         </header>
 
-        <!-- Center 3D Logo Block -->
+        <!-- Center Official Graphic Logo Block -->
         <div class="arcade-logo-area">
-          <div class="arcade-logo">
-            <div class="logo-flappy">FLAPPY</div>
-            <div class="logo-car-row">
-              <div class="logo-wing left">
-                <span></span>
-                <span></span>
-              </div>
-              <span class="logo-car">CAR</span>
-              <div class="logo-wing right">
-                <span></span>
-                <span></span>
-              </div>
-            </div>
-          </div>
+          <img src="./assets/logo.png" alt="FLAPPY CAR" class="arcade-logo-img" />
         </div>
 
         <!-- Vertical Interactive Menu Button Stack -->
@@ -191,6 +181,26 @@
         </div>
       </section>
 
+      <!-- Rotate Device Prompt for Landscape Gameplay -->
+      <aside id="rotateOverlay" class="rotate-device-overlay" aria-label="Rotate device to landscape" hidden>
+        <div class="rotate-card">
+          <div class="rotate-anim-wrap">
+            <div class="rotate-phone-device">
+              <span class="phone-screen-bar"></span>
+            </div>
+            <div class="rotate-curve-arrow">
+              <svg viewBox="0 0 40 40" class="svg-rotate-arrow">
+                <path d="M 12 24 A 10 10 0 1 1 24 30" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+                <polygon points="19,30 25,35 25,25" fill="currentColor"/>
+              </svg>
+            </div>
+          </div>
+          <h3 class="rotate-title">ROTATE DEVICE</h3>
+          <p class="rotate-desc">Turn your phone sideways into Landscape mode for the arcade racing view!</p>
+          <button id="dismissRotateBtn" type="button" class="rotate-dismiss-btn">Drive in portrait anyway</button>
+        </div>
+      </aside>
+
       <!-- Faded Realistic Game Driving HUD Controls -->
       <div id="controls" class="game-cockpit-controls" aria-label="Driving controls" hidden>
         <!-- Bottom Left: Steering Controls -->
@@ -233,5 +243,14 @@
     </div>
 
     <script type="module" src="./js/main.js"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js').catch((err) => {
+            console.warn('Service worker registration failed:', err);
+          });
+        });
+      }
+    </script>
   </body>
 </html>

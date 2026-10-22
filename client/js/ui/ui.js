@@ -33,6 +33,11 @@ import {
 } from "../systems/audio.js";
 import { preloadCarModels } from "../cars/carModelLoader.js";
 import { submitScore, recordLevelComplete } from "../services/api.js";
+import {
+  initOrientation,
+  requestLandscapeOrientation,
+  releaseOrientationLock
+} from "../systems/orientation.js";
 
 let initialized = false;
 let resultOverlay = null;
@@ -53,6 +58,12 @@ function setGameplayVisible(visible) {
   setHidden("controls", !visible);
   setHidden("pauseBtn", !visible);
   setHidden("ui", !visible);
+
+  if (visible) {
+    requestLandscapeOrientation();
+  } else {
+    releaseOrientationLock();
+  }
 }
 
 function resetRunSystems() {
@@ -434,6 +445,7 @@ export function initializeUI() {
 
   initializeHUD();
   initializeGarage();
+  initOrientation();
 
   initializeMenus({
     onStartAdventure: startAdventure,

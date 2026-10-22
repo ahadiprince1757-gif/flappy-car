@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
@@ -15,7 +16,8 @@ const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 5000;
 
 // Enable CORS and JSON parsing
-app.use(cors());
+const corsOrigin = process.env.CORS_ORIGIN || '*';
+app.use(cors({ origin: corsOrigin === '*' ? '*' : corsOrigin.split(',').map(s => s.trim()) }));
 app.use(express.json());
 
 // Set explicit MIME types for 3D model files before static handler
@@ -66,4 +68,8 @@ function startServer(port) {
   });
 }
 
-startServer(PORT);
+export default app;
+
+if (process.env.NODE_ENV !== 'test' && !process.env.VERCEL) {
+  startServer(PORT);
+}

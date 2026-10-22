@@ -197,86 +197,33 @@ button {
   justify-content: center;
   align-items: center;
   width: 100%;
-  /* Push logo to ~25-30 % from top on desktop */
-  margin-top: clamp(18px, 7vh, 72px);
+  margin-top: clamp(14px, 5vh, 48px);
   pointer-events: none;
 }
 
-.arcade-logo {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  /* Slight italic tilt like the reference */
-  transform: skewY(-3.5deg);
+.arcade-logo-img {
+  width: clamp(220px, 38vw, 380px);
+  max-width: 88vw;
+  height: auto;
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
   filter:
-    drop-shadow(0 0 28px rgba(0, 220, 255, 0.55))
-    drop-shadow(0 8px 6px rgba(0, 0, 0, 0.7));
+    drop-shadow(0 16px 30px rgba(0, 0, 0, 0.75))
+    drop-shadow(0 0 32px rgba(255, 30, 20, 0.42));
+  animation: logoFloat 4s ease-in-out infinite;
+  user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none;
+  will-change: transform;
 }
 
-/* "FLAPPY" in cyan-to-white gradient */
-.logo-flappy {
-  font-size: clamp(54px, 13vw, 96px);
-  font-weight: 900;
-  font-style: italic;
-  line-height: 0.88;
-  letter-spacing: 0.02em;
-
-  /* Gradient fill via background-clip trick */
-  background: linear-gradient(170deg, #ffffff 0%, #9af6ff 35%, #00d8ff 65%, #007dc5 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-
-  /* Dark stroke outline */
-  paint-order: stroke fill;
-  -webkit-text-stroke: 4px #03111e;
-}
-
-/* "—= CAR =—" row */
-.logo-car-row {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  margin-top: -4px;
-}
-
-.logo-wing {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.logo-wing span {
-  display: block;
-  border-radius: 3px;
-  background: var(--cyan);
-  box-shadow: 0 0 10px var(--cyan-glow);
-}
-
-/* Two-bar wing chevron */
-.logo-wing span:nth-child(1) { width: clamp(22px, 4.5vw, 40px); height: 5px; }
-.logo-wing span:nth-child(2) { width: clamp(14px, 2.8vw, 26px); height: 4px; margin-top: -1px; }
-
-.logo-wing.right span:nth-child(2) {
-  align-self: flex-end;
-}
-
-/* "CAR" in hot orange-red gradient */
-.logo-car {
-  font-size: clamp(50px, 12vw, 88px);
-  font-weight: 900;
-  font-style: italic;
-  line-height: 0.90;
-  letter-spacing: 0.05em;
-
-  background: linear-gradient(170deg, #ffe600 0%, #ff7c00 40%, #ff2200 75%, #990000 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-
-  paint-order: stroke fill;
-  -webkit-text-stroke: 4px #03111e;
+@keyframes logoFloat {
+  0%, 100% {
+    transform: translateY(0px) scale(1);
+  }
+  50% {
+    transform: translateY(-8px) scale(1.02);
+  }
 }
 
 /* ── Button stack ─────────────────────────────────── */
@@ -1327,43 +1274,595 @@ button {
 }
 
 /* =====================================================
-   RESPONSIVE
+   GAMEPLAY HUD (#ui & #pauseBtn)
 ===================================================== */
-@media (max-width: 520px) {
-  .arcade-top-bar { padding: 16px 16px 0; }
+#ui {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+  z-index: 18;
+  padding: max(10px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) 0 max(20px, env(safe-area-inset-left));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  animation: fadeIn 0.25s ease-out;
+}
 
-  .arcade-logo-area {
-    margin-top: clamp(10px, 4vh, 32px);
+#ui[hidden] {
+  display: none !important;
+}
+
+.hud-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  pointer-events: none;
+}
+
+.hud-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 16px;
+  border-radius: 9999px;
+  background: rgba(0, 16, 36, 0.78);
+  border: 1.5px solid var(--cyan);
+  box-shadow: 0 0 14px rgba(0, 239, 255, 0.4), inset 0 0 8px rgba(0, 239, 255, 0.15);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.hud-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--cyan);
+}
+
+.hud-stat strong {
+  font-family: var(--font-arc);
+  font-size: 16px;
+  font-weight: 900;
+  font-style: italic;
+  color: #fff;
+  letter-spacing: 0.04em;
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
+}
+
+.hud-progress {
+  align-self: center;
+  width: min(340px, 46vw);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hud-progress-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #bae6fd;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+}
+
+.hud-progress-track {
+  width: 100%;
+  height: 6px;
+  background: rgba(0, 20, 44, 0.85);
+  border: 1px solid rgba(0, 239, 255, 0.4);
+  border-radius: 9999px;
+  overflow: hidden;
+  box-shadow: 0 0 8px rgba(0, 239, 255, 0.25);
+}
+
+.hud-progress-fill {
+  width: 0%;
+  height: 100%;
+  background: linear-gradient(90deg, #00f0ff, #ffb703, #ff3b00);
+  border-radius: 9999px;
+  transition: width 0.15s ease-out;
+  box-shadow: 0 0 10px #00f0ff;
+}
+
+.hud-race-details {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 800;
+  color: #ffb703;
+  margin-top: 2px;
+}
+
+.hud-message {
+  position: absolute;
+  top: 72px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 24px;
+  border-radius: 9999px;
+  background: rgba(0, 16, 36, 0.90);
+  border: 2px solid var(--cyan);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: 0.06em;
+  box-shadow: 0 0 24px var(--cyan-glow);
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* Pause Button */
+#pauseBtn {
+  position: absolute;
+  top: max(10px, env(safe-area-inset-top));
+  right: max(18px, env(safe-area-inset-right));
+  z-index: 24;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(0, 18, 42, 0.78);
+  border: 2px solid var(--cyan);
+  color: var(--cyan);
+  box-shadow: 0 0 14px rgba(0, 239, 255, 0.5), inset 0 0 8px rgba(0, 239, 255, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 900;
+  font-family: var(--font-mono);
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: all 0.16s ease;
+}
+
+#pauseBtn:hover {
+  transform: scale(1.08);
+  box-shadow: 0 0 22px rgba(0, 239, 255, 0.85);
+}
+
+#pauseBtn:active {
+  transform: scale(0.92);
+}
+
+#pauseBtn[hidden] {
+  display: none !important;
+}
+
+/* =====================================================
+   COCKPIT TOUCH DRIVING CONTROLS (#controls)
+===================================================== */
+.game-cockpit-controls {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 20;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 0 max(16px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.game-cockpit-controls[hidden] {
+  display: none !important;
+}
+
+.control-zone {
+  display: flex;
+  align-items: flex-end;
+  pointer-events: auto;
+  gap: 12px;
+}
+
+.control-zone-left {
+  gap: 10px;
+}
+
+.control-zone-right {
+  gap: 10px;
+}
+
+.cockpit-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 18px;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: transform 0.08s ease, box-shadow 0.08s ease, border-color 0.08s ease, background-color 0.08s ease;
+}
+
+/* Steer Left & Right Buttons */
+.steer-btn {
+  width: 64px;
+  height: 64px;
+  border-radius: 20px;
+  background: radial-gradient(circle at 35% 35%, rgba(0, 36, 70, 0.85), rgba(0, 14, 32, 0.92));
+  border: 2px solid var(--cyan);
+  color: var(--cyan);
+  box-shadow:
+    0 0 16px rgba(0, 239, 255, 0.35),
+    0 4px 12px rgba(0, 0, 0, 0.4),
+    inset 0 0 8px rgba(0, 239, 255, 0.15);
+  gap: 2px;
+}
+
+.steer-btn:active {
+  transform: scale(0.91) translateY(2px);
+  border-color: #85fcff;
+  box-shadow:
+    0 0 28px rgba(0, 239, 255, 0.85),
+    inset 0 0 14px rgba(0, 239, 255, 0.4);
+  background: radial-gradient(circle at 35% 35%, rgba(0, 60, 110, 0.92), rgba(0, 22, 48, 0.96));
+}
+
+.cockpit-icon {
+  width: 26px;
+  height: 26px;
+}
+
+.cockpit-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1;
+}
+
+/* Pedals & Boost Cluster */
+.pedal-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding-bottom: 8px;
+  gap: 6px;
+}
+
+.pedal-ribs {
+  display: flex;
+  flex-direction: column;
+  gap: 3.5px;
+  align-items: center;
+  width: 70%;
+  pointer-events: none;
+}
+
+.pedal-ribs span {
+  display: block;
+  width: 100%;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.35);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.4);
+}
+
+/* Brake Pedal */
+.pedal-brake {
+  width: 60px;
+  height: 68px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(48, 12, 12, 0.88), rgba(24, 6, 6, 0.95));
+  border: 2px solid #ff3b00;
+  color: #ff6840;
+  box-shadow:
+    0 0 16px rgba(255, 59, 0, 0.38),
+    0 4px 12px rgba(0,0,0,0.4),
+    inset 0 0 8px rgba(255, 59, 0, 0.15);
+}
+
+.pedal-brake .pedal-ribs span {
+  background: rgba(255, 120, 80, 0.45);
+}
+
+.pedal-brake:active {
+  transform: scale(0.91) translateY(2px);
+  border-color: #ff7040;
+  box-shadow:
+    0 0 28px rgba(255, 59, 0, 0.85),
+    inset 0 0 14px rgba(255, 59, 0, 0.45);
+}
+
+/* Jump / Boost Button */
+.boost-btn {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, rgba(60, 42, 0, 0.88), rgba(28, 20, 0, 0.95));
+  border: 2px solid #ffb703;
+  color: #ffb703;
+  box-shadow:
+    0 0 18px rgba(255, 183, 3, 0.45),
+    0 4px 12px rgba(0,0,0,0.4),
+    inset 0 0 8px rgba(255, 183, 3, 0.2);
+  gap: 2px;
+  align-self: center;
+  margin-bottom: 6px;
+}
+
+.icon-rocket {
+  width: 22px;
+  height: 22px;
+}
+
+.boost-btn:active {
+  transform: scale(0.91) translateY(2px);
+  border-color: #ffe066;
+  box-shadow:
+    0 0 32px rgba(255, 183, 3, 0.9),
+    inset 0 0 14px rgba(255, 183, 3, 0.4);
+}
+
+/* Gas / Accelerator Pedal */
+.pedal-gas {
+  width: 66px;
+  height: 82px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(0, 42, 32, 0.88), rgba(0, 20, 16, 0.95));
+  border: 2px solid #00ffc4;
+  color: #00ffc4;
+  box-shadow:
+    0 0 20px rgba(0, 255, 196, 0.4),
+    0 4px 12px rgba(0,0,0,0.4),
+    inset 0 0 10px rgba(0, 255, 196, 0.18);
+}
+
+.pedal-gas .pedal-ribs span {
+  background: rgba(0, 255, 196, 0.45);
+}
+
+.pedal-gas:active {
+  transform: scale(0.92) translateY(3px);
+  border-color: #80ffe2;
+  box-shadow:
+    0 0 32px rgba(0, 255, 196, 0.9),
+    inset 0 0 16px rgba(0, 255, 196, 0.45);
+}
+
+/* =====================================================
+   ROTATE DEVICE OVERLAY (Landscape gameplay on mobile)
+===================================================== */
+.rotate-device-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(2, 12, 24, 0.94);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  padding: 24px;
+  animation: fadeIn 0.25s ease-out;
+}
+
+.rotate-device-overlay[hidden] {
+  display: none !important;
+}
+
+.rotate-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 380px;
+  width: 100%;
+  padding: 32px 24px;
+  border-radius: 28px;
+  background: rgba(0, 20, 44, 0.85);
+  border: 2px solid var(--cyan);
+  box-shadow: 0 0 45px rgba(0, 239, 255, 0.4), inset 0 0 20px rgba(0, 239, 255, 0.15);
+}
+
+.rotate-anim-wrap {
+  position: relative;
+  width: 100px;
+  height: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 18px;
+}
+
+.rotate-phone-device {
+  width: 44px;
+  height: 72px;
+  border: 3px solid var(--cyan);
+  border-radius: 10px;
+  background: rgba(0, 239, 255, 0.12);
+  display: flex;
+  justify-content: center;
+  padding-top: 6px;
+  box-shadow: 0 0 20px rgba(0, 239, 255, 0.5);
+  animation: rotatePhoneAnimation 2.4s ease-in-out infinite;
+  transform-origin: center center;
+}
+
+.phone-screen-bar {
+  display: block;
+  width: 14px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--cyan);
+}
+
+.rotate-curve-arrow {
+  position: absolute;
+  top: 4px;
+  right: 10px;
+  color: var(--gold);
+  filter: drop-shadow(0 0 8px rgba(255, 183, 3, 0.8));
+  animation: pulseArrow 1.2s ease-in-out infinite alternate;
+}
+
+.svg-rotate-arrow {
+  width: 32px;
+  height: 32px;
+}
+
+@keyframes rotatePhoneAnimation {
+  0%, 15% {
+    transform: rotate(0deg);
+  }
+  50%, 80% {
+    transform: rotate(-90deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}
+
+@keyframes pulseArrow {
+  0% { transform: scale(0.95); opacity: 0.7; }
+  100% { transform: scale(1.15); opacity: 1.0; }
+}
+
+.rotate-title {
+  font-size: 22px;
+  font-weight: 900;
+  font-style: italic;
+  color: #fff;
+  letter-spacing: 0.06em;
+  margin-bottom: 8px;
+  text-shadow: 0 0 16px rgba(0, 239, 255, 0.6);
+}
+
+.rotate-desc {
+  font-size: 14px;
+  color: var(--text-muted);
+  line-height: 1.45;
+  margin-bottom: 20px;
+}
+
+.rotate-dismiss-btn {
+  background: transparent;
+  color: var(--cyan);
+  border: 1px solid rgba(0, 239, 255, 0.35);
+  border-radius: 9999px;
+  padding: 8px 18px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.rotate-dismiss-btn:hover {
+  background: rgba(0, 239, 255, 0.15);
+  border-color: var(--cyan);
+}
+
+/* =====================================================
+   RESPONSIVE & MOBILE ADAPTATIONS
+===================================================== */
+/* Phone screen: Portrait (Landing fits like a glove) */
+@media (max-width: 600px) and (orientation: portrait) {
+  .arcade-home {
+    padding-top: max(12px, env(safe-area-inset-top));
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+    justify-content: space-between;
   }
 
-  .logo-flappy { font-size: clamp(46px, 15vw, 72px); }
-  .logo-car    { font-size: clamp(42px, 14vw, 68px); }
+  .arcade-top-bar {
+    padding: 0 16px;
+  }
+
+  .arcade-logo-area {
+    margin-top: clamp(8px, 2.5vh, 18px);
+  }
+
+  .arcade-logo-img {
+    width: clamp(180px, 52vw, 260px);
+  }
 
   .arcade-buttons-stack {
-    width: min(300px, 86vw);
-    gap: 9px;
-    margin-top: clamp(16px, 4vh, 36px);
+    width: min(320px, 86vw);
+    gap: clamp(7px, 1.8vh, 11px);
+    margin-top: clamp(12px, 3vh, 24px);
   }
 
   .arcade-btn {
-    height: 52px;
+    height: 50px;
     font-size: 17px;
   }
 
   .arcade-graffiti {
-    margin: auto 16px 18px 0;
+    margin: 8px 18px max(14px, env(safe-area-inset-bottom)) auto;
   }
-
-  .grid-container {
-    grid-template-columns: 1fr;
-    max-height: 50vh;
-  }
-
-  #controls { bottom: 14px; gap: 10px; }
-  .ctrl { width: 60px; height: 60px; }
 }
 
-/* Wide / landscape tweak — keep content centered */
+/* Mobile Landscape (for active gameplay) */
+@media (max-height: 520px) and (orientation: landscape) {
+  .minimal-modal, .result-card {
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 16px 22px;
+  }
+
+  .minimal-modal h3, .result-card h2 {
+    font-size: 22px;
+    margin-bottom: 8px;
+  }
+
+  .modal-actions {
+    gap: 8px;
+  }
+
+  .menuBtn {
+    height: 44px;
+    font-size: 15px;
+  }
+
+  .control-zone-left .steer-btn {
+    width: 56px;
+    height: 56px;
+  }
+
+  .control-zone-right .pedal-brake {
+    width: 52px;
+    height: 60px;
+  }
+
+  .control-zone-right .boost-btn {
+    width: 50px;
+    height: 50px;
+  }
+
+  .control-zone-right .pedal-gas {
+    width: 58px;
+    height: 72px;
+  }
+
+  .hud-stat {
+    height: 32px;
+    padding: 0 12px;
+  }
+
+  .hud-stat strong {
+    font-size: 14px;
+  }
+}
+
+/* Wide / landscape desktop tweak */
 @media (min-width: 900px) and (min-height: 700px) {
   .arcade-logo-area { margin-top: clamp(40px, 9vh, 90px); }
   .arcade-buttons-stack { gap: 13px; }

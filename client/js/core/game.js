@@ -109,6 +109,16 @@ export function initializeGame(canvas) {
   if (resizeHandler) window.removeEventListener("resize", resizeHandler);
   resizeHandler = resizeRenderer;
   window.addEventListener("resize", resizeHandler);
+  window.addEventListener("orientationchange", () => {
+    setTimeout(resizeRenderer, 100);
+    setTimeout(resizeRenderer, 350);
+  });
+  if (screen.orientation) {
+    screen.orientation.addEventListener("change", () => {
+      setTimeout(resizeRenderer, 100);
+      setTimeout(resizeRenderer, 350);
+    });
+  }
 
   return { THREE, scene, camera, renderer };
 }

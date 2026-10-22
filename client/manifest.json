@@ -1,0 +1,30 @@
+{
+  "name": "Flappy Car 3D",
+  "short_name": "FlappyCar",
+  "description": "High-octane 3D highway racing arcade game with real-time physics and procedural tracks.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#020c18",
+  "theme_color": "#00efff",
+  "categories": [
+    "games",
+    "arcade",
+    "racing"
+  ],
+  "icons": [
+    {
+      "src": "./assets/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./assets/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
