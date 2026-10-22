@@ -127,8 +127,20 @@
       <!-- Garage Screen -->
       <section id="garageScreen" class="menu-screen sub-screen" aria-label="Garage" hidden>
         <div class="screen-top-bar">
-          <h2>GARAGE</h2>
-          <p class="section-desc">Select vehicle model and driving environment</p>
+          <h2>3D GARAGE & SHOWROOM</h2>
+          <p class="section-desc">Inspect real 3D vehicles and driving environments</p>
+        </div>
+
+        <!-- Real 3D Turntable Vehicle & Environment Showcase -->
+        <div class="garage-showcase-container">
+          <div class="garage-canvas-wrap">
+            <canvas id="garageShowcaseCanvas"></canvas>
+            <div class="garage-drag-hint">⟲ Drag to rotate 3D view</div>
+            <div class="garage-badge-overlay">
+              <span id="showcaseCarName" class="showcase-car-tag">Cyber GT</span>
+              <span id="showcaseStageName" class="showcase-stage-tag">Metropolis City</span>
+            </div>
+          </div>
         </div>
 
         <div id="garageTabs" class="tab-switch">

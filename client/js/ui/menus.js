@@ -1,6 +1,6 @@
 import { getAllRacingLevels } from "../racing/racingLevels.js";
 import { getUnlockedRacingLevels } from "../racing/racing.js";
-import { renderGarage } from "../cars/garage.js";
+import { renderGarage, stopShowcaseViewer } from "../cars/garage.js";
 import { toggleMute, isMuted, updateMusicUI } from "../systems/audio.js";
 import { showHUDMessage } from "./hud.js";
 import { fetchLeaderboard } from "../services/api.js";
@@ -37,6 +37,7 @@ function bindClick(id, callback) {
 }
 
 export function showHomeScreen() {
+  stopShowcaseViewer();
   show(byId("homeScreen"));
   hide(byId("garageScreen"));
   hide(byId("levelSelectScreen"));
@@ -45,6 +46,7 @@ export function showHomeScreen() {
 }
 
 export function showLevelSelect() {
+  stopShowcaseViewer();
   hide(byId("homeScreen"));
   hide(byId("garageScreen"));
   hide(byId("leaderboardScreen"));
@@ -65,6 +67,7 @@ export function showGarageScreen() {
 }
 
 export function showLeaderboardScreen() {
+  stopShowcaseViewer();
   hide(byId("homeScreen"));
   hide(byId("garageScreen"));
   hide(byId("levelSelectScreen"));

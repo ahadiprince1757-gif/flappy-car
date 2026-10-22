@@ -487,6 +487,89 @@ button {
 }
 
 /* ── Tab switch ─────────────────────────── */
+/* ── 3D Garage Showcase Turntable ──────────── */
+.garage-showcase-container {
+  width: 100%;
+  max-width: 860px;
+  margin: 4px 0 10px;
+}
+
+.garage-canvas-wrap {
+  position: relative;
+  width: 100%;
+  height: clamp(190px, 30vh, 270px);
+  border-radius: 18px;
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 70%, rgba(0, 48, 88, 0.5) 0%, rgba(2, 10, 20, 0.95) 75%);
+  border: 1.5px solid rgba(0, 239, 255, 0.4);
+  box-shadow:
+    0 16px 40px rgba(0, 0, 0, 0.7),
+    0 0 25px rgba(0, 239, 255, 0.2),
+    inset 0 0 30px rgba(0, 239, 255, 0.08);
+  cursor: grab;
+  touch-action: none;
+}
+
+.garage-canvas-wrap:active {
+  cursor: grabbing;
+}
+
+#garageShowcaseCanvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.garage-drag-hint {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  background: rgba(0, 16, 36, 0.65);
+  border: 1px solid rgba(0, 239, 255, 0.3);
+  color: var(--cyan);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.garage-badge-overlay {
+  position: absolute;
+  bottom: 10px;
+  left: 12px;
+  display: flex;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.showcase-car-tag {
+  padding: 4px 12px;
+  border-radius: 8px;
+  background: rgba(0, 239, 255, 0.2);
+  border: 1px solid var(--cyan);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: 0.05em;
+  box-shadow: 0 0 12px rgba(0, 239, 255, 0.5);
+}
+
+.showcase-stage-tag {
+  padding: 4px 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
 .tab-switch {
   display: flex;
   gap: 8px;
@@ -575,12 +658,83 @@ button {
   color: #fff;
 }
 
-.car-color-swatch {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  border: 2px solid #fff;
-  box-shadow: 0 0 8px rgba(0,0,0,0.5);
+/* ── Real 3D Object Cards ──────────────────── */
+.car-visual-box {
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(2, 12, 26, 0.75);
+  border: 1px solid rgba(0, 239, 255, 0.2);
+  padding: 12px 14px;
+  margin: 2px 0;
+}
+
+.car-visual-silhouette {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.car-badge-pill {
+  display: inline-block;
+  align-self: flex-start;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(0, 239, 255, 0.15);
+  color: var(--cyan);
+}
+
+.car-model-spec {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.03em;
+}
+
+.car-body-preview-strip {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  margin-top: 4px;
+  box-shadow: 0 0 8px rgba(0, 239, 255, 0.4);
+}
+
+.stage-visual-box {
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 239, 255, 0.25);
+  margin: 2px 0;
+}
+
+.stage-diorama-banner {
+  padding: 14px;
+  border-radius: 12px;
+  position: relative;
+  overflow: hidden;
+}
+
+.stage-diorama-overlay {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-shadow: 0 2px 5px rgba(0, 0, 0, 0.85);
+}
+
+.stage-env-type {
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  color: #fff;
+  opacity: 0.9;
+}
+
+.stage-objects-badge {
+  font-size: 13px;
+  font-weight: 800;
+  color: #fff;
 }
 
 .badge-tag {
@@ -627,18 +781,7 @@ button {
   border-radius: 3px;
 }
 
-.stage-preview-banner {
-  height: 54px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  padding: 0 14px;
-  font-size: 13px;
-  font-weight: 800;
-  font-style: italic;
-  color: #fff;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.7);
-}
+
 
 .level-info-row {
   display: flex;
