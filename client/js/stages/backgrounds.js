@@ -32,11 +32,11 @@ const FBX_BUILDINGS = [
 ];
 
 const STAGE_TEXTURES = {
-  city:    ["Texture_DarkBlue", "Texture_Dark", "Texture_Grey", "Texture_Blue"],
-  beach:   ["Texture_Yellow",   "Texture_Light","Texture_Red",  "Texture_Light2"],
-  jungle:  ["Texture_Green",    "Texture_Light","Texture_Grey",  "Texture_DarkPurple"],
-  desert:  ["Texture_Yellow",   "Texture_Red",  "Texture_Light", "Texture_Light2"],
-  _default:["Texture_Grey",     "Texture_Blue", "Texture_Dark",  "Texture_Light"],
+  city:    ["Texture_Blue", "Texture_Light", "Texture_Grey", "Texture_Signs", "Texture_Light2"],
+  beach:   ["Texture_Yellow", "Texture_Light", "Texture_Red", "Texture_Light2"],
+  jungle:  ["Texture_Green", "Texture_Light", "Texture_Grey", "Texture_Signs"],
+  desert:  ["Texture_Yellow", "Texture_Red", "Texture_Light", "Texture_Light2"],
+  _default:["Texture_Blue", "Texture_Light", "Texture_Grey", "Texture_Signs"],
 };
 
 // Texture cache

@@ -333,6 +333,14 @@ button {
   margin-top: 1px;
 }
 
+.btn-play:disabled {
+  opacity: 0.65;
+  filter: grayscale(0.4);
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: 0 0 12px rgba(0, 230, 255, 0.3);
+}
+
 /* 🚗 GARAGE / 🏆 LEVELS / ⚙ SETTINGS — dark glass capsules */
 .btn-glass {
   background: rgba(0, 14, 34, 0.72);
@@ -1022,6 +1030,110 @@ button {
 }
 
 .btn-play { animation: pulse-glow 2.8s ease-in-out infinite; }
+
+/* ── Leaderboard Screen ──────────────────────────────── */
+.leaderboard-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 600px;
+  max-height: 56vh;
+  padding: 8px 12px 20px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--cyan) transparent;
+}
+
+.leaderboard-loading, .leaderboard-empty {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 15px;
+  padding: 40px 20px;
+}
+
+.leaderboard-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 18px;
+  border-radius: 14px;
+  background: rgba(0, 18, 42, 0.75);
+  border: 1.5px solid rgba(0, 239, 255, 0.22);
+  backdrop-filter: blur(10px);
+  transition: all 0.2s ease;
+}
+
+.leaderboard-row:hover {
+  transform: translateY(-2px);
+  border-color: var(--cyan);
+  background: rgba(0, 30, 64, 0.88);
+  box-shadow: 0 0 16px rgba(0, 239, 255, 0.25);
+}
+
+.leaderboard-row.top-1 {
+  border-color: var(--gold);
+  background: linear-gradient(90deg, rgba(255, 183, 3, 0.18), rgba(0, 18, 42, 0.75));
+  box-shadow: 0 0 16px rgba(255, 183, 3, 0.25);
+}
+
+.leaderboard-row.top-2 {
+  border-color: #cbd5e1;
+  background: linear-gradient(90deg, rgba(203, 213, 225, 0.15), rgba(0, 18, 42, 0.75));
+}
+
+.leaderboard-row.top-3 {
+  border-color: #d97706;
+  background: linear-gradient(90deg, rgba(217, 119, 6, 0.15), rgba(0, 18, 42, 0.75));
+}
+
+.lb-rank {
+  font-size: 14px;
+  font-weight: 900;
+  min-width: 55px;
+  color: var(--cyan);
+  font-family: var(--font-mono);
+}
+
+.leaderboard-row.top-1 .lb-rank { color: var(--gold); }
+.leaderboard-row.top-2 .lb-rank { color: #f1f5f9; }
+.leaderboard-row.top-3 .lb-rank { color: #fbbf24; }
+
+.lb-player {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+}
+
+.lb-name {
+  font-size: 16px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 0.02em;
+}
+
+.lb-car {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.lb-dist {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--cyan);
+  font-family: var(--font-mono);
+}
+
+.lb-score {
+  font-size: 15px;
+  font-weight: 900;
+  color: #fff;
+  font-family: var(--font-mono);
+  text-shadow: 0 0 8px rgba(0, 239, 255, 0.4);
+}
 
 /* =====================================================
    RESPONSIVE

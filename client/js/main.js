@@ -1,7 +1,7 @@
 import { initializeGame, renderGame } from "./core/game.js";
 import { gameState } from "./core/gameState.js";
 import { startGameLoop } from "./core/gameLoop.js";
-import { loadData } from "./core/storage.js";
+import { loadData, syncWithBackend } from "./core/storage.js";
 
 import { getCarConfig } from "./cars/cars.js";
 import { createPlayer } from "./player/player.js";
@@ -120,37 +120,16 @@ function start() {
   try {
     loadSavedSelections();
 
-    // 0. Kick off async 3D model loading for cars & buildings (deferred so UI is instantly responsive)
-    const scheduleModelLoad = (fn) => {
-      if (typeof requestIdleCallback === "function") {
-        requestIdleCallback(fn, { timeout: 3000 });
-      } else {
-        setTimeout(fn, 100);
-      }
-    };
-
-    scheduleModelLoad(() => preloadBuildingModels());
-    scheduleModelLoad(() =>
-      preloadCarModels(() => {
-        if (gameState.scene && gameState.player) {
-          createPlayer(gameState.selectedCar);
-        }
-      })
-    );
-
     // 1. Initialize 3D Engine & Viewport
     initializeGame(canvas);
 
     // 2. Build 3D Stage Environment & Backgrounds
     createStage(gameState.selectedStage);
 
-    // 3. Construct 3D Player Car Model
-    createPlayer(gameState.selectedCar);
-
-    // 4. Bind Keyboard & Touch Controls
+    // 3. Bind Keyboard & Touch Controls
     initializeControls();
 
-    // 5. Clear runtime entities
+    // 4. Clear runtime entities
     clearObstacles();
     resetObstacleSpawner();
     resetCoins();
@@ -158,16 +137,45 @@ function start() {
     clearEffects();
     resetTraffic();
 
-    // 5b. Initialise traffic after scene is ready
+    // 5. Initialise traffic manager (safe for async model caching)
     initTraffic(gameState.scene);
 
     // 6. Initialize UI & Menus
     initializeUI();
 
+    // 6b. Asynchronously synchronize saved progress with backend
+    syncWithBackend().then((synced) => {
+      if (synced && typeof synced.coins === 'number') {
+        gameState.coins = synced.coins;
+        updateUI();
+      }
+    }).catch(() => {});
+
     // 7. Launch Animation & Physics Game Loop
     startGameLoop({
       update: updateGame,
       render: renderGame
+    });
+
+    // 8. Load FBX car models & background buildings immediately
+    const playBtn = document.getElementById("adventureBtn");
+    const playBtnText = playBtn?.querySelector(".btn-text");
+    if (playBtn && playBtnText) {
+      playBtn.disabled = true;
+      playBtnText.textContent = "LOADING...";
+    }
+
+    preloadBuildingModels();
+
+    preloadCarModels(() => {
+      if (gameState.scene) {
+        createPlayer(gameState.selectedCar);
+      }
+      if (playBtn && playBtnText) {
+        playBtn.disabled = false;
+        playBtnText.textContent = "PLAY";
+      }
+      console.info("FBX car models ready. Player spawned.");
     });
 
     console.info("Flappy Car 3D successfully initialized.");

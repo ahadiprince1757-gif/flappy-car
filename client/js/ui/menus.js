@@ -3,6 +3,7 @@ import { getUnlockedRacingLevels } from "../racing/racing.js";
 import { renderGarage } from "../cars/garage.js";
 import { toggleMute, isMuted } from "../systems/audio.js";
 import { showHUDMessage } from "./hud.js";
+import { fetchLeaderboard } from "../services/api.js";
 
 let callbacks = {};
 let bound = false;
@@ -33,12 +34,14 @@ export function showHomeScreen() {
   show(byId("homeScreen"));
   hide(byId("garageScreen"));
   hide(byId("levelSelectScreen"));
+  hide(byId("leaderboardScreen"));
   hide(byId("pauseMenu"));
 }
 
 export function showLevelSelect() {
   hide(byId("homeScreen"));
   hide(byId("garageScreen"));
+  hide(byId("leaderboardScreen"));
   hide(byId("pauseMenu"));
   show(byId("levelSelectScreen"));
 
@@ -48,10 +51,21 @@ export function showLevelSelect() {
 export function showGarageScreen() {
   hide(byId("homeScreen"));
   hide(byId("levelSelectScreen"));
+  hide(byId("leaderboardScreen"));
   hide(byId("pauseMenu"));
   show(byId("garageScreen"));
 
   renderGarage();
+}
+
+export function showLeaderboardScreen() {
+  hide(byId("homeScreen"));
+  hide(byId("garageScreen"));
+  hide(byId("levelSelectScreen"));
+  hide(byId("pauseMenu"));
+  show(byId("leaderboardScreen"));
+
+  renderLeaderboard();
 }
 
 export function showPauseMenu() {
@@ -122,6 +136,39 @@ export function renderRacingLevels() {
   }
 }
 
+export async function renderLeaderboard() {
+  const container = byId("leaderboardList");
+  if (!container) return;
+
+  container.innerHTML = `<div class="leaderboard-loading">Loading top racers...</div>`;
+
+  const scores = await fetchLeaderboard();
+
+  if (!scores || scores.length === 0) {
+    container.innerHTML = `<div class="leaderboard-empty">No scores recorded yet. Be the first to conquer the highway!</div>`;
+    return;
+  }
+
+  container.innerHTML = "";
+  scores.forEach((entry, idx) => {
+    const row = document.createElement("div");
+    row.className = `leaderboard-row ${idx < 3 ? `top-${idx + 1}` : ""}`;
+
+    const rankBadge = idx === 0 ? "🥇 1ST" : idx === 1 ? "🥈 2ND" : idx === 2 ? "🥉 3RD" : `#${idx + 1}`;
+
+    row.innerHTML = `
+      <div class="lb-rank">${rankBadge}</div>
+      <div class="lb-player">
+        <span class="lb-name">${entry.playerName || "Driver"}</span>
+        <span class="lb-car">${(entry.carId || "cyber").toUpperCase()}</span>
+      </div>
+      <div class="lb-dist">${Math.floor(entry.distance || 0)}m</div>
+      <div class="lb-score">${Number(entry.score || 0).toLocaleString()} PTS</div>
+    `;
+    container.append(row);
+  });
+}
+
 export function initializeMenus(options = {}) {
   callbacks = options;
 
@@ -144,6 +191,10 @@ export function initializeMenus(options = {}) {
     showGarageScreen();
   });
 
+  bindClick("leaderboardBtn", () => {
+    showLeaderboardScreen();
+  });
+
   bindClick("settingsBtn", () => {
     toggleMute();
     const muted = isMuted();
@@ -159,6 +210,10 @@ export function initializeMenus(options = {}) {
   });
 
   bindClick("backFromLevelsBtn", () => {
+    showHomeScreen();
+  });
+
+  bindClick("backFromLeaderboardBtn", () => {
     showHomeScreen();
   });
 

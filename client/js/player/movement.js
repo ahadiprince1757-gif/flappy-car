@@ -56,7 +56,8 @@ export function slide() {
   player.isSliding = true;
   player.slideTimer = SLIDE_DURATION;
   gameState.isSliding = true;
-  player.group.scale.y = SLIDE_SCALE_Y;
+  const baseScaleY = player.group.userData.originalScale?.y ?? 1;
+  player.group.scale.y = baseScaleY * SLIDE_SCALE_Y;
 }
 
 function updateLaneMovement(player, deltaTime) {
@@ -163,7 +164,8 @@ function updateSlide(player, deltaTime) {
   if (player.slideTimer <= 0) {
     player.isSliding = false;
     player.slideTimer = 0;
-    player.group.scale.y = 1;
+    const baseScaleY = player.group.userData.originalScale?.y ?? 1;
+    player.group.scale.y = baseScaleY;
     gameState.isSliding = false;
   }
 }
@@ -174,7 +176,9 @@ function updateWheels(player, deltaTime) {
 
   const rotationSpeed = gameState.speed * deltaTime * 1.5;
   for (const wheel of wheels) {
-    wheel.rotation.x -= rotationSpeed;
+    if (wheel && wheel.rotation) {
+      wheel.rotation.x -= rotationSpeed;
+    }
   }
 }
 

@@ -1,5 +1,7 @@
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
+import { RoomEnvironment } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/environments/RoomEnvironment.js";
 import { gameState } from "./gameState.js";
+
 
 let resizeHandler = null;
 
@@ -40,17 +42,23 @@ export function initializeGame(canvas) {
   renderer.shadowMap.enabled  = true;
   renderer.shadowMap.type     = THREE.PCFSoftShadowMap;
   renderer.outputColorSpace   = THREE.SRGBColorSpace;
-  renderer.toneMapping        = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.32;   // vivid, arcade-bright
+  // Use Neutral or Linear tone mapping to preserve bright vibrant colors without crushing shadows
+  renderer.toneMapping        = (THREE.NeutralToneMapping !== undefined)
+    ? THREE.NeutralToneMapping
+    : THREE.LinearToneMapping;
+  renderer.toneMappingExposure = 1.08;
 
-  /* ── Sky / ambient ── */
-  // Hemisphere — warm sky top, dark teal ground bounce
-  const hemi = new THREE.HemisphereLight("#d0eeff", "#1a4a2e", 1.9);
+  /* ── Full ambient illumination so no face is ever black ── */
+  const ambient = new THREE.AmbientLight("#ffffff", 1.8);
+  scene.add(ambient);
+
+  /* ── Sky / asphalt bounce ── */
+  const hemi = new THREE.HemisphereLight("#e0f2fe", "#94a3b8", 1.6);
   scene.add(hemi);
 
-  /* ── Primary sun (warm gold) ── */
-  const sun = new THREE.DirectionalLight("#fff8dc", 3.2);
-  sun.position.set(-18, 36, 22);
+  /* ── Primary sun (shining from front-above to light hoods and front/sides) ── */
+  const sun = new THREE.DirectionalLight("#fffbeb", 3.2);
+  sun.position.set(22, 38, -15);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
   sun.shadow.camera.left   = -45;
@@ -63,21 +71,33 @@ export function initializeGame(canvas) {
   sun.shadow.normalBias    = 0.02;
   scene.add(sun);
 
-  /* ── Fill light (cooler, from opposite side) ── */
-  const fill = new THREE.DirectionalLight("#aee4ff", 0.95);
-  fill.position.set(20, 15, -10);
-  scene.add(fill);
+  /* ── Rear directional light so car rear/taillights pop against the road ── */
+  const rear = new THREE.DirectionalLight("#e0f2fe", 2.2);
+  rear.position.set(-10, 16, 24);
+  scene.add(rear);
 
-  /* ── Rear / rim light for car silhouette pop ── */
-  const rim = new THREE.DirectionalLight("#ffd6a0", 0.60);
-  rim.position.set(0, 8, 18);
-  scene.add(rim);
+  /* ── Fill light from opposite side ── */
+  const fill = new THREE.DirectionalLight("#c7d2fe", 1.4);
+  fill.position.set(-20, 15, -10);
+  scene.add(fill);
 
   /* ── Point light beneath car for underglow bloom-like effect ── */
   const underglow = new THREE.PointLight("#00f0ff", 1.4, 8, 2);
   underglow.position.set(0, 0.2, 0);
   underglow.name = "underglow-light";
   scene.add(underglow);
+
+  /* ── Procedural env map so metallic materials reflect sky colour ── */
+  try {
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    pmrem.compileEquirectangularShader();
+    const envTexture = pmrem.fromScene(new RoomEnvironment()).texture;
+    scene.environment = envTexture;
+    pmrem.dispose();
+  } catch (e) {
+    // PMREMGenerator not critical — lights still visible
+  }
+
 
   gameState.scene    = scene;
   gameState.camera   = camera;

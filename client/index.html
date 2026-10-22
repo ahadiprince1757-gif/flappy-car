@@ -96,6 +96,15 @@
             <span class="btn-text">LEVELS</span>
           </button>
 
+          <button class="arcade-btn btn-glass" id="leaderboardBtn" type="button">
+            <span class="btn-icon">
+              <svg viewBox="0 0 24 24" class="svg-btn-icon">
+                <path fill="currentColor" d="M16 11V3H8v6H2v12h20V11h-6zm-6-6h4v14h-4V5zm-6 6h4v8H4v-8zm16 8h-4v-6h4v6z"/>
+              </svg>
+            </span>
+            <span class="btn-text">SCORES</span>
+          </button>
+
           <button class="arcade-btn btn-glass" id="settingsBtn" type="button">
             <span class="btn-icon">
               <svg viewBox="0 0 24 24" class="svg-btn-icon">
@@ -147,6 +156,24 @@
 
         <div class="screen-bottom-bar">
           <button class="menuBtn secondary-action-btn" id="backFromLevelsBtn" type="button">
+            ← BACK TO MENU
+          </button>
+        </div>
+      </section>
+
+      <!-- Leaderboard Screen -->
+      <section id="leaderboardScreen" class="menu-screen sub-screen" aria-label="Leaderboard" hidden>
+        <div class="screen-top-bar">
+          <h2>HALL OF FAME</h2>
+          <p class="section-desc">Top highway drivers & record distances (Live Backend API)</p>
+        </div>
+
+        <div id="leaderboardList" class="leaderboard-container">
+          <div class="leaderboard-loading">Connecting to game server...</div>
+        </div>
+
+        <div class="screen-bottom-bar">
+          <button class="menuBtn secondary-action-btn" id="backFromLeaderboardBtn" type="button">
             ← BACK TO MENU
           </button>
         </div>

@@ -30,6 +30,8 @@ import {
   playRaceCompleteSound,
   playRaceFailedSound
 } from "../systems/audio.js";
+import { preloadCarModels } from "../cars/carModelLoader.js";
+import { submitScore, recordLevelComplete } from "../services/api.js";
 
 let initialized = false;
 let resultOverlay = null;
@@ -85,8 +87,9 @@ function resetRunSystems() {
     player.slideTimer = 0;
     player.invulnerable = false;
 
-    player.group.rotation.set(0, 0, 0);
-    player.group.scale.set(1, 1, 1);
+    if (player.group.userData.originalScale) {
+      player.group.scale.copy(player.group.userData.originalScale);
+    }
   }
 }
 
@@ -149,6 +152,19 @@ function finishRun(title, isWin, stats) {
   setGameplayVisible(false);
   hidePauseMenu();
 
+  // Submit high score to backend API
+  submitScore({
+    playerName: "Player",
+    score: gameState.score,
+    distance: Math.floor(gameState.distance),
+    carId: gameState.selectedCar || "cyber"
+  }).catch(() => {});
+
+  // If completing a racing circuit, save level progress to backend API
+  if (gameState.gameMode === "racing" && isWin && gameState.currentLevel) {
+    recordLevelComplete(gameState.currentLevel, gameState.score).catch(() => {});
+  }
+
   showResultOverlay(title, isWin, stats, [
     {
       label: "PLAY AGAIN",
@@ -171,6 +187,15 @@ function finishRun(title, isWin, stats) {
 
 function startAdventure() {
   removeResultOverlay();
+
+  if (!gameState.player?.group) {
+    showHUDMessage("Loading vehicle...");
+    preloadCarModels(() => {
+      startAdventure();
+    });
+    return;
+  }
+
   initializeAudio();
 
   gameState.gameMode = "adventure";
@@ -193,6 +218,15 @@ function startAdventure() {
 
 function startSelectedRace(levelId) {
   removeResultOverlay();
+
+  if (!gameState.player?.group) {
+    showHUDMessage("Loading vehicle...");
+    preloadCarModels(() => {
+      startSelectedRace(levelId);
+    });
+    return;
+  }
+
   initializeAudio();
 
   resetRunSystems();

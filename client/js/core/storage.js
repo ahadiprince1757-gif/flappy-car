@@ -1,3 +1,5 @@
+import { fetchGarageData, fetchProgressData, syncGarageData } from "../services/api.js";
+
 const STORAGE_PREFIX = "flappyCar.";
 
 const ALL_CARS = ["cyber", "inferno", "neon", "phantom"];
@@ -47,6 +49,16 @@ export function saveData(data) {
       `${STORAGE_PREFIX}save`,
       JSON.stringify(data)
     );
+    
+    // Background async sync with backend (fails silently if offline)
+    syncGarageData({
+      coins: data.coins,
+      selectedCar: data.selectedCar,
+      selectedStage: data.selectedStage,
+      unlockedCars: data.ownedCars,
+      unlockedStages: data.ownedStages
+    }).catch(() => {});
+
     return true;
   } catch (error) {
     console.error("Could not save game data:", error);
@@ -59,6 +71,46 @@ export function updateData(updates) {
   const updated = { ...current, ...updates };
   saveData(updated);
   return updated;
+}
+
+export async function syncWithBackend() {
+  try {
+    const [garage, progress] = await Promise.all([
+      fetchGarageData(),
+      fetchProgressData()
+    ]);
+
+    if (!garage && !progress) return;
+
+    const current = loadData();
+    let changed = false;
+
+    if (garage) {
+      if (typeof garage.coins === 'number' && garage.coins > (current.coins || 0)) {
+        current.coins = garage.coins;
+        changed = true;
+      }
+      if (garage.selectedCar && !current.selectedCar) {
+        current.selectedCar = garage.selectedCar;
+        changed = true;
+      }
+    }
+
+    if (progress && Array.isArray(progress.completedLevels)) {
+      const merged = [...new Set([...(current.completedLevels || []), ...progress.completedLevels])];
+      if (merged.length !== (current.completedLevels || []).length) {
+        current.completedLevels = merged;
+        changed = true;
+      }
+    }
+
+    if (changed) {
+      localStorage.setItem(`${STORAGE_PREFIX}save`, JSON.stringify(current));
+    }
+    return current;
+  } catch (err) {
+    console.warn("[Storage] Cloud sync skipped:", err.message);
+  }
 }
 
 export function clearSavedData() {

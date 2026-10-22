@@ -36,28 +36,38 @@ let   _scene = null;
 // ── Initialise pool ───────────────────────────────────────────────
 export function initTraffic(scene) {
   _scene = scene;
-
-  for (let i = 0; i < POOL_SIZE; i++) {
-    const group = buildTrafficCar();
-    group.visible = false;
-    scene.add(group);
-
-    _pool.push({
-      group,
-      active: false,
-      lane: 1,
-      roadZ: 0,
-      speed: SAME_DIR_SPEED,
-      dir: 1,        // +1 = same as player (moving forward), -1 = oncoming
-      laneOffset: 0,
-    });
-  }
+  resetTraffic();
 }
 
 // ── Spawn a car into the pool ─────────────────────────────────────
 function spawnCar(playerZ) {
-  const entry = _pool.find(e => !e.active);
-  if (!entry) return;
+  if (!_scene) return;
+
+  let entry = _pool.find(e => !e.active);
+
+  // If no inactive car in pool, instantiate a new FBX model if below cap
+  if (!entry) {
+    if (_pool.length < POOL_SIZE) {
+      const group = buildTrafficCar();
+      if (!group) return; // FBX cache not ready yet, skip spawn until loaded
+
+      group.visible = false;
+      _scene.add(group);
+
+      entry = {
+        group,
+        active: false,
+        lane: 1,
+        roadZ: 0,
+        speed: SAME_DIR_SPEED,
+        dir: 1,        // +1 = same as player, -1 = oncoming
+        laneOffset: 0,
+      };
+      _pool.push(entry);
+    } else {
+      return; // Pool full
+    }
+  }
 
   // Pick a random lane (0,1,2) and direction
   const isOncoming = Math.random() < 0.3; // 30% oncoming
@@ -66,7 +76,6 @@ function spawnCar(playerZ) {
 
   // Spawn ahead of the player in world-Z (far negative)
   const spawnZ = playerZ + SPAWN_AHEAD_Z - Math.random() * 30;
-
   const pt = getRoadPoint(spawnZ, laneOffset);
 
   entry.active = true;
@@ -85,20 +94,23 @@ function spawnCar(playerZ) {
 export function resetTraffic() {
   for (const entry of _pool) {
     entry.active = false;
-    entry.group.visible = false;
+    if (entry.group) entry.group.visible = false;
   }
 }
 
 export function destroyTraffic() {
-  if (!_scene) return;
-  for (const entry of _pool) {
-    _scene.remove(entry.group);
-    entry.group.traverse(obj => {
-      if (!obj.isMesh) return;
-      obj.geometry?.dispose();
-      const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
-      for (const m of mats) m?.dispose();
-    });
+  if (_scene) {
+    for (const entry of _pool) {
+      if (entry.group) {
+        _scene.remove(entry.group);
+        entry.group.traverse(obj => {
+          if (!obj.isMesh) return;
+          obj.geometry?.dispose();
+          const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+          for (const m of mats) m?.dispose();
+        });
+      }
+    }
   }
   _pool.length = 0;
   _scene = null;

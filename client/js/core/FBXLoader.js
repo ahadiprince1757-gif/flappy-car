@@ -45,7 +45,7 @@ import {
 } from 'https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js';
 
 import * as fflate from './fflate.module.js';
-import { NURBSCurve } from '../curves/NURBSCurve.js';
+import { NURBSCurve } from 'three/addons/curves/NURBSCurve.js';
 
 let fbxTree;
 let connections;

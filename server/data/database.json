@@ -1,0 +1,73 @@
+{
+  "leaderboard": [
+    {
+      "id": "1",
+      "playerName": "NeonRacer",
+      "score": 4850,
+      "distance": 3200,
+      "carId": "cyber",
+      "date": "2026-10-20"
+    },
+    {
+      "id": "2",
+      "playerName": "TurboPhantom",
+      "score": 3920,
+      "distance": 2600,
+      "carId": "phantom",
+      "date": "2026-10-21"
+    },
+    {
+      "id": "3",
+      "playerName": "ApexDriver",
+      "score": 2840,
+      "distance": 1950,
+      "carId": "inferno",
+      "date": "2026-10-21"
+    },
+    {
+      "id": "4",
+      "playerName": "CityCruiser",
+      "score": 1980,
+      "distance": 1400,
+      "carId": "cruiser",
+      "date": "2026-10-22"
+    },
+    {
+      "id": "5",
+      "playerName": "HighwayPatrol",
+      "score": 1540,
+      "distance": 1100,
+      "carId": "cop",
+      "date": "2026-10-22"
+    }
+  ],
+  "garage": {
+    "coins": 500,
+    "selectedCar": "cyber",
+    "selectedStage": "city",
+    "unlockedCars": [
+      "cyber",
+      "inferno",
+      "neon",
+      "phantom",
+      "taxi",
+      "cop",
+      "cruiser"
+    ],
+    "unlockedStages": [
+      "city",
+      "beach",
+      "jungle",
+      "desert"
+    ]
+  },
+  "progress": {
+    "unlockedLevels": [
+      1,
+      2,
+      3
+    ],
+    "completedLevels": [],
+    "levelHighScores": {}
+  }
+}
