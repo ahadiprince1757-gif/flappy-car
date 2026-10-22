@@ -1136,6 +1136,192 @@ button {
 }
 
 /* =====================================================
+   MODAL & RESULT OVERLAY (GAME OVER / FAILED / PAUSE)
+===================================================== */
+.modal-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 1000 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: rgba(2, 12, 24, 0.88) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  padding: 20px;
+  animation: modalFadeIn 0.25s ease-out;
+}
+
+@keyframes modalFadeIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.result-card, .minimal-modal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+  max-width: 440px;
+  padding: 34px 28px;
+  border-radius: 24px;
+  background: linear-gradient(180deg, rgba(10, 25, 52, 0.96) 0%, rgba(3, 14, 32, 0.98) 100%);
+  border: 2px solid var(--cyan);
+  box-shadow: 
+    0 0 40px rgba(0, 239, 255, 0.35),
+    inset 0 0 30px rgba(0, 239, 255, 0.12),
+    0 24px 60px rgba(0, 0, 0, 0.85);
+  text-align: center;
+}
+
+.result-title {
+  font-size: clamp(38px, 9vw, 52px);
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: 0.06em;
+  line-height: 1.1;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.result-title.failed {
+  color: #ff3b00;
+  text-shadow: 
+    0 0 20px rgba(255, 59, 0, 0.9),
+    0 0 45px rgba(255, 59, 0, 0.5);
+  animation: failGlow 1.8s ease-in-out infinite alternate;
+}
+
+@keyframes failGlow {
+  0% { transform: scale(1); filter: drop-shadow(0 0 8px rgba(255,59,0,0.6)); }
+  100% { transform: scale(1.04); filter: drop-shadow(0 0 24px rgba(255,59,0,0.95)); }
+}
+
+.result-title.win {
+  color: #10b981;
+  text-shadow: 
+    0 0 20px rgba(16, 185, 129, 0.85),
+    0 0 45px rgba(16, 185, 129, 0.45);
+}
+
+.minimal-modal h3 {
+  font-size: 34px;
+  font-weight: 900;
+  font-style: italic;
+  color: var(--cyan);
+  text-shadow: 0 0 20px var(--cyan-glow);
+  letter-spacing: 0.05em;
+}
+
+.result-stats-box {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  padding: 16px 20px;
+  background: rgba(0, 16, 36, 0.75);
+  border: 1.5px solid rgba(0, 239, 255, 0.25);
+  border-radius: 16px;
+  box-shadow: inset 0 0 16px rgba(0, 0, 0, 0.5);
+}
+
+.result-stat-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.result-stat-line span {
+  color: var(--text-muted);
+  font-family: var(--font-arc);
+  font-size: 13px;
+}
+
+.result-stat-line strong {
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 17px;
+  text-shadow: 0 0 10px rgba(0, 239, 255, 0.4);
+}
+
+.modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  margin-top: 6px;
+}
+
+.menuBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 54px;
+  border-radius: 9999px;
+  font-size: 17px;
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: 0.06em;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  user-select: none;
+}
+
+.primary-action-btn {
+  background: linear-gradient(135deg, #ff3b00 0%, #ff8500 100%);
+  color: #ffffff;
+  border: 2px solid #ffaa00;
+  box-shadow: 
+    0 0 25px rgba(255, 80, 0, 0.65),
+    inset 0 0 12px rgba(255, 255, 255, 0.35);
+}
+
+.primary-action-btn:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 
+    0 0 35px rgba(255, 80, 0, 0.9),
+    inset 0 0 16px rgba(255, 255, 255, 0.5);
+}
+
+.primary-action-btn:active {
+  transform: scale(0.97);
+}
+
+.secondary-action-btn {
+  background: rgba(0, 20, 48, 0.85);
+  color: var(--cyan);
+  border: 2px solid var(--cyan);
+  box-shadow: 0 0 18px rgba(0, 239, 255, 0.35);
+}
+
+.secondary-action-btn:hover {
+  background: rgba(0, 239, 255, 0.18);
+  transform: translateY(-2px);
+  box-shadow: 0 0 28px rgba(0, 239, 255, 0.65);
+}
+
+.secondary-action-btn:active {
+  transform: scale(0.97);
+}
+
+.outline-action-btn {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1.5px solid rgba(255, 255, 255, 0.25);
+}
+
+.outline-action-btn:hover {
+  color: #fff;
+  border-color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* =====================================================
    RESPONSIVE
 ===================================================== */
 @media (max-width: 520px) {

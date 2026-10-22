@@ -28,6 +28,14 @@ function handleKeyDown(event) {
     event.preventDefault();
   }
 
+  if (gameState.status === "gameOver") {
+    if (key === " " || key === "enter" || key === "r") {
+      event.preventDefault();
+      window.dispatchEvent(new CustomEvent("flappycar:request-restart"));
+    }
+    return;
+  }
+
   if (gameState.status !== "playing") return;
 
   switch (key) {

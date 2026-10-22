@@ -20,6 +20,7 @@ import { resetCoins } from "../systems/coins.js";
 import { resetPowerUps } from "../systems/powerups.js";
 import { clearEffects, createBurst } from "../systems/effects.js";
 import { startRace, abandonRace } from "../racing/racing.js";
+import { resetTraffic } from "../traffic/trafficCars.js";
 import {
   startEngineSound,
   stopEngineSound,
@@ -57,11 +58,13 @@ function resetRunSystems() {
   resetCoins();
   resetPowerUps();
   clearEffects();
+  resetTraffic();
 
   gameState.score = 0;
   gameState.distance = 0;
   gameState.elapsedTime = 0;
   gameState.runCoins = 0;
+  gameState.speed = gameState.baseSpeed || 18;
 
   gameState.shieldActive = false;
   gameState.boostActive = false;
@@ -72,7 +75,9 @@ function resetRunSystems() {
     left: false,
     right: false,
     jump: false,
-    slide: false
+    slide: false,
+    accelerate: false,
+    brake: false
   };
 
   if (gameState.player) {
@@ -87,8 +92,11 @@ function resetRunSystems() {
     player.slideTimer = 0;
     player.invulnerable = false;
 
-    if (player.group.userData.originalScale) {
-      player.group.scale.copy(player.group.userData.originalScale);
+    if (player.group) {
+      player.group.rotation.set(0, 0, 0);
+      if (player.group.userData.originalScale) {
+        player.group.scale.copy(player.group.userData.originalScale);
+      }
     }
   }
 }
@@ -116,7 +124,7 @@ function showResultOverlay(title, isWin, stats = [], actions = []) {
   card.className = "result-card";
 
   const heading = document.createElement("h2");
-  heading.className = `result-title ${isWin ? "win" : ""}`;
+  heading.className = `result-title ${isWin ? "win" : "failed"}`;
   heading.textContent = title;
 
   const statsBox = document.createElement("div");
@@ -167,7 +175,7 @@ function finishRun(title, isWin, stats) {
 
   showResultOverlay(title, isWin, stats, [
     {
-      label: "PLAY AGAIN",
+      label: "RESTART",
       primary: true,
       onClick: () => {
         removeResultOverlay();
@@ -367,9 +375,10 @@ function bindGameEvents() {
     }
 
     if (gameState.gameMode !== "racing") {
-      finishRun("RUN FINISHED", false, [
+      finishRun("FAILED", false, [
         { label: "DISTANCE", value: `${Math.floor(gameState.distance)} m` },
-        { label: "SCORE", value: `${gameState.score}` }
+        { label: "SCORE", value: `${gameState.score}` },
+        { label: "COINS EARNED", value: `+${gameState.runCoins || 0}` }
       ]);
     }
   });
@@ -396,10 +405,17 @@ function bindGameEvents() {
 
   window.addEventListener("flappycar:race-failed", () => {
     playRaceFailedSound();
-    finishRun("CIRCUIT FAILED", false, [
+    finishRun("FAILED", false, [
       { label: "STAGE", value: `Level ${gameState.currentLevel}` },
       { label: "DISTANCE", value: `${Math.floor(gameState.distance)} m` }
     ]);
+  });
+
+  window.addEventListener("flappycar:request-restart", () => {
+    if (gameState.status === "gameOver") {
+      removeResultOverlay();
+      restartRun();
+    }
   });
 }
 
