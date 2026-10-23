@@ -2,7 +2,7 @@
  * Flappy Car 3D — Service Worker (PWA Offline & Asset Cache)
  */
 
-const CACHE_NAME = "flappy-car-v1.4";
+const CACHE_NAME = "flappy-car-v2.1";
 
 const CORE_ASSETS = [
   "./",
@@ -37,6 +37,7 @@ const CORE_ASSETS = [
   "./js/systems/coins.js",
   "./js/systems/powerups.js",
   "./js/systems/effects.js",
+  "./js/systems/checkpoints.js",
   "./js/systems/audio.js",
   "./js/systems/orientation.js",
   "./js/racing/racing.js",
@@ -90,7 +91,31 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // 2. Static Assets & 3D Models: Stale-While-Revalidate
+  // 2. Code & Styles (HTML, CSS, JS): ALWAYS Network-First!
+  // Ensures any visual or gameplay update immediately reflects on mobile phones.
+  const isCode =
+    url.pathname.endsWith(".html") ||
+    url.pathname.endsWith(".css") ||
+    url.pathname.endsWith(".js") ||
+    url.pathname === "/" ||
+    url.pathname === "";
+
+  if (isCode) {
+    event.respondWith(
+      fetch(event.request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200 && event.request.method === "GET") {
+            const clone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          }
+          return networkResponse;
+        })
+        .catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
+  // 3. Heavy 3D Models & Media (FBX, textures, sounds): Stale-While-Revalidate
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       const fetchPromise = fetch(event.request)

@@ -11,7 +11,7 @@
     <link rel="apple-touch-icon" href="./assets/logo.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="./style.css" />
+    <link rel="stylesheet" href="./style.css?v=2.1.0" />
     <script type="importmap">
       {
         "imports": {
@@ -418,11 +418,25 @@
       </div>
     </div>
 
-    <script type="module" src="./js/main.js"></script>
+    <script type="module" src="./js/main.js?v=2.1.0"></script>
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('./sw.js').catch((err) => {
+          navigator.serviceWorker.register('./sw.js').then((registration) => {
+            // Actively check for SW updates on every page load
+            registration.update();
+            registration.addEventListener('updatefound', () => {
+              const newWorker = registration.installing;
+              if (!newWorker) return;
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  // A new version was detected and cached; reload immediately to display it
+                  console.log('[SW] New version detected, reloading...');
+                  window.location.reload();
+                }
+              });
+            });
+          }).catch((err) => {
             console.warn('Service worker registration failed:', err);
           });
         });
