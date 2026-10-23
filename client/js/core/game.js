@@ -127,8 +127,9 @@ export function resizeRenderer() {
   const { camera, renderer } = gameState;
   if (!camera || !renderer) return;
 
-  const w = window.innerWidth;
-  const h = window.innerHeight;
+  const container = document.getElementById("gameContainer");
+  const w = (container && container.clientWidth > 0) ? container.clientWidth : window.innerWidth;
+  const h = (container && container.clientHeight > 0) ? container.clientHeight : window.innerHeight;
   if (w <= 0 || h <= 0) return;
 
   camera.aspect = w / h;

@@ -1,8 +1,4 @@
-/**
- * Screen orientation manager for Flappy Car 3D
- * - Landing screen in Portrait mode for mobile phones
- * - Seamless Landscape mode for gameplay with auto-lock & rotate prompts
- */
+import { resizeRenderer } from "../core/game.js";
 
 let userDismissedRotate = false;
 let isGameActive = false;
@@ -24,45 +20,76 @@ export async function requestLandscapeOrientation() {
   isGameActive = true;
   document.body.classList.add("in-game");
 
-  // Keep orientation handling non-intrusive: let the player tilt naturally
-  // without jarring forced locks or fullscreen jumps
-  checkOrientationPrompt();
+  // 1. Request physical orientation lock (supported on Android Chrome, Samsung Internet, PWAs)
+  try {
+    if (screen.orientation && typeof screen.orientation.lock === "function") {
+      await screen.orientation.lock("landscape").catch(() => {});
+    }
+  } catch (_) {}
+
+  // 2. Request fullscreen on mobile to permit orientation lock if browser requires it
+  try {
+    const isMobile = window.innerWidth <= 1024 || isTouchDevice();
+    if (isMobile && !document.fullscreenElement) {
+      const docEl = document.documentElement;
+      if (docEl.requestFullscreen) {
+        await docEl.requestFullscreen().catch(() => {});
+      } else if (docEl.webkitRequestFullscreen) {
+        await docEl.webkitRequestFullscreen().catch(() => {});
+      }
+      if (screen.orientation && typeof screen.orientation.lock === "function") {
+        await screen.orientation.lock("landscape").catch(() => {});
+      }
+    }
+  } catch (_) {}
+
+  // 3. Auto-rotate view into landscape if upright
+  checkAutoLandscape();
 }
 
 export function releaseOrientationLock() {
   isGameActive = false;
   document.body.classList.remove("in-game");
 
-  checkOrientationPrompt();
+  checkAutoLandscape();
 }
 
-export function checkOrientationPrompt() {
-  const overlay = document.getElementById("rotateOverlay");
-  if (!overlay) return;
+export function checkAutoLandscape() {
+  const isMobile = window.innerWidth <= 1024 || isTouchDevice();
+  const portrait = isPortrait();
 
-  // Never block the user with a forced rotate overlay
-  overlay.hidden = true;
-  overlay.style.display = "none";
+  // On upright mobile devices, automatically rotate the game into landscape by default
+  if (isMobile && portrait) {
+    document.body.classList.add("auto-landscape");
+  } else {
+    document.body.classList.remove("auto-landscape");
+  }
+
+  // Ensure rotate modal does not block the player
+  const overlay = document.getElementById("rotateOverlay");
+  if (overlay) {
+    overlay.hidden = true;
+    overlay.style.display = "none";
+  }
+
+  setTimeout(() => {
+    resizeRenderer();
+  }, 60);
 }
 
 export function initOrientation() {
-  const dismissBtn = document.getElementById("dismissRotateBtn");
-  if (dismissBtn) {
-    dismissBtn.addEventListener("click", () => {
-      userDismissedRotate = true;
-      checkOrientationPrompt();
-    });
-  }
-
-  window.addEventListener("resize", checkOrientationPrompt);
+  window.addEventListener("resize", checkAutoLandscape);
   window.addEventListener("orientationchange", () => {
-    setTimeout(checkOrientationPrompt, 150);
-    setTimeout(checkOrientationPrompt, 400);
+    setTimeout(checkAutoLandscape, 100);
+    setTimeout(checkAutoLandscape, 300);
   });
 
   if (screen.orientation) {
-    screen.orientation.addEventListener("change", checkOrientationPrompt);
+    screen.orientation.addEventListener("change", () => {
+      setTimeout(checkAutoLandscape, 100);
+      setTimeout(checkAutoLandscape, 300);
+    });
   }
 
-  checkOrientationPrompt();
+  checkAutoLandscape();
 }

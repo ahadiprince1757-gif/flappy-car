@@ -2014,22 +2014,24 @@ button {
 .hud-top {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   pointer-events: none;
+  padding-right: 56px; /* reserve space so SPEED never collides with pause button */
 }
 
 .hud-stat {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  height: 38px;
-  padding: 0 16px;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
   border-radius: 9999px;
   background: rgba(0, 16, 36, 0.78);
   border: 1.5px solid var(--cyan);
   box-shadow: 0 0 14px rgba(0, 239, 255, 0.4), inset 0 0 8px rgba(0, 239, 255, 0.15);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
+  flex-shrink: 0;
 }
 
 .hud-label {
@@ -2489,41 +2491,61 @@ button {
 }
 
 /* =====================================================
+   AUTO-LANDSCAPE ROTATION FOR UPRIGHT (PORTRAIT) PHONES
+   Rotates the game 90 degrees by default so it displays in full
+   widescreen landscape even when held upright!
+===================================================== */
+@media screen and (orientation: portrait) {
+  body.auto-landscape {
+    overflow: hidden !important;
+    width: 100vw !important;
+    height: 100vh !important;
+  }
+
+  body.auto-landscape #gameContainer {
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    width: 100vh !important;
+    height: 100vw !important;
+    transform: translate(-50%, -50%) rotate(90deg) !important;
+    transform-origin: center center !important;
+    overflow: hidden !important;
+  }
+}
+
+/* =====================================================
    RESPONSIVE & MOBILE ADAPTATIONS
 ===================================================== */
-/* Phone screen: Portrait (Landing fits like a glove) */
-@media (max-width: 600px) and (orientation: portrait) {
-  .arcade-home {
-    padding-top: max(12px, env(safe-area-inset-top));
-    padding-bottom: max(16px, env(safe-area-inset-bottom));
-    justify-content: space-between;
+/* Phone screen: Landscape by default */
+@media (max-height: 540px) {
+  .arcade-hero-title {
+    margin-top: clamp(8px, 2.5vh, 22px);
   }
 
-  .arcade-top-bar {
-    padding: 0 16px;
+  .game-main-title {
+    font-size: clamp(26px, 5.5vw, 40px);
   }
 
-  .arcade-logo-area {
-    margin-top: clamp(8px, 2.5vh, 18px);
-  }
-
-  .arcade-logo-img {
-    width: clamp(180px, 52vw, 260px);
+  .game-subtitle {
+    font-size: 11px;
+    margin-top: 2px;
   }
 
   .arcade-buttons-stack {
-    width: min(320px, 86vw);
-    gap: clamp(7px, 1.8vh, 11px);
-    margin-top: clamp(12px, 3vh, 24px);
+    width: min(300px, 50vw);
+    gap: 7px;
+    margin-top: auto;
+    margin-bottom: 8px;
   }
 
   .arcade-btn {
-    height: 50px;
-    font-size: 17px;
+    height: 42px;
+    font-size: 16px;
   }
 
   .arcade-graffiti {
-    margin: 8px 18px max(14px, env(safe-area-inset-bottom)) auto;
+    display: none;
   }
 }
 
