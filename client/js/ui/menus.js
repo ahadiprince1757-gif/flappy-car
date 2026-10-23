@@ -35,7 +35,25 @@ function bindClick(id, callback) {
   const element = byId(id);
   if (!element || element.dataset.menuBound === "true") return;
 
-  element.addEventListener("click", callback);
+  // touchstart fires immediately (no 300ms delay).
+  // We set a flag so the browser-generated 'click' event that follows is ignored,
+  // preventing the callback from running twice.
+  let wasTouched = false;
+
+  element.addEventListener("touchstart", (e) => {
+    e.preventDefault();
+    wasTouched = true;
+    callback();
+  }, { passive: false });
+
+  element.addEventListener("click", () => {
+    if (wasTouched) {
+      wasTouched = false;
+      return; // already handled by touchstart
+    }
+    callback();
+  });
+
   element.dataset.menuBound = "true";
 }
 

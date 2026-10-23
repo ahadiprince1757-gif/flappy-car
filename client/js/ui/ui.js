@@ -234,20 +234,41 @@ function finishRun(title, isWin, stats) {
 function startAdventure() {
   removeResultOverlay();
 
-  // Ensure current selected car and stage are created in 3D scene
+  // IMMEDIATELY hide all menu screens — button must feel instant/responsive
+  setHidden("homeScreen", true);
+  setHidden("carSelectScreen", true);
+  setHidden("trackSelectScreen", true);
+  setHidden("levelSelectScreen", true);
+  hidePauseMenu();
+
+  // Rebuild stage for the selected environment
   if (gameState.scene) {
     createStage(gameState.selectedStage || "city");
-    createPlayer(gameState.selectedCar || "cyber");
   }
 
-  if (!gameState.player?.group) {
-    showHUDMessage("Loading vehicle...");
-    preloadCarModels(() => {
-      startAdventure();
-    });
+  // If car model is already cached and player group exists, start immediately
+  if (gameState.player?.group) {
+    _launchAdventure();
     return;
   }
 
+  // Otherwise show a quick loading overlay and wait for models
+  setGameplayVisible(true);
+  showHUDMessage("\uD83D\uDE97 Loading vehicle...");
+
+  preloadCarModels(() => {
+    if (gameState.scene) {
+      createPlayer(gameState.selectedCar || "cyber");
+    }
+    // Brief frame delay to let Three.js process the new model
+    requestAnimationFrame(() => {
+      hideHUDMessage();
+      _launchAdventure();
+    });
+  });
+}
+
+function _launchAdventure() {
   initializeAudio();
 
   gameState.gameMode = "adventure";
@@ -255,12 +276,6 @@ function startAdventure() {
 
   resetRunSystems();
   gameState.status = "playing";
-
-  setHidden("homeScreen", true);
-  setHidden("carSelectScreen", true);
-  setHidden("trackSelectScreen", true);
-  setHidden("levelSelectScreen", true);
-  hidePauseMenu();
 
   setGameplayVisible(true);
   hideHUDMessage();
@@ -272,10 +287,23 @@ function startAdventure() {
 function startSelectedRace(levelId) {
   removeResultOverlay();
 
+  // Immediately hide all menus
+  setHidden("homeScreen", true);
+  setHidden("garageScreen", true);
+  setHidden("levelSelectScreen", true);
+  setHidden("carSelectScreen", true);
+  setHidden("trackSelectScreen", true);
+  hidePauseMenu();
+
   if (!gameState.player?.group) {
-    showHUDMessage("Loading vehicle...");
+    setGameplayVisible(true);
+    showHUDMessage("\uD83D\uDE97 Loading vehicle...");
     preloadCarModels(() => {
-      startSelectedRace(levelId);
+      if (gameState.scene) createPlayer(gameState.selectedCar || "cyber");
+      requestAnimationFrame(() => {
+        hideHUDMessage();
+        startSelectedRace(levelId);
+      });
     });
     return;
   }
@@ -289,11 +317,6 @@ function startSelectedRace(levelId) {
     showHUDMessage("That racing circuit is locked.");
     return;
   }
-
-  setHidden("homeScreen", true);
-  setHidden("garageScreen", true);
-  setHidden("levelSelectScreen", true);
-  hidePauseMenu();
 
   setGameplayVisible(true);
   updateHUD(true);
