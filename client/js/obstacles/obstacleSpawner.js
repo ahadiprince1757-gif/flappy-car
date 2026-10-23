@@ -1,5 +1,6 @@
 import { gameState } from "../core/gameState.js";
 import { createObstacle } from "./obstacles.js";
+import { getCurrentDifficulty } from "../systems/checkpoints.js";
 
 const SPAWNER_CONFIG = {
   initialInterval: 1.75,
@@ -38,48 +39,60 @@ function selectProceduralLane() {
 
 /**
  * Progressive Level Generation:
- * Tailors obstacle difficulty and types dynamically based on distance traveled.
+ * Tailors obstacle difficulty and types dynamically based on distance & tier.
  */
 function getProgressiveObstacleType() {
-  const dist = gameState.distance || 0;
+  const diff = getCurrentDifficulty();
+  const tier = diff.tier;
 
-  // Phase 1 (0 - 120m): Introductory highway drive with jumpable barriers and cones
-  if (dist < 120) {
+  // Tier 1 (Cruising): Only clean jumpable barriers and cones
+  if (tier === 1) {
     const pool = ["cone", "barrier", "barrier", "cone"];
     return pool[Math.floor(Math.random() * pool.length)];
   }
 
-  // Phase 2 (120m - 350m): Introduce sliding gates, crates, and oil slicks
-  if (dist < 350) {
+  // Tier 2 (Highway): Introduce crates and occasional sliding gates
+  if (tier === 2) {
     const roll = Math.random();
-    if (roll < 0.28) return "barrier";
-    if (roll < 0.52) return "cone";
-    if (roll < 0.74) return "crate";
-    if (roll < 0.88) return "gate";
+    if (roll < 0.35) return "barrier";
+    if (roll < 0.60) return "cone";
+    if (roll < 0.85) return "crate";
+    return "gate";
+  }
+
+  // Tier 3 (Speedway): Crate stacks, sliding gates, and oil slicks
+  if (tier === 3) {
+    const roll = Math.random();
+    if (roll < 0.25) return "barrier";
+    if (roll < 0.50) return "gate";
+    if (roll < 0.72) return "crate";
+    if (roll < 0.88) return "cone";
     return "oil";
   }
 
-  // Phase 3 (350m+): Full high-speed arcade variety with varied timing challenges
+  // Tier 4 (Hyperdrive): Fast dynamic arcade hazards
   const roll = Math.random();
-  if (roll < 0.22) return "barrier";
-  if (roll < 0.42) return "gate";
-  if (roll < 0.62) return "crate";
-  if (roll < 0.82) return "cone";
-  return "oil";
+  if (roll < 0.28) return "gate";
+  if (roll < 0.52) return "barrier";
+  if (roll < 0.74) return "crate";
+  if (roll < 0.88) return "oil";
+  return "cone";
 }
 
 /**
- * Calculate dynamic spawn interval based on current speed and progression
+ * Calculate dynamic spawn interval based on current difficulty tier and speed
  */
 function getSpawnInterval() {
+  const diff = getCurrentDifficulty();
+  const [minInt, maxInt] = diff.interval;
   const baseSpeed = Math.max(gameState.baseSpeed || 1, 1);
   const currentSpeed = Math.max(gameState.speed || baseSpeed, baseSpeed);
-  const speedFactor = currentSpeed / baseSpeed;
+  const speedRatio = Math.min(1.5, currentSpeed / baseSpeed);
 
-  return Math.max(
-    SPAWNER_CONFIG.minimumInterval,
-    SPAWNER_CONFIG.initialInterval / Math.sqrt(speedFactor)
-  );
+  // Scaled randomized interval within the tier's curated boundaries
+  const randFraction = Math.random();
+  const target = minInt + randFraction * (maxInt - minInt);
+  return Math.max(0.75, target / Math.sqrt(speedRatio));
 }
 
 /**
@@ -93,8 +106,9 @@ export function spawnObstacleNow(
   const safeLane = Math.max(0, Math.min(laneCount - 1, Math.floor(lane)));
 
   const spawnZ = SPAWNER_CONFIG.spawnDistance;
+  const minGap = getCurrentDifficulty().minGap;
 
-  if (Math.abs(spawnZ - lastObstacleZ) < SPAWNER_CONFIG.minimumGap) {
+  if (Math.abs(spawnZ - lastObstacleZ) < minGap) {
     return null;
   }
 

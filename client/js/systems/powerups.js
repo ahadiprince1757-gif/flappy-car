@@ -178,3 +178,11 @@ export function resetPowerUps() {
   gameState.boostActive = false;
   gameState.speed = gameState.baseSpeed;
 }
+
+export function grantTemporaryShield(duration = 4.0) {
+  gameState.shieldActive = true;
+  shieldTimer = duration;
+  if (gameState.player?.group) {
+    createBurst(gameState.player.group.position, 0x36baff, 24);
+  }
+}

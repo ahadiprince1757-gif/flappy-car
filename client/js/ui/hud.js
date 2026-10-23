@@ -1,4 +1,5 @@
 import { gameState } from "../core/gameState.js";
+import { getCurrentDifficulty } from "../systems/checkpoints.js";
 
 let hudRoot = null;
 let lastHudUpdate = 0;
@@ -25,6 +26,11 @@ export function initializeHUD() {
         <strong id="hudScore">0</strong>
       </div>
 
+      <div class="hud-stat hud-tier-badge">
+        <span class="hud-label">ZONE</span>
+        <strong id="hudTierName">CRUISING</strong>
+      </div>
+
       <div class="hud-stat">
         <span class="hud-label">SPEED</span>
         <strong id="hudSpeed">0 MPH</strong>
@@ -34,6 +40,7 @@ export function initializeHUD() {
     <div class="hud-progress">
       <div class="hud-progress-heading">
         <span id="hudMode">ADVENTURE</span>
+        <span id="hudCheckpointIndicator" class="hud-cp-pill">CP: 250m</span>
         <span id="hudDistance">0 m</span>
       </div>
 
@@ -67,6 +74,8 @@ export function updateHUD(force = false) {
   const speed = getElement("hudSpeed");
   const distance = getElement("hudDistance");
   const mode = getElement("hudMode");
+  const tierName = getElement("hudTierName");
+  const cpIndicator = getElement("hudCheckpointIndicator");
   const progressFill = getElement("hudProgressFill");
   const raceDetails = getElement("hudRaceDetails");
   const lives = getElement("hudLives");
@@ -76,6 +85,16 @@ export function updateHUD(force = false) {
   if (score) score.textContent = formatNumber(gameState.score);
   if (speed) speed.textContent = `${formatNumber(gameState.speed)} MPH`;
   if (distance) distance.textContent = `${formatNumber(gameState.distance)} m`;
+
+  const diff = getCurrentDifficulty();
+  if (tierName) tierName.textContent = diff.name;
+
+  if (cpIndicator) {
+    const dist = Math.floor(gameState.distance || 0);
+    const nextCP = Math.ceil((dist + 1) / 250) * 250;
+    const toGo = Math.max(0, nextCP - dist);
+    cpIndicator.textContent = `⚡ CP: ${toGo}m`;
+  }
 
   const isRacing = gameState.gameMode === "racing";
   const race = gameState.race;

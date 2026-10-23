@@ -40,8 +40,15 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Serve static frontend assets from client/ directory
-app.use(express.static(CLIENT_DIR));
+// Serve static frontend assets from client/ directory with instant-update headers for mobile & desktop
+app.use(express.static(CLIENT_DIR, {
+  etag: false,
+  setHeaders: (res) => {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+  }
+}));
 
 // Fallback to client/index.html
 app.get('*', (req, res) => {

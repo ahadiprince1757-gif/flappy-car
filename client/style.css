@@ -279,6 +279,7 @@ button {
   letter-spacing: 0.08em;
   background: linear-gradient(180deg, #ffffff 10%, #00f4ff 60%, #0090b0 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   filter: drop-shadow(0 0 22px rgba(0, 239, 255, 0.75));
 }
@@ -446,16 +447,20 @@ button {
   flex-direction: column;
   justify-content: space-between;
   align-items: center;
-  padding: 30px 20px;
-  background: radial-gradient(circle at 50% 30%,
-    rgba(0, 30, 60, 0.95) 0%,
-    rgba(1, 8, 20, 0.98) 100%);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  animation: fadeIn 0.22s ease-out;
+  padding: clamp(16px, 3vh, 30px) clamp(12px, 2.5vw, 24px);
+  background: #000000;
+  animation: screenSlideIn 0.28s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .sub-screen[hidden] { display: none !important; }
+
+/* Flawless screen exit animation */
+.screen-fade-out {
+  opacity: 0 !important;
+  transform: scale(0.985) translateY(-8px) !important;
+  transition: opacity 0.16s ease-out, transform 0.16s ease-out !important;
+  pointer-events: none !important;
+}
 
 /* =====================================================
    DEDICATED SELECTION SCREENS (CAR SELECT & TRACK SELECT)
@@ -466,43 +471,106 @@ button {
   z-index: 35;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
   align-items: center;
-  padding: clamp(14px, 2.5vh, 26px) clamp(16px, 3vw, 36px);
-  background: radial-gradient(circle at 50% 20%, rgba(1, 28, 56, 0.96) 0%, rgba(2, 10, 22, 0.99) 100%);
-  backdrop-filter: blur(25px);
-  -webkit-backdrop-filter: blur(25px);
+  padding: clamp(10px, 2vh, 22px) clamp(12px, 2.5vw, 32px);
+  background: #000000;
   overflow-y: auto;
   overflow-x: hidden;
-  animation: fadeIn 0.25s ease-out;
+  /* Smooth slide-in transition */
+  animation: screenSlideIn 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  -webkit-overflow-scrolling: touch;
 }
 
 .selection-screen[hidden] {
   display: none !important;
 }
 
+/* Screen entrance animation */
+@keyframes screenSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ── Mini Buttons (Top Bar Actions) ───────────────────── */
+.top-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.mini-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: clamp(30px, 4vh, 38px);
+  padding: 0 clamp(10px, 2vw, 18px);
+  border-radius: 8px;
+  font-family: var(--font-arc);
+  font-size: clamp(9px, 1.5vw, 12px);
+  font-weight: 900;
+  letter-spacing: 0.07em;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  white-space: nowrap;
+  border: 1.5px solid transparent;
+}
+
+.mini-btn-ghost {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.mini-btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.4);
+  color: #fff;
+}
+
+.mini-btn-primary {
+  background: var(--cyan);
+  border-color: var(--cyan);
+  color: #011a28;
+  box-shadow: 0 0 14px rgba(0, 239, 255, 0.5);
+}
+
+.mini-btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 22px rgba(0, 239, 255, 0.8);
+}
+
 /* ── Top Header Bar ───────────────────────────────── */
 .selection-top-bar {
   display: flex;
   justify-content: space-between;
-  align-items: flex-end;
+  align-items: center;
   width: 100%;
   max-width: 1240px;
-  padding-bottom: 12px;
+  padding-bottom: clamp(8px, 1.5vh, 14px);
   border-bottom: 1.5px solid rgba(0, 239, 255, 0.25);
-  margin-bottom: 12px;
+  margin-bottom: clamp(8px, 1.5vh, 14px);
+  gap: 10px;
+  flex-shrink: 0;
 }
 
 .selection-title-group {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
   text-align: left;
+  min-width: 0;
 }
 
 .step-indicator {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: clamp(9px, 1.5vw, 11px);
   font-weight: 800;
   letter-spacing: 0.12em;
   color: var(--cyan);
@@ -510,12 +578,15 @@ button {
 }
 
 .selection-top-bar h2 {
-  font-size: clamp(22px, 3.5vw, 32px);
+  font-size: clamp(16px, 3vw, 30px);
   font-weight: 900;
   font-style: italic;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
   color: #ffffff;
   text-shadow: 0 0 16px rgba(0, 239, 255, 0.45);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .section-desc {
@@ -583,44 +654,37 @@ button {
 /* ── Workspace (Grid + Inspector) ─────────────────── */
 .selection-workspace {
   display: grid;
-  grid-template-columns: 1fr clamp(320px, 38vw, 460px);
-  gap: 20px;
+  grid-template-columns: 1fr clamp(280px, 36vw, 440px);
+  gap: clamp(12px, 2vw, 22px);
   width: 100%;
   max-width: 1240px;
   flex: 1;
   min-height: 0;
-  align-items: stretch;
-}
-
-@media (max-width: 900px) {
-  .selection-workspace {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
+  align-items: start;
 }
 
 /* ── Left: Cars Grid ──────────────────────────────── */
 .cars-grid-container {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(clamp(140px, 28vw, 210px), 1fr));
+  gap: clamp(8px, 1.5vw, 14px);
   overflow-y: auto;
-  max-height: clamp(340px, 58vh, 680px);
-  padding-right: 6px;
+  max-height: clamp(300px, 62vh, 700px);
+  padding-right: 4px;
   scrollbar-width: thin;
   scrollbar-color: var(--cyan) transparent;
+  -webkit-overflow-scrolling: touch;
 }
 
 .car-select-card {
   display: flex;
   flex-direction: column;
-  background: rgba(0, 20, 44, 0.78);
+  background: #0a0a0a;
   border: 1.5px solid rgba(0, 239, 255, 0.22);
   border-radius: 14px;
   overflow: hidden;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  backdrop-filter: blur(8px);
 }
 
 .car-select-card:hover {
@@ -631,7 +695,7 @@ button {
 
 .car-select-card.selected {
   border-color: var(--cyan);
-  background: rgba(0, 36, 72, 0.88);
+  background: #0d1a24;
   box-shadow: 0 0 24px rgba(0, 239, 255, 0.5), inset 0 0 12px rgba(0, 239, 255, 0.15);
 }
 
@@ -670,19 +734,25 @@ button {
   position: relative;
   width: 100%;
   aspect-ratio: 16 / 9;
-  background: #030d1a;
+  background: #000000;
   overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .car-card-thumb {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  padding: 6px 10px;
   transition: transform 0.3s ease;
+  max-width: 100%;
+  max-height: 100%;
 }
 
 .car-select-card:hover .car-card-thumb {
-  transform: scale(1.05);
+  transform: scale(1.06);
 }
 
 .car-card-info {
@@ -712,12 +782,11 @@ button {
 .car-inspector-card {
   display: flex;
   flex-direction: column;
-  background: rgba(0, 16, 36, 0.85);
+  background: #080808;
   border: 1.5px solid rgba(0, 239, 255, 0.35);
   border-radius: 18px;
   padding: 16px;
   box-shadow: 0 16px 36px rgba(0, 0, 0, 0.7), inset 0 0 20px rgba(0, 239, 255, 0.06);
-  backdrop-filter: blur(14px);
 }
 
 .inspector-preview-box {
@@ -914,27 +983,84 @@ button {
 /* ── Page 2: Tracks Grid ──────────────────────────── */
 .tracks-grid-container {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(clamp(250px, 34vw, 340px), 1fr));
+  gap: clamp(10px, 1.8vw, 18px);
   width: 100%;
   max-width: 1240px;
   flex: 1;
   overflow-y: auto;
-  padding: 4px 6px 14px 0;
+  padding: 4px 4px 14px 0;
   scrollbar-width: thin;
   scrollbar-color: var(--cyan) transparent;
+  -webkit-overflow-scrolling: touch;
 }
 
 .track-select-card {
   display: flex;
   flex-direction: column;
-  background: rgba(0, 20, 44, 0.82);
+  background: #0a0a0a;
   border: 1.5px solid rgba(0, 239, 255, 0.25);
   border-radius: 16px;
   overflow: hidden;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  backdrop-filter: blur(10px);
+}
+
+/* ── Track Card Stage Photo Box ───────────────────── */
+.track-card-photo-box {
+  position: relative;
+  width: 100%;
+  height: 155px;
+  overflow: hidden;
+  background: #050505;
+  border-bottom: 1px solid rgba(0, 239, 255, 0.15);
+}
+
+.track-card-photo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.35s ease;
+}
+
+.track-select-card:hover .track-card-photo-img {
+  transform: scale(1.06);
+}
+
+.track-photo-overlay-badges {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  pointer-events: none;
+}
+
+.track-card-category-badge {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.65);
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(255,255,255,0.15);
+  text-transform: uppercase;
+}
+
+.track-card-diff-badge {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 800;
+  color: #fef08a;
+  background: rgba(0, 0, 0, 0.65);
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(254, 240, 138, 0.3);
+  text-transform: uppercase;
 }
 
 .track-select-card:hover {
@@ -945,8 +1071,37 @@ button {
 
 .track-select-card.selected {
   border-color: var(--cyan);
-  background: rgba(0, 36, 76, 0.92);
-  box-shadow: 0 0 28px rgba(0, 239, 255, 0.55), inset 0 0 14px rgba(0, 239, 255, 0.15);
+  background: #0a0a0a;
+  box-shadow: 0 0 28px rgba(0, 239, 255, 0.55);
+}
+
+.track-card-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.track-select-status-tag {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text-muted);
+  border: 1px solid rgba(255,255,255,0.1);
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.track-select-status-tag.active {
+  background: rgba(0, 239, 255, 0.18);
+  color: var(--cyan);
+  border-color: var(--cyan);
+  box-shadow: 0 0 8px rgba(0, 239, 255, 0.3);
 }
 
 .track-card-banner {
@@ -1207,13 +1362,46 @@ button {
   align-items: center;
   gap: 16px;
   width: 100%;
-  max-width: 340px;
-  padding: 28px 24px;
+  max-width: clamp(280px, 88vw, 360px);
+  padding: clamp(20px, 3.5vh, 32px) clamp(16px, 3vw, 26px);
   border: 2px solid var(--cyan);
-  border-radius: 24px;
-  background: var(--navy-glass);
-  box-shadow: 0 0 32px rgba(0,239,255,0.38);
-  backdrop-filter: blur(18px);
+  border-radius: 20px;
+  background: #080808;
+  box-shadow: 0 0 32px rgba(0, 239, 255, 0.28);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  animation: screenSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ── HUD Tier & Checkpoint Badges ─────────────────── */
+.hud-tier-badge {
+  border-color: rgba(255, 215, 0, 0.5) !important;
+  background: #000000 !important;
+  backdrop-filter: none !important;
+}
+
+.hud-tier-badge .hud-label {
+  color: #ffd700 !important;
+}
+
+.hud-tier-badge strong {
+  color: #ffd700 !important;
+  font-size: clamp(11px, 1.6vw, 15px) !important;
+  letter-spacing: 0.08em;
+}
+
+.hud-cp-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 9999px;
+  background: rgba(0, 239, 255, 0.18);
+  border: 1px solid var(--cyan);
+  color: #00efff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  box-shadow: 0 0 10px rgba(0, 239, 255, 0.3);
 }
 
 .result-title {
@@ -1622,11 +1810,11 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(2, 12, 24, 0.88);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(0, 0, 0, 0.92);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   padding: 20px;
-  animation: modalFadeIn 0.25s ease-out;
+  animation: modalFadeIn 0.22s ease-out;
 }
 
 .modal-overlay[hidden],
@@ -1635,25 +1823,24 @@ button {
 }
 
 @keyframes modalFadeIn {
-  from { opacity: 0; transform: scale(0.96); }
-  to { opacity: 1; transform: scale(1); }
+  from { opacity: 0; transform: scale(0.97) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
 .result-card, .minimal-modal {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 20px;
+  gap: clamp(14px, 2.5vh, 20px);
   width: 100%;
-  max-width: 440px;
-  padding: 34px 28px;
-  border-radius: 24px;
-  background: linear-gradient(180deg, rgba(10, 25, 52, 0.96) 0%, rgba(3, 14, 32, 0.98) 100%);
+  max-width: clamp(290px, 88vw, 420px);
+  padding: clamp(22px, 3.5vh, 32px) clamp(18px, 4vw, 28px);
+  border-radius: 20px;
+  background: #080808;
   border: 2px solid var(--cyan);
   box-shadow: 
-    0 0 40px rgba(0, 239, 255, 0.35),
-    inset 0 0 30px rgba(0, 239, 255, 0.12),
-    0 24px 60px rgba(0, 0, 0, 0.85);
+    0 0 35px rgba(0, 239, 255, 0.25),
+    0 24px 60px rgba(0, 0, 0, 0.95);
   text-align: center;
 }
 
@@ -2398,6 +2585,209 @@ button {
   .arcade-buttons-stack { gap: 13px; }
   .arcade-btn { height: 62px; }
 }
+
+/* =====================================================
+   SELECTION SCREENS — MOBILE RESPONSIVE (Phone-First)
+===================================================== */
+
+/* ── Tablet (≤900px): Hide inspector, full-width car grid ── */
+@media (max-width: 900px) {
+  .selection-workspace {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  /* Hide the inspector panel on tablet/phone – too little space */
+  .car-inspector-card {
+    display: none;
+  }
+
+  .cars-grid-container {
+    grid-template-columns: repeat(auto-fill, minmax(clamp(130px, 26vw, 200px), 1fr));
+    max-height: clamp(280px, 65vh, 600px);
+    gap: 10px;
+  }
+
+  .tracks-grid-container {
+    grid-template-columns: repeat(auto-fill, minmax(clamp(240px, 42vw, 320px), 1fr));
+    gap: 12px;
+    padding-right: 2px;
+  }
+
+  .track-card-photo-box {
+    height: 130px;
+  }
+
+  .selection-top-bar {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+  }
+
+  .selection-title-group {
+    flex: 1;
+    min-width: 160px;
+  }
+
+  .top-bar-actions {
+    flex-shrink: 0;
+  }
+}
+
+/* ── Small Phone (≤600px): Compact 2-column layout ── */
+@media (max-width: 600px) {
+  .selection-screen {
+    padding: 10px 10px clamp(12px, 3vh, 20px);
+  }
+
+  .selection-top-bar h2 {
+    font-size: 18px;
+  }
+
+  .section-desc {
+    display: none; /* Hide subheader desc on very small phones */
+  }
+
+  .category-filter-row {
+    gap: 5px;
+    margin-bottom: 8px;
+  }
+
+  .cat-pill {
+    padding: 5px 10px;
+    font-size: 10px;
+  }
+
+  .cars-grid-container {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    max-height: clamp(260px, 68vh, 520px);
+  }
+
+  .car-card-thumb-wrap {
+    aspect-ratio: 4 / 3;
+  }
+
+  .car-card-info {
+    padding: 7px 9px;
+  }
+
+  .car-card-name {
+    font-size: 13px;
+  }
+
+  .car-card-mini-specs {
+    font-size: 10px;
+  }
+
+  .tracks-grid-container {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .track-card-photo-box {
+    height: 100px;
+  }
+
+  .track-card-body {
+    padding: 9px 10px;
+    gap: 5px;
+  }
+
+  .track-card-title {
+    font-size: 15px;
+  }
+
+  .track-card-desc {
+    display: none; /* Save vertical space on phone */
+  }
+
+  .track-specs-row {
+    padding: 6px 8px;
+    gap: 6px;
+  }
+
+  .track-spec-item {
+    font-size: 8px;
+  }
+
+  .track-spec-item strong {
+    font-size: 10px;
+  }
+
+  .selected-car-badge-pill {
+    padding: 4px 10px;
+    font-size: 11px;
+  }
+
+  .mini-btn {
+    height: 28px;
+    padding: 0 10px;
+    font-size: 9px;
+    border-radius: 6px;
+  }
+}
+
+/* ── Very Small Phone (≤400px): Ultra compact ── */
+@media (max-width: 400px) {
+  .tracks-grid-container {
+    grid-template-columns: 1fr;
+  }
+
+  .cars-grid-container {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+  }
+
+  .track-card-photo-box {
+    height: 90px;
+  }
+}
+
+/* ── Phone Landscape: Side-by-side grids ── */
+@media (max-height: 480px) and (orientation: landscape) {
+  .selection-screen {
+    padding: 6px 12px;
+  }
+
+  .selection-top-bar {
+    padding-bottom: 6px;
+    margin-bottom: 6px;
+  }
+
+  .selection-top-bar h2 {
+    font-size: 15px;
+  }
+
+  .cars-grid-container {
+    grid-template-columns: repeat(4, 1fr);
+    max-height: 55vh;
+    gap: 6px;
+  }
+
+  .tracks-grid-container {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .track-card-photo-box {
+    height: 80px;
+  }
+
+  .track-card-body {
+    padding: 7px;
+  }
+
+  .track-card-title {
+    font-size: 13px;
+  }
+
+  .car-card-thumb-wrap {
+    aspect-ratio: 16 / 7;
+  }
+}
+
 
 /* ── Modals & Audio Mixer ─────────────────────────── */
 .modal-overlay {

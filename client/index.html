@@ -110,7 +110,15 @@
           <div class="selection-title-group">
             <span class="step-indicator">STEP 1 OF 2 · VEHICLE SELECTION</span>
             <h2>CHOOSE YOUR MACHINE</h2>
-            <p class="section-desc">Select from high-performance vehicles powered by real 3D FBX models</p>
+            <p class="section-desc">Select vehicle · Real 3D FBX Models</p>
+          </div>
+          <div class="top-bar-actions">
+            <button class="mini-btn mini-btn-ghost" id="backFromCarSelectBtn" type="button">
+              ← MENU
+            </button>
+            <button class="mini-btn mini-btn-primary" id="confirmCarBtn" type="button">
+              CHOOSE TRACK ➔
+            </button>
           </div>
         </div>
 
@@ -216,16 +224,6 @@
             </div>
           </div>
         </div>
-
-        <!-- Action Bar -->
-        <div class="selection-bottom-bar">
-          <button class="menuBtn secondary-action-btn" id="backFromCarSelectBtn" type="button">
-            ← BACK TO MENU
-          </button>
-          <button class="menuBtn primary-action-btn cta-glow-btn" id="confirmCarBtn" type="button">
-            CHOOSE ENVIRONMENT ➔
-          </button>
-        </div>
       </section>
 
       <!-- Page 2: Dedicated Environment / Track Selection Screen -->
@@ -234,25 +232,23 @@
           <div class="selection-title-group">
             <span class="step-indicator">STEP 2 OF 2 · ENVIRONMENT SELECTION</span>
             <h2>CHOOSE DRIVING ENVIRONMENT</h2>
-            <p class="section-desc">Select the racing scenery, weather atmosphere, and road layout</p>
+            <p class="section-desc">Select stage · Real FBX Environments</p>
           </div>
-          <div class="selected-car-badge-pill" id="trackActiveCarBadge">
-            🚗 DRIVING: <strong id="trackActiveCarName">Cyber GT</strong>
+          <div class="top-bar-actions">
+            <div class="selected-car-badge-pill" id="trackActiveCarBadge">
+              🚗 <strong id="trackActiveCarName">Cyber GT</strong>
+            </div>
+            <button class="mini-btn mini-btn-ghost" id="backFromTrackSelectBtn" type="button">
+              ← CARS
+            </button>
+            <button class="mini-btn mini-btn-primary" id="startRaceWithTrackBtn" type="button">
+              START RACE 🏁
+            </button>
           </div>
         </div>
 
         <!-- Track Grid -->
         <div class="tracks-grid-container" id="trackCardsGrid"></div>
-
-        <!-- Track Action Bar -->
-        <div class="selection-bottom-bar">
-          <button class="menuBtn secondary-action-btn" id="backFromTrackSelectBtn" type="button">
-            ← BACK TO CARS
-          </button>
-          <button class="menuBtn primary-action-btn cta-glow-btn" id="startRaceWithTrackBtn" type="button">
-            START RACE 🏁
-          </button>
-        </div>
       </section>
 
       <!-- Racing Levels Screen -->

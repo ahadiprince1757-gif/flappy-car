@@ -51,7 +51,7 @@
   ],
   "garage": {
     "coins": 514,
-    "selectedCar": "cyber",
+    "selectedCar": "neon",
     "selectedStage": "city",
     "unlockedCars": [
       "cyber",

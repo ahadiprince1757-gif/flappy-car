@@ -39,53 +39,77 @@ function bindClick(id, callback) {
   element.dataset.menuBound = "true";
 }
 
-export function showHomeScreen() {
-  stopCarSelectViewer();
-  show(byId("homeScreen"));
-  hide(byId("carSelectScreen"));
-  hide(byId("trackSelectScreen"));
-  hide(byId("leaderboardScreen"));
+let isTransitioning = false;
+
+function transitionToScreen(targetScreenId, prepareFn) {
+  const target = byId(targetScreenId);
+  if (!target) return;
+
+  const screens = [
+    byId("homeScreen"),
+    byId("carSelectScreen"),
+    byId("trackSelectScreen"),
+    byId("leaderboardScreen"),
+    byId("levelSelectScreen")
+  ].filter(Boolean);
+
+  // Always close modal overlays
   hide(byId("pauseMenu"));
   hide(byId("settingsModal"));
+
+  const current = screens.find(el => !el.hidden && el.style.display !== "none" && el.id !== targetScreenId);
+
+  if (current && !isTransitioning) {
+    isTransitioning = true;
+    current.classList.add("screen-fade-out");
+
+    setTimeout(() => {
+      screens.forEach(s => {
+        if (s !== target) {
+          hide(s);
+          s.classList.remove("screen-fade-out");
+        }
+      });
+      show(target);
+      if (prepareFn) prepareFn();
+      isTransitioning = false;
+    }, 150);
+  } else {
+    screens.forEach(s => {
+      if (s !== target) hide(s);
+    });
+    show(target);
+    if (prepareFn) prepareFn();
+  }
+}
+
+export function showHomeScreen() {
+  stopCarSelectViewer();
+  transitionToScreen("homeScreen");
 }
 
 export function showCarSelectScreen() {
-  hide(byId("homeScreen"));
-  hide(byId("trackSelectScreen"));
-  hide(byId("leaderboardScreen"));
-  hide(byId("pauseMenu"));
-  hide(byId("settingsModal"));
-  show(byId("carSelectScreen"));
-
-  renderCarSelectionScreen();
-  // Small delay to allow element dimensions to settle before initializing Three.js canvas
-  requestAnimationFrame(() => {
-    initCarSelectViewer();
+  transitionToScreen("carSelectScreen", () => {
+    renderCarSelectionScreen();
+    // Small delay to allow element dimensions to settle before initializing Three.js canvas
+    requestAnimationFrame(() => {
+      initCarSelectViewer();
+    });
   });
 }
 
 export function showTrackSelectScreen() {
   stopCarSelectViewer();
-  hide(byId("homeScreen"));
-  hide(byId("carSelectScreen"));
-  hide(byId("leaderboardScreen"));
-  hide(byId("pauseMenu"));
-  hide(byId("settingsModal"));
-  show(byId("trackSelectScreen"));
-
-  renderTrackSelectionScreen();
+  transitionToScreen("trackSelectScreen", () => {
+    renderTrackSelectionScreen();
+  });
 }
 
 export function showLeaderboardScreen() {
   stopCarSelectViewer();
-  hide(byId("homeScreen"));
-  hide(byId("carSelectScreen"));
-  hide(byId("trackSelectScreen"));
-  hide(byId("pauseMenu"));
-  hide(byId("settingsModal"));
-  show(byId("leaderboardScreen"));
-
-  renderLeaderboard();
+  transitionToScreen("leaderboardScreen", () => {
+    renderLeaderboard();
+  });
 }
 
 export function showPauseMenu() {

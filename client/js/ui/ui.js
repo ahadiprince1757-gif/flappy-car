@@ -33,6 +33,7 @@ import {
   playRaceFailedSound
 } from "../systems/audio.js";
 import { preloadCarModels } from "../cars/carModelLoader.js";
+import { revivePlayerAtCheckpoint, resetCheckpoints } from "../systems/checkpoints.js";
 import { submitScore, recordLevelComplete } from "../services/api.js";
 import {
   initOrientation,
@@ -75,6 +76,7 @@ function resetRunSystems() {
   resetPowerUps();
   clearEffects();
   resetTraffic();
+  resetCheckpoints();
 
   gameState.score = 0;
   gameState.distance = 0;
@@ -190,24 +192,43 @@ function finishRun(title, isWin, stats) {
     recordLevelComplete(gameState.currentLevel, gameState.score).catch(() => {});
   }
 
-  showResultOverlay(title, isWin, stats, [
-    {
-      label: "RESTART",
+  const actions = [];
+
+  // Checkpoint Revive: If player reached a checkpoint, provide instant revive option
+  if (!isWin && gameState.lastCheckpoint && gameState.lastCheckpoint.distance > 0) {
+    actions.push({
+      label: `REVIVE AT CHECKPOINT (${gameState.lastCheckpoint.distance}m) ⚡`,
       primary: true,
       onClick: () => {
         removeResultOverlay();
-        restartRun();
+        setGameplayVisible(true);
+        revivePlayerAtCheckpoint();
+        startEngineSound();
       }
-    },
-    {
-      label: "MAIN MENU",
-      primary: false,
-      onClick: () => {
-        removeResultOverlay();
-        returnHome();
-      }
+    });
+  }
+
+  actions.push({
+    label: gameState.lastCheckpoint ? "RESTART FROM 0m" : "RESTART",
+    primary: !gameState.lastCheckpoint,
+    onClick: () => {
+      removeResultOverlay();
+      resetCheckpoints();
+      restartRun();
     }
-  ]);
+  });
+
+  actions.push({
+    label: "MAIN MENU",
+    primary: false,
+    onClick: () => {
+      removeResultOverlay();
+      resetCheckpoints();
+      returnHome();
+    }
+  });
+
+  showResultOverlay(title, isWin, stats, actions);
 }
 
 function startAdventure() {

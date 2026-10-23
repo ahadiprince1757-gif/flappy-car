@@ -56,6 +56,11 @@ import {
   stopEngineSound
 } from "./systems/audio.js";
 
+import {
+  updateCheckpoints,
+  resetCheckpoints
+} from "./systems/checkpoints.js";
+
 import { initializeUI, updateUI } from "./ui/ui.js";
 
 function loadSavedSelections() {
@@ -87,6 +92,7 @@ function updateGame(deltaTime) {
     updatePowerUps(deltaTime);
 
     updateTraffic(deltaTime);
+    updateCheckpoints(deltaTime);
 
     checkCollisions();
     updateRacing(deltaTime);
@@ -136,6 +142,7 @@ function start() {
     resetPowerUps();
     clearEffects();
     resetTraffic();
+    resetCheckpoints();
 
     // 5. Initialise traffic manager (safe for async model caching)
     initTraffic(gameState.scene);
@@ -157,24 +164,12 @@ function start() {
       render: renderGame
     });
 
-    // 8. Load FBX car models & background buildings immediately
-    const playBtn = document.getElementById("adventureBtn");
-    const playBtnText = playBtn?.querySelector(".btn-text");
-    if (playBtn && playBtnText) {
-      playBtn.disabled = true;
-      playBtnText.textContent = "LOADING...";
-    }
-
+    // 8. Preload FBX car models & background buildings in background
     preloadBuildingModels();
     preloadTreeModels();
-
     preloadCarModels(() => {
       if (gameState.scene) {
         createPlayer(gameState.selectedCar);
-      }
-      if (playBtn && playBtnText) {
-        playBtn.disabled = false;
-        playBtnText.textContent = "PLAY";
       }
       console.info("FBX car models ready. Player spawned.");
     });
