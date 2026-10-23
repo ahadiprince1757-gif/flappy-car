@@ -30,10 +30,16 @@
       <div id="ui" hidden></div>
 
       <!-- Quick Action Controls during Gameplay -->
-      <button id="pauseBtn" type="button" aria-label="Pause" title="Pause" hidden>
-        <span>II</span>
-      </button>
-      <!-- Authentic Arcade Landing Screen -->
+      <div class="in-game-top-actions" id="inGameTopActions" hidden>
+        <button id="inGameSettingsBtn" class="gameplay-ctrl-btn" type="button" aria-label="Audio & Settings" title="Audio & Settings">
+          <span>⚙</span>
+        </button>
+        <button id="pauseBtn" class="gameplay-ctrl-btn" type="button" aria-label="Pause" title="Pause">
+          <span>II</span>
+        </button>
+      </div>
+
+      <!-- Clean Authentic Arcade Landing Screen -->
       <section id="homeScreen" class="menu-screen arcade-home" aria-label="Main menu">
         <!-- Top Navigation Bar -->
         <header class="arcade-top-bar">
@@ -67,34 +73,17 @@
           </div>
         </header>
 
-        <!-- Center Official Graphic Logo Block -->
-        <div class="arcade-logo-area">
-          <img src="./assets/logo.png" alt="FLAPPY CAR" class="arcade-logo-img" />
+        <!-- Clean Title Header -->
+        <div class="arcade-hero-title">
+          <h1 class="game-main-title">FLAPPY CAR</h1>
+          <p class="game-subtitle">3D ARCADE HIGHWAY SPEEDWAY</p>
         </div>
 
-        <!-- Vertical Interactive Menu Button Stack -->
+        <!-- Single Primary Action Stack (Uncluttered) -->
         <div class="arcade-buttons-stack">
           <button class="arcade-btn btn-play" id="adventureBtn" type="button">
             <span class="btn-play-triangle">▶</span>
             <span class="btn-text">PLAY</span>
-          </button>
-
-          <button class="arcade-btn btn-glass" id="garageBtn" type="button">
-            <span class="btn-icon">
-              <svg viewBox="0 0 24 24" class="svg-btn-icon">
-                <path fill="currentColor" d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>
-              </svg>
-            </span>
-            <span class="btn-text">GARAGE</span>
-          </button>
-
-          <button class="arcade-btn btn-glass" id="racingBtn" type="button">
-            <span class="btn-icon">
-              <svg viewBox="0 0 24 24" class="svg-btn-icon">
-                <path fill="currentColor" d="M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94A5.01 5.01 0 0 0 11 15.9V19H7v2h10v-2h-4v-3.1a5.01 5.01 0 0 0 3.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2zM5 8V7h2v3.82C5.84 10.4 5 9.3 5 8zm14 0c0 1.3-.84 2.4-2 2.82V7h2v1z"/>
-              </svg>
-            </span>
-            <span class="btn-text">LEVELS</span>
           </button>
 
           <button class="arcade-btn btn-glass" id="leaderboardBtn" type="button">
@@ -104,15 +93,6 @@
               </svg>
             </span>
             <span class="btn-text">SCORES</span>
-          </button>
-
-          <button class="arcade-btn btn-glass" id="settingsBtn" type="button">
-            <span class="btn-icon">
-              <svg viewBox="0 0 24 24" class="svg-btn-icon">
-                <path fill="currentColor" d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
-              </svg>
-            </span>
-            <span class="btn-text">SETTINGS</span>
           </button>
         </div>
 
@@ -124,36 +104,153 @@
         </div>
       </section>
 
-      <!-- Garage Screen -->
-      <section id="garageScreen" class="menu-screen sub-screen" aria-label="Garage" hidden>
-        <div class="screen-top-bar">
-          <h2>3D GARAGE & SHOWROOM</h2>
-          <p class="section-desc">Inspect real 3D vehicles and driving environments</p>
+      <!-- Page 1: Dedicated Car Selection Screen -->
+      <section id="carSelectScreen" class="menu-screen selection-screen" aria-label="Vehicle selection" hidden>
+        <div class="selection-top-bar">
+          <div class="selection-title-group">
+            <span class="step-indicator">STEP 1 OF 2 · VEHICLE SELECTION</span>
+            <h2>CHOOSE YOUR MACHINE</h2>
+            <p class="section-desc">Select from high-performance vehicles powered by real 3D FBX models</p>
+          </div>
         </div>
 
-        <!-- Real 3D Turntable Vehicle & Environment Showcase -->
-        <div class="garage-showcase-container">
-          <div class="garage-canvas-wrap">
-            <canvas id="garageShowcaseCanvas"></canvas>
-            <div class="garage-drag-hint">⟲ Drag to rotate 3D view</div>
-            <div class="garage-badge-overlay">
-              <span id="showcaseCarName" class="showcase-car-tag">Cyber GT</span>
-              <span id="showcaseStageName" class="showcase-stage-tag">Metropolis City</span>
+        <!-- Vehicle Category Filters -->
+        <div class="category-filter-row" id="carCategoryFilters">
+          <button class="cat-pill active" data-category="all" type="button">ALL VEHICLES</button>
+          <button class="cat-pill" data-category="sport" type="button">SUPER SPORT</button>
+          <button class="cat-pill" data-category="muscle" type="button">V8 MUSCLE</button>
+          <button class="cat-pill" data-category="tuner" type="button">TUNER</button>
+          <button class="cat-pill" data-category="utility" type="button">UTILITY & PATROL</button>
+        </div>
+
+        <!-- Car Selection Main Workspace (Grid + Inspector) -->
+        <div class="selection-workspace">
+          <!-- Left: Grid of Car Cards with Real Images -->
+          <div class="cars-grid-container" id="carCardsGrid"></div>
+
+          <!-- Right: Inspector & 3D Showcase Panel -->
+          <div class="car-inspector-card" id="carInspectorCard">
+            <!-- 3D Turntable & Hero Preview -->
+            <div class="inspector-preview-box">
+              <canvas id="carSelectShowcaseCanvas"></canvas>
+              <img id="inspectorFallbackImg" class="inspector-hero-img" src="./assets/images/cars/cyber.jpg" alt="Selected Car" />
+              <div class="turntable-rot-hint">⟲ Drag to inspect 3D model</div>
+              <div class="active-badge-tag" id="inspectorCategoryTag">SUPER SPORT</div>
+            </div>
+
+            <!-- Vehicle Specs & Information -->
+            <div class="inspector-details">
+              <div class="inspector-header">
+                <h3 id="inspectorCarName" class="inspector-car-title">Cyber GT</h3>
+                <p id="inspectorCarTagline" class="inspector-car-tagline">Twin-turbo aerodynamic low-slung cyber coupe</p>
+              </div>
+
+              <!-- Key Specs Badges -->
+              <div class="specs-chips-row">
+                <div class="spec-chip">
+                  <span class="spec-chip-label">HORSEPOWER</span>
+                  <strong class="spec-chip-val" id="specHp">680 HP</strong>
+                </div>
+                <div class="spec-chip">
+                  <span class="spec-chip-label">TOP SPEED</span>
+                  <strong class="spec-chip-val" id="specTopSpeed">205 MPH</strong>
+                </div>
+                <div class="spec-chip">
+                  <span class="spec-chip-label">CURB WEIGHT</span>
+                  <strong class="spec-chip-val" id="specWeight">1,320 KG</strong>
+                </div>
+              </div>
+
+              <!-- Animated Stats Bars (Reference Style) -->
+              <div class="stats-bars-container">
+                <div class="stat-bar-item">
+                  <div class="stat-bar-labels">
+                    <span>MAX. SPEED</span>
+                    <strong id="statSpeedVal">9.4</strong>
+                  </div>
+                  <div class="stat-bar-track">
+                    <div class="stat-bar-fill" id="statSpeedFill" style="width: 94%;"></div>
+                  </div>
+                </div>
+
+                <div class="stat-bar-item">
+                  <div class="stat-bar-labels">
+                    <span>ACCELERATION</span>
+                    <strong id="statAccelVal">9.2</strong>
+                  </div>
+                  <div class="stat-bar-track">
+                    <div class="stat-bar-fill" id="statAccelFill" style="width: 92%;"></div>
+                  </div>
+                </div>
+
+                <div class="stat-bar-item">
+                  <div class="stat-bar-labels">
+                    <span>HANDLING & CORNERING</span>
+                    <strong id="statHandlingVal">9.0</strong>
+                  </div>
+                  <div class="stat-bar-track">
+                    <div class="stat-bar-fill" id="statHandlingFill" style="width: 90%;"></div>
+                  </div>
+                </div>
+
+                <div class="stat-bar-item">
+                  <div class="stat-bar-labels">
+                    <span>BRAKING</span>
+                    <strong id="statBrakingVal">8.8</strong>
+                  </div>
+                  <div class="stat-bar-track">
+                    <div class="stat-bar-fill" id="statBrakingFill" style="width: 88%;"></div>
+                  </div>
+                </div>
+
+                <div class="stat-bar-item">
+                  <div class="stat-bar-labels">
+                    <span>STABILITY</span>
+                    <strong id="statStabilityVal">8.9</strong>
+                  </div>
+                  <div class="stat-bar-track">
+                    <div class="stat-bar-fill" id="statStabilityFill" style="width: 89%;"></div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        <div id="garageTabs" class="tab-switch">
-          <button class="tabBtn active" id="carsTab" type="button">VEHICLES</button>
-          <button class="tabBtn" id="stagesTab" type="button">ENVIRONMENTS</button>
+        <!-- Action Bar -->
+        <div class="selection-bottom-bar">
+          <button class="menuBtn secondary-action-btn" id="backFromCarSelectBtn" type="button">
+            ← BACK TO MENU
+          </button>
+          <button class="menuBtn primary-action-btn cta-glow-btn" id="confirmCarBtn" type="button">
+            CHOOSE ENVIRONMENT ➔
+          </button>
+        </div>
+      </section>
+
+      <!-- Page 2: Dedicated Environment / Track Selection Screen -->
+      <section id="trackSelectScreen" class="menu-screen selection-screen" aria-label="Track and environment selection" hidden>
+        <div class="selection-top-bar">
+          <div class="selection-title-group">
+            <span class="step-indicator">STEP 2 OF 2 · ENVIRONMENT SELECTION</span>
+            <h2>CHOOSE DRIVING ENVIRONMENT</h2>
+            <p class="section-desc">Select the racing scenery, weather atmosphere, and road layout</p>
+          </div>
+          <div class="selected-car-badge-pill" id="trackActiveCarBadge">
+            🚗 DRIVING: <strong id="trackActiveCarName">Cyber GT</strong>
+          </div>
         </div>
 
-        <div id="garageCars" class="grid-container active"></div>
-        <div id="garageStages" class="grid-container" hidden></div>
+        <!-- Track Grid -->
+        <div class="tracks-grid-container" id="trackCardsGrid"></div>
 
-        <div class="screen-bottom-bar">
-          <button class="menuBtn secondary-action-btn" id="backBtn" type="button">
-            ← BACK TO MENU
+        <!-- Track Action Bar -->
+        <div class="selection-bottom-bar">
+          <button class="menuBtn secondary-action-btn" id="backFromTrackSelectBtn" type="button">
+            ← BACK TO CARS
+          </button>
+          <button class="menuBtn primary-action-btn cta-glow-btn" id="startRaceWithTrackBtn" type="button">
+            START RACE 🏁
           </button>
         </div>
       </section>

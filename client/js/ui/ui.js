@@ -8,9 +8,9 @@ import {
 import {
   initializeMenus,
   showHomeScreen,
-  showGarageScreen,
   showPauseMenu,
-  hidePauseMenu
+  hidePauseMenu,
+  showSettingsModal
 } from "./menus.js";
 import { initializeGarage } from "../cars/garage.js";
 import { playerControls } from "../player/controls.js";
@@ -57,6 +57,7 @@ function setHidden(id, hidden) {
 
 function setGameplayVisible(visible) {
   setHidden("controls", !visible);
+  setHidden("inGameTopActions", !visible);
   setHidden("pauseBtn", !visible);
   setHidden("ui", !visible);
 
@@ -212,6 +213,12 @@ function finishRun(title, isWin, stats) {
 function startAdventure() {
   removeResultOverlay();
 
+  // Ensure current selected car and stage are created in 3D scene
+  if (gameState.scene) {
+    createStage(gameState.selectedStage || "city");
+    createPlayer(gameState.selectedCar || "cyber");
+  }
+
   if (!gameState.player?.group) {
     showHUDMessage("Loading vehicle...");
     preloadCarModels(() => {
@@ -229,7 +236,8 @@ function startAdventure() {
   gameState.status = "playing";
 
   setHidden("homeScreen", true);
-  setHidden("garageScreen", true);
+  setHidden("carSelectScreen", true);
+  setHidden("trackSelectScreen", true);
   setHidden("levelSelectScreen", true);
   hidePauseMenu();
 
@@ -450,7 +458,10 @@ export function initializeUI() {
 
   initializeMenus({
     onStartAdventure: startAdventure,
-    onOpenGarage: showGarageScreen,
+    onOpenInGameSettings: () => {
+      pauseGame();
+      showSettingsModal();
+    },
     onStartRace: startSelectedRace
   });
 

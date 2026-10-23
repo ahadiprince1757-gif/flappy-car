@@ -13,19 +13,18 @@ import { spawnCarModel, preloadCarModels, areCarsReady } from "./carModelLoader.
 
 let onSelectionChangeCallback = null;
 
-// ── 3D Showcase Turntable State ─────────────────────
+// ── 3D Turntable Viewer State ─────────────────────────
 let showcaseRenderer = null;
 let showcaseScene = null;
 let showcaseCamera = null;
 let showcaseCarGroup = null;
-let showcaseBackdropGroup = null;
 let showcaseAnimId = null;
 let turntableAngle = 0;
 let isDragging = false;
 let previousMouseX = 0;
 let dragRotationVelocity = 0;
 let currentPreviewCarId = null;
-let currentPreviewStageId = null;
+let activeCategoryFilter = "all";
 
 function byId(id) {
   return document.getElementById(id);
@@ -35,23 +34,25 @@ export function setGarageSelectionCallback(callback) {
   onSelectionChangeCallback = callback;
 }
 
-// ── 3D Turntable Initialization ─────────────────────
+// ── Initialize 3D Turntable Viewer ───────────────────
+export function initCarSelectViewer() {
+  const canvas = byId("carSelectShowcaseCanvas");
+  if (!canvas) return;
 
-export function initShowcaseViewer() {
-  const canvas = byId("garageShowcaseCanvas");
-  if (!canvas || showcaseRenderer) return;
+  if (showcaseRenderer) {
+    handleShowcaseResize();
+    startShowcaseLoop();
+    return;
+  }
 
-  // Scene
   showcaseScene = new THREE.Scene();
 
-  // Camera: Elevated 3/4 isometric perspective
-  const width = canvas.clientWidth || 480;
-  const height = canvas.clientHeight || 260;
-  showcaseCamera = new THREE.PerspectiveCamera(38, width / height, 0.1, 100);
-  showcaseCamera.position.set(4.2, 2.3, 5.2);
+  const width = canvas.clientWidth || 400;
+  const height = canvas.clientHeight || 240;
+  showcaseCamera = new THREE.PerspectiveCamera(36, width / height, 0.1, 100);
+  showcaseCamera.position.set(4.2, 2.2, 5.0);
   showcaseCamera.lookAt(0, 0.45, 0);
 
-  // Renderer
   showcaseRenderer = new THREE.WebGLRenderer({
     canvas,
     antialias: true,
@@ -72,9 +73,6 @@ export function initShowcaseViewer() {
   keyLight.castShadow = true;
   keyLight.shadow.mapSize.width = 1024;
   keyLight.shadow.mapSize.height = 1024;
-  keyLight.shadow.camera.near = 0.5;
-  keyLight.shadow.camera.far = 25;
-  keyLight.shadow.bias = -0.001;
   showcaseScene.add(keyLight);
 
   const fillLight = new THREE.DirectionalLight(0x00efff, 1.6);
@@ -85,68 +83,45 @@ export function initShowcaseViewer() {
   rimLight.position.set(0, 3, -6);
   showcaseScene.add(rimLight);
 
-  // Glowing Turntable Podium
+  // Glowing Podium
   const podiumGroup = new THREE.Group();
-
-  // Dark metallic base disc
-  const discGeo = new THREE.CylinderGeometry(2.8, 3.0, 0.22, 48);
+  const discGeo = new THREE.CylinderGeometry(2.6, 2.8, 0.2, 48);
   const discMat = new THREE.MeshStandardMaterial({
     color: 0x071524,
     metalness: 0.85,
     roughness: 0.25
   });
   const disc = new THREE.Mesh(discGeo, discMat);
-  disc.position.y = -0.11;
+  disc.position.y = -0.1;
   disc.receiveShadow = true;
   podiumGroup.add(disc);
 
-  // Glowing LED neon ring border
-  const ringGeo = new THREE.TorusGeometry(2.85, 0.04, 16, 64);
+  const ringGeo = new THREE.TorusGeometry(2.65, 0.04, 16, 64);
   const ringMat = new THREE.MeshBasicMaterial({ color: 0x00efff });
   const ring = new THREE.Mesh(ringGeo, ringMat);
   ring.rotation.x = Math.PI / 2;
   ring.position.y = 0.01;
   podiumGroup.add(ring);
 
-  // Inner circular grid pattern
-  const innerRingGeo = new THREE.RingGeometry(0.1, 2.7, 32);
-  const innerRingMat = new THREE.MeshStandardMaterial({
-    color: 0x0b243b,
-    metalness: 0.9,
-    roughness: 0.4,
-    side: THREE.DoubleSide
-  });
-  const innerRing = new THREE.Mesh(innerRingGeo, innerRingMat);
-  innerRing.rotation.x = -Math.PI / 2;
-  innerRing.position.y = 0.005;
-  innerRing.receiveShadow = true;
-  podiumGroup.add(innerRing);
-
   showcaseScene.add(podiumGroup);
 
-  // Groups for dynamically swapped objects
   showcaseCarGroup = new THREE.Group();
   showcaseScene.add(showcaseCarGroup);
 
-  showcaseBackdropGroup = new THREE.Group();
-  showcaseScene.add(showcaseBackdropGroup);
-
-  // Interactive Drag & Touch Orbit Controls
   setupShowcaseInteraction(canvas);
-
-  // Resize handler
   window.addEventListener("resize", handleShowcaseResize);
 
-  // Start Animation Loop
   startShowcaseLoop();
 }
 
 function handleShowcaseResize() {
-  const canvas = byId("garageShowcaseCanvas");
+  const canvas = byId("carSelectShowcaseCanvas");
   if (!canvas || !showcaseRenderer || !showcaseCamera) return;
 
-  const width = canvas.clientWidth || 480;
-  const height = canvas.clientHeight || 260;
+  const width = canvas.clientWidth || 400;
+  const height = canvas.clientHeight || 240;
+  if (width === 0 || height === 0) return;
+
   showcaseCamera.aspect = width / height;
   showcaseCamera.updateProjectionMatrix();
   showcaseRenderer.setSize(width, height, false);
@@ -193,7 +168,6 @@ function startShowcaseLoop() {
     showcaseAnimId = requestAnimationFrame(animate);
 
     if (!isDragging) {
-      // Natural idle turntable spin + inertia damping
       dragRotationVelocity *= 0.94;
       turntableAngle += 0.008 + dragRotationVelocity;
     }
@@ -210,39 +184,42 @@ function startShowcaseLoop() {
   animate();
 }
 
-export function stopShowcaseViewer() {
+export function stopCarSelectViewer() {
   if (showcaseAnimId) {
     cancelAnimationFrame(showcaseAnimId);
     showcaseAnimId = null;
   }
 }
 
-// ── Mount Real FBX Car on Turntable ─────────────────
-
+// ── Update 3D Model on Turntable ─────────────────────
 export function updateShowcaseCar(carId) {
-  if (!showcaseScene || !showcaseCarGroup) return;
   currentPreviewCarId = carId;
+  const carConfig = getCarConfig(carId);
 
-  // Clear existing car model
+  // Update fallback image
+  const fallbackImg = byId("inspectorFallbackImg");
+  if (fallbackImg) {
+    fallbackImg.src = carConfig.image || `./assets/images/cars/${carId}.jpg`;
+    fallbackImg.alt = carConfig.name;
+  }
+
+  if (!showcaseScene || !showcaseCarGroup) return;
+
+  // Clear existing model
   while (showcaseCarGroup.children.length > 0) {
     const child = showcaseCarGroup.children[0];
     showcaseCarGroup.remove(child);
   }
 
-  const carConfig = getCarConfig(carId);
-
-  // Load and mount the real FBX 3D car model
   const carMesh = spawnCarModel(carId, { bodyColor: carConfig.bodyColor });
 
   if (carMesh) {
     carMesh.position.set(0, 0, 0);
-    // Center alignment on turntable
     showcaseCarGroup.add(carMesh);
+    if (fallbackImg) fallbackImg.style.display = "none";
   } else {
-    // If models are still loading, create temporary high-detail procedural placeholder and retry on ready
-    const tempGroup = createHighDetailCarFallback(carConfig);
-    showcaseCarGroup.add(tempGroup);
-
+    // If FBX models are still downloading, display fallback image and retry on ready
+    if (fallbackImg) fallbackImg.style.display = "block";
     if (!areCarsReady()) {
       preloadCarModels(() => {
         if (currentPreviewCarId === carId) {
@@ -252,406 +229,283 @@ export function updateShowcaseCar(carId) {
     }
   }
 
-  // Update header label
-  const carLabel = byId("showcaseCarName");
-  if (carLabel) carLabel.textContent = carConfig.name.toUpperCase();
+  updateInspectorPanel(carConfig);
 }
 
-// ── Mount Real 3D Environment Backdrop on Turntable ─
+// ── Update Inspector Details & Stats ─────────────────
+function updateInspectorPanel(car) {
+  const nameEl = byId("inspectorCarName");
+  if (nameEl) nameEl.textContent = car.name;
 
-export function updateShowcaseEnvironment(stageId) {
-  if (!showcaseScene || !showcaseBackdropGroup) return;
-  currentPreviewStageId = stageId;
+  const tagEl = byId("inspectorCarTagline");
+  if (tagEl) tagEl.textContent = car.tagline || `${car.category} · High Performance`;
 
-  // Clear existing backdrop
-  while (showcaseBackdropGroup.children.length > 0) {
-    const child = showcaseBackdropGroup.children[0];
-    showcaseBackdropGroup.remove(child);
+  const catTagEl = byId("inspectorCategoryTag");
+  if (catTagEl) {
+    catTagEl.textContent = car.category || "SUPER SPORT";
+    catTagEl.style.borderColor = car.accentColor || "#00efff";
+    catTagEl.style.color = car.accentColor || "#00efff";
   }
 
-  const stageConfig = getStageConfig(stageId);
+  // Specs Chips
+  const hpEl = byId("specHp");
+  if (hpEl) hpEl.textContent = `${car.hp || 650} HP`;
 
-  // Update atmosphere & backdrop props matching the real stage objects
-  const backdrop = createEnvironmentProps(stageId, stageConfig);
-  showcaseBackdropGroup.add(backdrop);
+  const topSpeedEl = byId("specTopSpeed");
+  if (topSpeedEl) topSpeedEl.textContent = `${car.topSpeedMph || 200} MPH`;
 
-  // Update header label
-  const stageLabel = byId("showcaseStageName");
-  if (stageLabel) stageLabel.textContent = stageConfig.name.toUpperCase();
+  const weightEl = byId("specWeight");
+  if (weightEl) weightEl.textContent = `${(car.weightKg || 1350).toLocaleString()} KG`;
+
+  // Stats Bars
+  const setBar = (valId, fillId, rating) => {
+    const valEl = byId(valId);
+    const fillEl = byId(fillId);
+    const score = Number(rating || 8.5).toFixed(1);
+    if (valEl) valEl.textContent = score;
+    if (fillEl) fillEl.style.width = `${Math.min(100, Math.max(10, score * 10))}%`;
+  };
+
+  setBar("statSpeedVal", "statSpeedFill", car.maxSpeedRating);
+  setBar("statAccelVal", "statAccelFill", car.accelRating);
+  setBar("statHandlingVal", "statHandlingFill", car.handlingRating);
+  setBar("statBrakingVal", "statBrakingFill", car.brakingRating);
+  setBar("statStabilityVal", "statStabilityFill", car.stabilityRating);
 }
 
-function createEnvironmentProps(stageId, stageConfig) {
-  const group = new THREE.Group();
-
-  if (stageId === "city") {
-    // 3D Downtown Avenue: Multi-story towers with illuminated glass windows & street poles
-    const buildingColors = stageConfig.buildingColors || [0x334155, 0x475569, 0x0284c7];
-    const towerPositions = [
-      { x: -5.5, z: -4.5, h: 7, w: 2.2, d: 2.4, col: buildingColors[0] },
-      { x: -2.8, z: -5.8, h: 9, w: 2.6, d: 2.6, col: buildingColors[1] },
-      { x: 0.5, z: -6.2, h: 11, w: 3.0, d: 3.0, col: buildingColors[2] || 0x0284c7 },
-      { x: 3.8, z: -5.6, h: 8.5, w: 2.5, d: 2.4, col: buildingColors[0] },
-      { x: 6.2, z: -4.2, h: 6.5, w: 2.0, d: 2.2, col: buildingColors[1] }
-    ];
-
-    for (const b of towerPositions) {
-      const geo = new THREE.BoxGeometry(b.w, b.h, b.d);
-      const mat = new THREE.MeshStandardMaterial({
-        color: b.col,
-        metalness: 0.6,
-        roughness: 0.3
-      });
-      const tower = new THREE.Mesh(geo, mat);
-      tower.position.set(b.x, b.h / 2, b.z);
-      tower.castShadow = true;
-      group.add(tower);
-
-      // Glowing Neon Window Strips
-      const windowGeo = new THREE.PlaneGeometry(b.w * 0.75, b.h * 0.7);
-      const windowMat = new THREE.MeshBasicMaterial({
-        color: 0x93c5fd,
-        transparent: true,
-        opacity: 0.45
-      });
-      const winMesh = new THREE.Mesh(windowGeo, windowMat);
-      winMesh.position.set(b.x, b.h / 2, b.z + b.d / 2 + 0.02);
-      group.add(winMesh);
-    }
-  } else if (stageId === "jungle" || stageId === "beach" || stageId === "village") {
-    // 3D Forest & Coastal Trees
-    const treePositions = [
-      { x: -4.8, z: -4.0, scale: 1.2 },
-      { x: -2.2, z: -5.5, scale: 1.4 },
-      { x: 1.2, z: -5.8, scale: 1.5 },
-      { x: 4.2, z: -4.6, scale: 1.3 }
-    ];
-
-    for (const pos of treePositions) {
-      const tree = createDioramaTree(stageId);
-      tree.position.set(pos.x, 0, pos.z);
-      tree.scale.setScalar(pos.scale);
-      group.add(tree);
-    }
-  } else if (stageId === "desert") {
-    // 3D Sandstone Rock Arches & Desert Canyon Columns
-    const rockPositions = [
-      { x: -5.0, z: -4.5, h: 4.5, r: 1.6 },
-      { x: -1.8, z: -6.0, h: 6.0, r: 2.2 },
-      { x: 2.5, z: -5.8, h: 5.2, r: 1.9 },
-      { x: 5.2, z: -4.0, h: 4.0, r: 1.4 }
-    ];
-
-    for (const rock of rockPositions) {
-      const geo = new THREE.CylinderGeometry(rock.r * 0.7, rock.r, rock.h, 7);
-      const mat = new THREE.MeshStandardMaterial({
-        color: 0xc2410c,
-        roughness: 0.9,
-        metalness: 0.1
-      });
-      const mesh = new THREE.Mesh(geo, mat);
-      mesh.position.set(rock.x, rock.h / 2, rock.z);
-      mesh.castShadow = true;
-      group.add(mesh);
-    }
-  }
-
-  return group;
-}
-
-function createDioramaTree(stageType) {
-  const tree = new THREE.Group();
-
-  // Trunk
-  const trunkGeo = new THREE.CylinderGeometry(0.12, 0.2, 1.8, 8);
-  const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5c4033, roughness: 0.9 });
-  const trunk = new THREE.Mesh(trunkGeo, trunkMat);
-  trunk.position.y = 0.9;
-  trunk.castShadow = true;
-  tree.add(trunk);
-
-  // Foliage
-  const foliageColor = stageType === "village" ? 0x166534 : stageType === "beach" ? 0x22c55e : 0x15803d;
-  const leavesGeo = new THREE.ConeGeometry(1.1, 2.2, 8);
-  const leavesMat = new THREE.MeshStandardMaterial({ color: foliageColor, roughness: 0.7 });
-  const leaves = new THREE.Mesh(leavesGeo, leavesMat);
-  leaves.position.y = 2.4;
-  leaves.castShadow = true;
-  tree.add(leaves);
-
-  return tree;
-}
-
-function createHighDetailCarFallback(car) {
-  const group = new THREE.Group();
-
-  // Sleek Aerodynamic Body
-  const bodyGeo = new THREE.BoxGeometry(1.8, 0.6, 4.0);
-  const bodyMat = new THREE.MeshStandardMaterial({
-    color: car.bodyColor || 0x06b6d4,
-    metalness: 0.75,
-    roughness: 0.2
-  });
-  const body = new THREE.Mesh(bodyGeo, bodyMat);
-  body.position.y = 0.55;
-  body.castShadow = true;
-  group.add(body);
-
-  // Cabin
-  const cabinGeo = new THREE.BoxGeometry(1.4, 0.55, 2.0);
-  const cabinMat = new THREE.MeshStandardMaterial({
-    color: 0x0f172a,
-    metalness: 0.9,
-    roughness: 0.1
-  });
-  const cabin = new THREE.Mesh(cabinGeo, cabinMat);
-  cabin.position.set(0, 1.0, -0.2);
-  cabin.castShadow = true;
-  group.add(cabin);
-
-  // Headlights
-  const lightGeo = new THREE.BoxGeometry(0.35, 0.15, 0.1);
-  const lightMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-  const leftLight = new THREE.Mesh(lightGeo, lightMat);
-  leftLight.position.set(-0.6, 0.55, 2.01);
-  const rightLight = new THREE.Mesh(lightGeo, lightMat);
-  rightLight.position.set(0.6, 0.55, 2.01);
-  group.add(leftLight, rightLight);
-
-  // Wheels
-  const wheelGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.25, 24);
-  const wheelMat = new THREE.MeshStandardMaterial({ color: 0x18181b, roughness: 0.5 });
-  const wheelPositions = [
-    [-0.95, 0.35, 1.2],
-    [0.95, 0.35, 1.2],
-    [-0.95, 0.35, -1.2],
-    [0.95, 0.35, -1.2]
-  ];
-
-  for (const pos of wheelPositions) {
-    const wheel = new THREE.Mesh(wheelGeo, wheelMat);
-    wheel.rotation.z = Math.PI / 2;
-    wheel.position.set(pos[0], pos[1], pos[2]);
-    wheel.castShadow = true;
-    group.add(wheel);
-  }
-
-  return group;
-}
-
-// ── Render Garage Vehicle and Stage Lists ───────────
-
-export function renderGarage() {
-  const wallet = getWallet();
-
-  // Initialize or re-render 3D Showcase
-  initShowcaseViewer();
-  updateShowcaseCar(wallet.selectedCar);
-  updateShowcaseEnvironment(wallet.selectedStage);
-
-  renderCarList(wallet);
-  renderStageList(wallet);
-}
-
-function renderCarList(wallet) {
-  const container = byId("garageCars");
+// ── Render Car Selection Grid ────────────────────────
+export function renderCarSelectionScreen(category = activeCategoryFilter) {
+  activeCategoryFilter = category;
+  const container = byId("carCardsGrid");
   if (!container) return;
 
-  const cars = getAllCars();
+  const wallet = getWallet();
+  const selectedCarId = gameState.selectedCar || wallet.selectedCar || "cyber";
+  const allCars = getAllCars();
+
   container.replaceChildren();
 
-  for (const car of cars) {
-    const isSelected = wallet.selectedCar === car.id;
+  const filteredCars = allCars.filter((car) => {
+    if (category === "all") return true;
+    if (category === "sport") return car.style === "sport";
+    if (category === "muscle") return car.style === "muscle";
+    if (category === "tuner") return car.style === "futuristic" || car.modelKey === "hatchback";
+    if (category === "utility") return car.style === "suv" || car.style === "police" || car.style === "taxi" || car.style === "sedan";
+    return true;
+  });
+
+  for (const car of filteredCars) {
+    const isSelected = selectedCarId === car.id;
 
     const card = document.createElement("article");
-    card.className = `carCard ${isSelected ? "selected" : ""}`;
+    card.className = `car-select-card ${isSelected ? "selected" : ""}`;
+    card.dataset.carId = car.id;
 
-    // Card Top Header
+    // Top Row: Category badge & Selection checkmark
     const topRow = document.createElement("div");
-    topRow.className = "card-top-row";
+    topRow.className = "car-card-top";
 
-    const title = document.createElement("h3");
-    title.className = "card-title";
+    const catBadge = document.createElement("span");
+    catBadge.className = "car-card-category";
+    catBadge.textContent = car.category || "SPORT";
+    catBadge.style.color = car.accentColor || "#00efff";
+
+    const statusBadge = document.createElement("span");
+    statusBadge.className = `car-card-status ${isSelected ? "active" : ""}`;
+    statusBadge.textContent = isSelected ? "EQUIPPED ✓" : "SELECT";
+
+    topRow.append(catBadge, statusBadge);
+
+    // Image Box
+    const imgBox = document.createElement("div");
+    imgBox.className = "car-card-thumb-wrap";
+
+    const img = document.createElement("img");
+    img.className = "car-card-thumb";
+    img.src = car.image || `./assets/images/cars/${car.id}.jpg`;
+    img.alt = car.name;
+    img.loading = "lazy";
+    imgBox.append(img);
+
+    // Car Info Row
+    const infoRow = document.createElement("div");
+    infoRow.className = "car-card-info";
+
+    const title = document.createElement("h4");
+    title.className = "car-card-name";
     title.textContent = car.name;
 
-    const badge = document.createElement("span");
-    badge.className = `badge-tag ${isSelected ? "equipped" : "owned"}`;
-    badge.textContent = isSelected ? "SELECTED" : "READY";
-
-    topRow.append(title, badge);
-
-    // Real 3D Object Vehicle Showcase Visual
-    const visualBox = document.createElement("div");
-    visualBox.className = "car-visual-box";
-    visualBox.innerHTML = `
-      <div class="car-visual-silhouette car-visual-${car.id}">
-        <div class="car-badge-pill">${car.style.toUpperCase()}</div>
-        <div class="car-model-spec">FBX MODEL: ${car.modelKey ? car.modelKey.toUpperCase() : "SPORTS"}</div>
-        <div class="car-body-preview-strip" style="background: linear-gradient(90deg, ${car.bodyColor} 0%, ${car.accentColor} 100%)"></div>
-      </div>
+    const statsMini = document.createElement("div");
+    statsMini.className = "car-card-mini-specs";
+    statsMini.innerHTML = `
+      <span>⚡ ${car.hp || 600} HP</span>
+      <span>🏁 ${car.topSpeedMph || 190} MPH</span>
     `;
 
-    // Stats
-    const statsContainer = document.createElement("div");
-    statsContainer.className = "stat-bars";
+    infoRow.append(title, statsMini);
 
-    const speedPct = Math.min(100, Math.round((car.speed / 30) * 100));
-    const accelPct = Math.min(100, Math.round((car.acceleration / 1.5) * 100));
-    const handlePct = Math.min(100, Math.round((car.handling / 1.5) * 100));
+    card.append(topRow, imgBox, infoRow);
 
-    statsContainer.innerHTML = `
-      <div class="stat-item">
-        <span>TOP SPEED</span>
-        <div class="stat-bar-track"><div class="stat-bar-fill" style="width: ${speedPct}%"></div></div>
-      </div>
-      <div class="stat-item">
-        <span>ACCELERATION</span>
-        <div class="stat-bar-track"><div class="stat-bar-fill" style="width: ${accelPct}%"></div></div>
-      </div>
-      <div class="stat-item">
-        <span>HANDLING</span>
-        <div class="stat-bar-track"><div class="stat-bar-fill" style="width: ${handlePct}%"></div></div>
-      </div>
-    `;
+    // Selection Click Event
+    card.addEventListener("click", () => {
+      selectCar(car.id);
+      gameState.selectedCar = car.id;
 
-    const actionBtn = document.createElement("button");
-    actionBtn.type = "button";
-    actionBtn.className = "menuBtn";
-
-    if (isSelected) {
-      actionBtn.className += " secondary-btn";
-      actionBtn.textContent = "IN USE";
-      actionBtn.disabled = true;
-    } else {
-      actionBtn.className += " primary-btn";
-      actionBtn.textContent = "SELECT VEHICLE";
-      actionBtn.addEventListener("click", () => {
-        selectCar(car.id);
-        updateShowcaseCar(car.id);
-        if (gameState.scene) {
-          createPlayer(car.id);
-        }
-        renderGarage();
-        onSelectionChangeCallback?.("car", car.id);
-      });
-    }
-
-    // Clicking card directly updates showcase immediately
-    card.addEventListener("click", (e) => {
-      if (e.target.tagName !== "BUTTON") {
-        updateShowcaseCar(car.id);
+      if (gameState.scene) {
+        createPlayer(car.id);
       }
+
+      updateShowcaseCar(car.id);
+
+      // Update card visual states
+      container.querySelectorAll(".car-select-card").forEach((c) => {
+        const isThis = c.dataset.carId === car.id;
+        c.classList.toggle("selected", isThis);
+        const st = c.querySelector(".car-card-status");
+        if (st) {
+          st.textContent = isThis ? "EQUIPPED ✓" : "SELECT";
+          st.classList.toggle("active", isThis);
+        }
+      });
+
+      onSelectionChangeCallback?.("car", car.id);
     });
 
-    card.append(topRow, visualBox, statsContainer, actionBtn);
     container.append(card);
   }
+
+  // Ensure inspector reflects the selected car
+  const activeCar = getCarConfig(selectedCarId);
+  updateShowcaseCar(activeCar.id);
 }
 
-function renderStageList(wallet) {
-  const container = byId("garageStages");
+// ── Render Track / Environment Selection Grid ────────
+export function renderTrackSelectionScreen() {
+  const container = byId("trackCardsGrid");
   if (!container) return;
 
+  const wallet = getWallet();
+  const selectedStageId = gameState.selectedStage || wallet.selectedStage || "city";
   const stages = getAllStages();
+
+  // Update Active Car pill in header
+  const activeCarConfig = getCarConfig(gameState.selectedCar || wallet.selectedCar || "cyber");
+  const activeCarLabel = byId("trackActiveCarName");
+  if (activeCarLabel) {
+    activeCarLabel.textContent = `${activeCarConfig.name} (${activeCarConfig.category})`;
+  }
+
   container.replaceChildren();
 
   for (const stage of stages) {
-    const isSelected = wallet.selectedStage === stage.id;
+    const isSelected = selectedStageId === stage.id;
 
     const card = document.createElement("article");
-    card.className = `stageCard ${isSelected ? "selected" : ""}`;
+    card.className = `track-select-card ${isSelected ? "selected" : ""}`;
+    card.dataset.stageId = stage.id;
 
-    const topRow = document.createElement("div");
-    topRow.className = "card-top-row";
+    // Card Header Banner
+    const banner = document.createElement("div");
+    banner.className = `track-card-banner track-theme-${stage.id}`;
+    banner.style.background = `linear-gradient(135deg, ${stage.skyColor} 0%, ${stage.groundColor} 100%)`;
+
+    const bannerOverlay = document.createElement("div");
+    bannerOverlay.className = "track-card-banner-content";
+
+    const catBadge = document.createElement("span");
+    catBadge.className = "track-card-category";
+    catBadge.textContent = stage.category || "RACING CIRCUIT";
+
+    const diffBadge = document.createElement("span");
+    diffBadge.className = "track-card-diff";
+    diffBadge.textContent = stage.difficulty || "REGULAR";
+
+    bannerOverlay.append(catBadge, diffBadge);
+    banner.append(bannerOverlay);
+
+    // Card Body
+    const body = document.createElement("div");
+    body.className = "track-card-body";
 
     const title = document.createElement("h3");
-    title.className = "card-title";
+    title.className = "track-card-title";
     title.textContent = stage.name;
 
-    const badge = document.createElement("span");
-    badge.className = `badge-tag ${isSelected ? "equipped" : "owned"}`;
-    badge.textContent = isSelected ? "ACTIVE" : "READY";
+    const tagline = document.createElement("p");
+    tagline.className = "track-card-desc";
+    tagline.textContent = stage.tagline || stage.scenery;
 
-    topRow.append(title, badge);
-
-    // Real Environment 3D Diorama Visual Card
-    const visualBox = document.createElement("div");
-    visualBox.className = `stage-visual-box stage-visual-${stage.id}`;
-    
-    let objectDescription = "";
-    if (stage.id === "city") objectDescription = "🏢 Real 3D FBX Skyscrapers & Streetlights";
-    else if (stage.id === "beach") objectDescription = "🌊 Ocean Palms, Sand Dunes & Coastal Guardrails";
-    else if (stage.id === "jungle") objectDescription = "🌲 Lush 3D Birch & Pine Forest Trail";
-    else if (stage.id === "desert") objectDescription = "🏜️ Red Sandstone Canyon Columns & Arches";
-    else if (stage.id === "village") objectDescription = "🏔️ Alpine Chalets & Snow-Laden Pines";
-
-    visualBox.innerHTML = `
-      <div class="stage-diorama-banner" style="background: linear-gradient(135deg, ${stage.skyColor} 0%, ${stage.groundColor} 100%)">
-        <div class="stage-diorama-overlay">
-          <div class="stage-env-type">${stage.scenery.toUpperCase()} ENVIRONMENT</div>
-          <div class="stage-objects-badge">${objectDescription}</div>
-        </div>
+    // Track Specs Row
+    const specsRow = document.createElement("div");
+    specsRow.className = "track-specs-row";
+    specsRow.innerHTML = `
+      <div class="track-spec-item">
+        <span>ATMOSPHERE</span>
+        <strong>${stage.atmosphere || "Clear"}</strong>
+      </div>
+      <div class="track-spec-item">
+        <span>ROAD GRIP</span>
+        <strong>${stage.gripRating || "9.0 / 10"}</strong>
       </div>
     `;
 
-    const actionBtn = document.createElement("button");
-    actionBtn.type = "button";
-    actionBtn.className = "menuBtn";
+    // Action / Status Pill
+    const statusRow = document.createElement("div");
+    statusRow.className = "track-card-bottom";
 
-    if (isSelected) {
-      actionBtn.className += " secondary-btn";
-      actionBtn.textContent = "IN USE";
-      actionBtn.disabled = true;
-    } else {
-      actionBtn.className += " primary-btn";
-      actionBtn.textContent = "SELECT ENVIRONMENT";
-      actionBtn.addEventListener("click", () => {
-        selectStage(stage.id);
-        updateShowcaseEnvironment(stage.id);
-        if (gameState.scene) {
-          createStage(stage.id);
-        }
-        renderGarage();
-        onSelectionChangeCallback?.("stage", stage.id);
-      });
-    }
+    const statusPill = document.createElement("span");
+    statusPill.className = `track-status-pill-badge ${isSelected ? "selected" : ""}`;
+    statusPill.textContent = isSelected ? "SELECTED TRACK 🏁" : "DRIVE THIS TRACK";
 
-    // Clicking stage card updates showcase background immediately
-    card.addEventListener("click", (e) => {
-      if (e.target.tagName !== "BUTTON") {
-        updateShowcaseEnvironment(stage.id);
+    statusRow.append(statusPill);
+
+    body.append(title, tagline, specsRow, statusRow);
+    card.append(banner, body);
+
+    // Selection Click Event
+    card.addEventListener("click", () => {
+      selectStage(stage.id);
+      gameState.selectedStage = stage.id;
+
+      if (gameState.scene) {
+        createStage(stage.id);
       }
+
+      // Update card visual states
+      container.querySelectorAll(".track-select-card").forEach((c) => {
+        const isThis = c.dataset.stageId === stage.id;
+        c.classList.toggle("selected", isThis);
+        const pill = c.querySelector(".track-status-pill-badge");
+        if (pill) {
+          pill.textContent = isThis ? "SELECTED TRACK 🏁" : "DRIVE THIS TRACK";
+          pill.classList.toggle("selected", isThis);
+        }
+      });
+
+      onSelectionChangeCallback?.("stage", stage.id);
     });
 
-    card.append(topRow, visualBox, actionBtn);
     container.append(card);
   }
 }
 
+// ── Bind Filter Buttons & Global Handlers ────────────
 export function initializeGarage() {
-  const carsTab = byId("carsTab");
-  const stagesTab = byId("stagesTab");
-  const garageCars = byId("garageCars");
-  const garageStages = byId("garageStages");
+  // Bind category filter buttons
+  const filterRow = byId("carCategoryFilters");
+  if (filterRow) {
+    filterRow.querySelectorAll(".cat-pill").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        filterRow.querySelectorAll(".cat-pill").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        const category = btn.dataset.category || "all";
+        renderCarSelectionScreen(category);
+      });
+    });
+  }
+}
 
-  carsTab?.addEventListener("click", () => {
-    carsTab.classList.add("active");
-    stagesTab?.classList.remove("active");
-    garageCars?.classList.add("active");
-    if (garageCars) garageCars.hidden = false;
-    garageStages?.classList.remove("active");
-    if (garageStages) garageStages.hidden = true;
-    handleShowcaseResize();
-  });
-
-  stagesTab?.addEventListener("click", () => {
-    stagesTab.classList.add("active");
-    carsTab?.classList.remove("active");
-    garageStages?.classList.add("active");
-    if (garageStages) garageStages.hidden = false;
-    garageCars?.classList.remove("active");
-    if (garageCars) garageCars.hidden = true;
-    handleShowcaseResize();
-  });
-
-  renderGarage();
+export function renderGarage() {
+  renderCarSelectionScreen();
+  renderTrackSelectionScreen();
 }

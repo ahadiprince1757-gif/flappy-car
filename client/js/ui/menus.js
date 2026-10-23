@@ -1,6 +1,11 @@
 import { getAllRacingLevels } from "../racing/racingLevels.js";
 import { getUnlockedRacingLevels } from "../racing/racing.js";
-import { renderGarage, stopShowcaseViewer } from "../cars/garage.js";
+import {
+  renderCarSelectionScreen,
+  renderTrackSelectionScreen,
+  initCarSelectViewer,
+  stopCarSelectViewer
+} from "../cars/garage.js";
 import { toggleMute, isMuted, updateMusicUI } from "../systems/audio.js";
 import { showHUDMessage } from "./hud.js";
 import { fetchLeaderboard } from "../services/api.js";
@@ -30,48 +35,54 @@ function bindClick(id, callback) {
   const element = byId(id);
   if (!element || element.dataset.menuBound === "true") return;
 
-  // touch-action:manipulation in CSS removes 300ms tap delay,
-  // so click is instant and safe — pointerdown + preventDefault breaks focus/capture
   element.addEventListener("click", callback);
   element.dataset.menuBound = "true";
 }
 
 export function showHomeScreen() {
-  stopShowcaseViewer();
+  stopCarSelectViewer();
   show(byId("homeScreen"));
-  hide(byId("garageScreen"));
-  hide(byId("levelSelectScreen"));
+  hide(byId("carSelectScreen"));
+  hide(byId("trackSelectScreen"));
   hide(byId("leaderboardScreen"));
   hide(byId("pauseMenu"));
+  hide(byId("settingsModal"));
 }
 
-export function showLevelSelect() {
-  stopShowcaseViewer();
+export function showCarSelectScreen() {
   hide(byId("homeScreen"));
-  hide(byId("garageScreen"));
+  hide(byId("trackSelectScreen"));
   hide(byId("leaderboardScreen"));
   hide(byId("pauseMenu"));
-  show(byId("levelSelectScreen"));
+  hide(byId("settingsModal"));
+  show(byId("carSelectScreen"));
 
-  renderRacingLevels();
+  renderCarSelectionScreen();
+  // Small delay to allow element dimensions to settle before initializing Three.js canvas
+  requestAnimationFrame(() => {
+    initCarSelectViewer();
+  });
 }
 
-export function showGarageScreen() {
+export function showTrackSelectScreen() {
+  stopCarSelectViewer();
   hide(byId("homeScreen"));
-  hide(byId("levelSelectScreen"));
+  hide(byId("carSelectScreen"));
   hide(byId("leaderboardScreen"));
   hide(byId("pauseMenu"));
-  show(byId("garageScreen"));
+  hide(byId("settingsModal"));
+  show(byId("trackSelectScreen"));
 
-  renderGarage();
+  renderTrackSelectionScreen();
 }
 
 export function showLeaderboardScreen() {
-  stopShowcaseViewer();
+  stopCarSelectViewer();
   hide(byId("homeScreen"));
-  hide(byId("garageScreen"));
-  hide(byId("levelSelectScreen"));
+  hide(byId("carSelectScreen"));
+  hide(byId("trackSelectScreen"));
   hide(byId("pauseMenu"));
+  hide(byId("settingsModal"));
   show(byId("leaderboardScreen"));
 
   renderLeaderboard();
@@ -92,66 +103,6 @@ export function showSettingsModal() {
 
 export function hideSettingsModal() {
   hide(byId("settingsModal"));
-}
-
-export function renderRacingLevels() {
-  const container = byId("levelsContainer");
-  if (!container) return;
-
-  const levels = getAllRacingLevels();
-  const unlockedInfo = getUnlockedRacingLevels();
-  const unlockedLevels = new Set(unlockedInfo.unlockedLevels);
-  const completedLevels = new Set(unlockedInfo.completedLevels);
-
-  container.replaceChildren();
-
-  for (const level of levels) {
-    const unlocked = unlockedLevels.has(level.id);
-    const completed = completedLevels.has(level.id);
-
-    const card = document.createElement("article");
-    card.className = `level-card ${completed ? "completed" : unlocked ? "unlocked" : "locked"}`;
-
-    const topRow = document.createElement("div");
-    topRow.className = "card-top-row";
-
-    const title = document.createElement("h3");
-    title.className = "card-title";
-    title.textContent = `${String(level.id).padStart(2, "0")} · ${level.name}`;
-
-    const badge = document.createElement("span");
-    badge.className = `badge-tag ${completed ? "equipped" : "owned"}`;
-    badge.textContent = completed ? "COMPLETED ⭐" : unlocked ? "READY" : "LOCKED 🔒";
-
-    topRow.append(title, badge);
-
-    const desc = document.createElement("p");
-    desc.className = "section-desc";
-    desc.textContent = level.description;
-
-    const infoRow = document.createElement("div");
-    infoRow.className = "level-info-row";
-    infoRow.innerHTML = `
-      <div>🏁 ${level.distance}m</div>
-      <div>⏱️ ${level.timeLimit}s</div>
-      <div>❤️ ${level.lives} Lives</div>
-    `;
-
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = `menuBtn ${completed ? "secondary-action-btn" : "primary-action-btn"}`;
-    button.textContent = completed ? "REPLAY STAGE" : "START CIRCUIT";
-    button.disabled = !unlocked;
-
-    if (unlocked) {
-      button.addEventListener("click", () => {
-        callbacks.onStartRace?.(level.id);
-      });
-    }
-
-    card.append(topRow, desc, infoRow, button);
-    container.append(card);
-  }
 }
 
 export async function renderLeaderboard() {
@@ -190,33 +141,48 @@ export async function renderLeaderboard() {
 export function initializeMenus(options = {}) {
   callbacks = options;
 
-  if (bound) {
-    renderRacingLevels();
-    return;
-  }
-
+  if (bound) return;
   bound = true;
 
+  // Home Screen: PLAY -> Goes to Car Select Screen (Step 1)
   bindClick("adventureBtn", () => {
-    callbacks.onStartAdventure?.();
+    showCarSelectScreen();
   });
 
-  bindClick("racingBtn", () => {
-    showLevelSelect();
-  });
-
-  bindClick("garageBtn", () => {
-    showGarageScreen();
-  });
-
+  // Home Screen: LEADERBOARD -> Goes to Hall of Fame
   bindClick("leaderboardBtn", () => {
     showLeaderboardScreen();
   });
 
+  // Step 1: Car Select Screen -> Back to Home
+  bindClick("backFromCarSelectBtn", () => {
+    showHomeScreen();
+  });
 
+  // Step 1: Car Select Screen -> Confirm & Proceed to Track Select (Step 2)
+  bindClick("confirmCarBtn", () => {
+    showTrackSelectScreen();
+  });
 
-  bindClick("settingsBtn", () => {
-    showSettingsModal();
+  // Step 2: Track Select Screen -> Back to Car Select
+  bindClick("backFromTrackSelectBtn", () => {
+    showCarSelectScreen();
+  });
+
+  // Step 2: Track Select Screen -> Start Race with chosen car & track!
+  bindClick("startRaceWithTrackBtn", () => {
+    stopCarSelectViewer();
+    callbacks.onStartAdventure?.();
+  });
+
+  // Hall of Fame: Back to Home
+  bindClick("backFromLeaderboardBtn", () => {
+    showHomeScreen();
+  });
+
+  // In-Game Settings Button & Pause Menu Settings
+  bindClick("inGameSettingsBtn", () => {
+    callbacks.onOpenInGameSettings?.();
   });
 
   bindClick("pauseSettingsBtn", () => {
@@ -237,18 +203,4 @@ export function initializeMenus(options = {}) {
     }
     showHUDMessage(muted ? "Sound Muted" : "Sound Enabled");
   });
-
-  bindClick("backBtn", () => {
-    showHomeScreen();
-  });
-
-  bindClick("backFromLevelsBtn", () => {
-    showHomeScreen();
-  });
-
-  bindClick("backFromLeaderboardBtn", () => {
-    showHomeScreen();
-  });
-
-  renderRacingLevels();
 }

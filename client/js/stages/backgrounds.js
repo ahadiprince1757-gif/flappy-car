@@ -21,41 +21,58 @@ const TEXTURE_BASE  = "./assets/textures/buildings/";
 const TREE_BASE     = "./assets/models/trees/";
 const TREE_TEX_BASE = "./assets/textures/trees/";
 
-// Curated selection of FBX buildings
+// Curated selection of real FBX buildings
 const FBX_BUILDINGS = [
-  { file: "1Story",         stories: 1, type: "shop" },
-  { file: "1Story_Sign",    stories: 1, type: "shop" },
-  { file: "2Story",         stories: 2, type: "block" },
-  { file: "2Story_Columns", stories: 2, type: "civic" },
-  { file: "2Story_Balcony", stories: 2, type: "block" },
-  { file: "3Story_Balcony", stories: 3, type: "block" },
-  { file: "3Story_Small",   stories: 3, type: "block" },
-  { file: "4Story",         stories: 4, type: "tower" },
-  { file: "6Story_Stack",   stories: 6, type: "tower" },
+  { file: "1Story",              stories: 1, type: "shop" },
+  { file: "1Story_Sign",         stories: 1, type: "shop" },
+  { file: "1Story_GableRoof",    stories: 1, type: "chalet" },
+  { file: "2Story",              stories: 2, type: "block" },
+  { file: "2Story_Columns",      stories: 2, type: "civic" },
+  { file: "2Story_Balcony",      stories: 2, type: "block" },
+  { file: "2Story_GableRoof",    stories: 2, type: "chalet" },
+  { file: "2Story_Sidehouse",    stories: 2, type: "chalet" },
+  { file: "3Story_Balcony",      stories: 3, type: "block" },
+  { file: "3Story_Small",        stories: 3, type: "block" },
+  { file: "4Story",              stories: 4, type: "tower" },
+  { file: "4Story_Center",       stories: 4, type: "tower" },
+  { file: "6Story_Stack",        stories: 6, type: "tower" },
 ];
+
+const STAGE_BUILDINGS = {
+  city:     ["4Story", "6Story_Stack", "4Story_Center", "3Story_Balcony", "3Story_Small", "2Story_Columns", "2Story_Balcony", "1Story_Sign"],
+  village:  ["1Story_GableRoof", "2Story_GableRoof", "1Story", "2Story_Sidehouse"],
+  savannah: ["1Story", "1Story_Sign", "2Story_Sidehouse"],
+  jungle:   ["1Story_GableRoof", "2Story_GableRoof", "1Story"],
+  desert:   ["1Story", "2Story_Columns", "2Story_Sidehouse", "1Story_Sign"],
+  beach:    ["1Story_Sign", "1Story", "2Story_Balcony", "2Story_Columns"],
+  _default: ["1Story", "2Story", "3Story_Small", "4Story"]
+};
 
 const ALL_TREE_FILES = [
   "Tree_1", "Tree_2", "Tree_3", "Tree_4", "Tree_5",
-  "Pine_1", "Pine_2", "Pine_3",
+  "Pine_1", "Pine_2", "Pine_3", "Pine_4", "Pine_5",
   "Birch_1", "Birch_2", "Birch_3",
   "DeadTree_1", "DeadTree_2", "DeadBirch_1"
 ];
 
 const STAGE_TREES = {
-  city:    ["Tree_1", "Tree_2", "Tree_3", "Birch_1", "Birch_2"],
-  beach:   ["Tree_1", "Tree_4", "Pine_1", "Pine_2"],
-  jungle:  ["Tree_1", "Tree_2", "Tree_3", "Tree_5", "Pine_1"],
-  desert:  ["DeadTree_1", "DeadTree_2", "DeadBirch_1"],
-  village: ["Pine_1", "Pine_2", "Birch_1", "Birch_2"],
-  _default:["Tree_1", "Tree_2", "Pine_1", "Birch_1"]
+  city:     ["Tree_1", "Tree_2", "Tree_3", "Birch_1", "Birch_2"],
+  beach:    ["Tree_1", "Tree_4", "Pine_1", "Pine_2"],
+  jungle:   ["Tree_1", "Tree_2", "Tree_3", "Tree_5", "Pine_1"],
+  desert:   ["DeadTree_1", "DeadTree_2", "DeadBirch_1"],
+  village:  ["Pine_1", "Pine_2", "Pine_3", "Pine_4", "Pine_5", "Birch_1"],
+  savannah: ["DeadTree_1", "DeadTree_2", "DeadBirch_1", "Tree_4", "Tree_5"],
+  _default: ["Tree_1", "Tree_2", "Pine_1", "Birch_1"]
 };
 
 const STAGE_TEXTURES = {
-  city:    ["Texture_Blue", "Texture_Light", "Texture_Grey", "Texture_Signs", "Texture_Light2"],
-  beach:   ["Texture_Yellow", "Texture_Light", "Texture_Red", "Texture_Light2"],
-  jungle:  ["Texture_Green", "Texture_Light", "Texture_Grey", "Texture_Signs"],
-  desert:  ["Texture_Yellow", "Texture_Red", "Texture_Light", "Texture_Light2"],
-  _default:["Texture_Blue", "Texture_Light", "Texture_Grey", "Texture_Signs"],
+  city:     ["Texture_Blue", "Texture_Light", "Texture_Grey", "Texture_Signs", "Texture_Light2", "Texture_DarkBlue"],
+  beach:    ["Texture_Yellow", "Texture_Light", "Texture_Red", "Texture_Light2"],
+  jungle:   ["Texture_Green", "Texture_Light", "Texture_Grey", "Texture_Signs"],
+  desert:   ["Texture_Yellow", "Texture_Red", "Texture_Light", "Texture_Light2"],
+  village:  ["Texture_Red", "Texture_Yellow", "Texture_Light", "Texture_Dark"],
+  savannah: ["Texture_Yellow", "Texture_Red", "Texture_Dark", "Texture_Light"],
+  _default: ["Texture_Blue", "Texture_Light", "Texture_Grey", "Texture_Signs"],
 };
 
 // Texture cache
@@ -410,6 +427,7 @@ function createHorizonTexture(stage) {
 
   ctx.fillStyle = stage.scenery === "beach" ? "rgba(180, 83, 9, 0.28)" :
                   stage.scenery === "desert" ? "rgba(180, 83, 9, 0.35)" :
+                  stage.scenery === "savannah" ? "rgba(146, 64, 14, 0.40)" :
                   "rgba(30, 58, 138, 0.22)";
   ctx.beginPath();
   ctx.moveTo(0, 360);
@@ -481,81 +499,164 @@ export function createBackground(stageId = "city") {
   group.add(horizon);
 
   const textures = STAGE_TEXTURES[stageId] || STAGE_TEXTURES._default;
+  const stageBldgList = STAGE_BUILDINGS[stageId] || STAGE_BUILDINGS._default;
 
-  // 3D Buildings along both sides of highway (every 22m)
-  for (let z = 16; z > -WORLD_LENGTH; z -= 22) {
-    for (const side of [-1, 1]) {
-      const bldgItem = FBX_BUILDINGS[Math.floor(rng() * FBX_BUILDINGS.length)];
-      const texName = textures[Math.floor(rng() * textures.length)];
+  /* ==============================================================
+     1. SCENERY SPAWNING: CITY vs VILLAGE vs OTHER ENVIRONMENTS
+     - City: Dense metropolis with multi-row towering FBX skyscrapers
+     - Village: Few scattered chalets with BIG PLOTS of pine trees
+     - FBX ONLY: No procedural box buildings!
+  ============================================================== */
+  if (stageId === "city") {
+    // ── CITY: HIGH DENSITY METROPOLIS (Two rows of towering FBX buildings)
+    for (let z = 16; z > -WORLD_LENGTH; z -= 14) {
+      for (const side of [-1, 1]) {
+        // Front Row: Mid-rise shops & towers along the sidewalk
+        const frontBldgFile = stageBldgList[Math.floor(rng() * stageBldgList.length)];
+        const frontTex = textures[Math.floor(rng() * textures.length)];
+        const frontLat = side * (16.0 + rng() * 2.0);
+        addFBXBuildingEntry(frontBldgFile, frontTex, z, frontLat, side);
 
-      let bldgObj;
-      let isFBX = false;
-
-      if (_buildingsReady) {
-        bldgObj = spawnFBXBuilding(bldgItem.file, texName);
-        if (bldgObj) isFBX = true;
-      }
-
-      if (!bldgObj) {
-        bldgObj = buildFallbackBuilding(stage, rng);
-      }
-
-      const lateralDist = side * (17.0 + rng() * 2.0);
-      const pt = getRoadPoint(z, lateralDist);
-      const rotOffset = side > 0 ? -Math.PI / 2 : Math.PI / 2;
-
-      bldgObj.position.set(pt.x, pt.y, pt.z);
-      bldgObj.rotation.y = pt.heading + rotOffset;
-      group.add(bldgObj);
-
-      items.push({
-        object: bldgObj,
-        lateralDist,
-        side,
-        rotationOffset: rotOffset,
-        roadZ: z,
-        yOffset: 0,
-        isBuilding: true,
-        fbxFile: bldgItem.file,
-        texName,
-        isFBX
-      });
-
-      // Roadside Real 3D FBX Tree
-      if (rng() > 0.25) {
-        const treesList = STAGE_TREES[stageId] || STAGE_TREES._default;
-        const treeFile = treesList[Math.floor(rng() * treesList.length)];
-
-        let treeObj = null;
-        let isFBX = false;
-
-        if (_treesReady) {
-          treeObj = spawnFBXTree(treeFile);
-          if (treeObj) isFBX = true;
+        // Back Row: Towering skyscrapers behind creating deep urban skyline
+        if (rng() > 0.15) {
+          const tallTowers = ["6Story_Stack", "4Story", "4Story_Center", "3Story_Balcony"];
+          const backBldgFile = tallTowers[Math.floor(rng() * tallTowers.length)];
+          const backTex = textures[Math.floor(rng() * textures.length)];
+          const backLat = side * (26.5 + rng() * 3.5);
+          addFBXBuildingEntry(backBldgFile, backTex, z - 7, backLat, side);
         }
 
-        if (!treeObj) {
-          treeObj = new THREE.Group();
+        // Roadside avenue trees along sidewalk
+        if (rng() > 0.4) {
+          const treesList = STAGE_TREES.city;
+          const treeFile = treesList[Math.floor(rng() * treesList.length)];
+          const treeDist = side * 10.5;
+          addFBXTreeEntry(treeFile, z - 7, treeDist, side);
         }
-
-        const treeDist = side * (10.5 + rng() * 2.6);
-        const treePt = getRoadPoint(z - 11, treeDist);
-        treeObj.position.set(treePt.x, treePt.y, treePt.z);
-        group.add(treeObj);
-
-        items.push({
-          object: treeObj,
-          lateralDist: treeDist,
-          side,
-          rotationOffset: 0,
-          roadZ: z - 11,
-          yOffset: 0,
-          isTree: true,
-          treeFile,
-          isFBX
-        });
       }
     }
+  } else if (stageId === "village") {
+    // ── VILLAGE (ALPINE RESORT): FEWER BUILDINGS WITH BIG PLOTS OF TREES
+    // 1. Sparse chalets & cabins far apart (every 38m)
+    for (let z = 16; z > -WORLD_LENGTH; z -= 38) {
+      for (const side of [-1, 1]) {
+        if (rng() > 0.2) {
+          const bldgFile = stageBldgList[Math.floor(rng() * stageBldgList.length)];
+          const texName = textures[Math.floor(rng() * textures.length)];
+          const lateralDist = side * (22.0 + rng() * 4.0);
+          addFBXBuildingEntry(bldgFile, texName, z, lateralDist, side);
+        }
+      }
+    }
+
+    // 2. BIGGER PLOTS OF TREES: Dense clusters/groves of evergreen pines & birches every 14m
+    for (let z = 16; z > -WORLD_LENGTH; z -= 14) {
+      for (const side of [-1, 1]) {
+        // Each plot has a grove of 3 to 6 trees spreading deep into the mountains
+        const plotTreeCount = 3 + Math.floor(rng() * 4); // 3 to 6 trees per plot
+        for (let t = 0; t < plotTreeCount; t++) {
+          const treeFiles = STAGE_TREES.village;
+          const treeFile = treeFiles[Math.floor(rng() * treeFiles.length)];
+          // Lateral distance spans from road edge (10m) out to 28m deep into the forest
+          const treeDist = side * (10.0 + t * 3.6 + rng() * 2.2);
+          const treeZ = z + (rng() - 0.5) * 8.0;
+          addFBXTreeEntry(treeFile, treeZ, treeDist, side);
+        }
+      }
+    }
+  } else {
+    // ── OTHER STAGES (Savannah, Desert, Jungle, Beach)
+    const bldgSpacing = stageId === "savannah" ? 32 : stageId === "desert" ? 30 : 22;
+    for (let z = 16; z > -WORLD_LENGTH; z -= bldgSpacing) {
+      for (const side of [-1, 1]) {
+        if (rng() > 0.25) {
+          const bldgFile = stageBldgList[Math.floor(rng() * stageBldgList.length)];
+          const texName = textures[Math.floor(rng() * textures.length)];
+          const lateralDist = side * (18.0 + rng() * 3.0);
+          addFBXBuildingEntry(bldgFile, texName, z, lateralDist, side);
+        }
+
+        // Roadside vegetation & trees
+        const treeFreq = stageId === "jungle" ? 0.9 : stageId === "savannah" ? 0.65 : 0.45;
+        if (rng() < treeFreq) {
+          const treesList = STAGE_TREES[stageId] || STAGE_TREES._default;
+          const treeFile = treesList[Math.floor(rng() * treesList.length)];
+          const treeDist = side * (11.0 + rng() * 4.0);
+          addFBXTreeEntry(treeFile, z - 10, treeDist, side);
+
+          // Extra tree depth for jungle & savannah
+          if (stageId === "jungle" && rng() > 0.4) {
+            const extraTree = treesList[Math.floor(rng() * treesList.length)];
+            addFBXTreeEntry(extraTree, z - 6, side * (17.0 + rng() * 6.0), side);
+          }
+        }
+      }
+    }
+  }
+
+  function addFBXBuildingEntry(file, texName, zPos, lateralDist, side) {
+    let bldgObj = null;
+    let isFBX = false;
+
+    if (_buildingsReady) {
+      bldgObj = spawnFBXBuilding(file, texName);
+      if (bldgObj) isFBX = true;
+    }
+
+    if (!bldgObj) {
+      // Clean placeholder until FBX completes caching — no procedural box fallbacks!
+      bldgObj = new THREE.Group();
+    }
+
+    const pt = getRoadPoint(zPos, lateralDist);
+    const rotOffset = side > 0 ? -Math.PI / 2 : Math.PI / 2;
+
+    bldgObj.position.set(pt.x, pt.y, pt.z);
+    bldgObj.rotation.y = pt.heading + rotOffset;
+    group.add(bldgObj);
+
+    items.push({
+      object: bldgObj,
+      lateralDist,
+      side,
+      rotationOffset: rotOffset,
+      roadZ: zPos,
+      yOffset: 0,
+      isBuilding: true,
+      fbxFile: file,
+      texName,
+      isFBX
+    });
+  }
+
+  function addFBXTreeEntry(treeFile, zPos, treeDist, side) {
+    let treeObj = null;
+    let isFBX = false;
+
+    if (_treesReady) {
+      treeObj = spawnFBXTree(treeFile);
+      if (treeObj) isFBX = true;
+    }
+
+    if (!treeObj) {
+      treeObj = new THREE.Group();
+    }
+
+    const treePt = getRoadPoint(zPos, treeDist);
+    treeObj.position.set(treePt.x, treePt.y, treePt.z);
+    group.add(treeObj);
+
+    items.push({
+      object: treeObj,
+      lateralDist: treeDist,
+      side,
+      rotationOffset: 0,
+      roadZ: zPos,
+      yOffset: 0,
+      isTree: true,
+      treeFile,
+      isFBX
+    });
   }
 
   // Street lamps

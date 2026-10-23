@@ -10,7 +10,18 @@ export const CARS = {
     cabinColor: "#0f172a",
     accentColor: "#38bdf8",
     style: "sport",
-    modelKey: "sport"
+    modelKey: "sport",
+    category: "SUPER SPORT",
+    image: "./assets/images/cars/cyber.jpg",
+    tagline: "Twin-turbo aerodynamic low-slung cyber coupe",
+    hp: 680,
+    topSpeedMph: 205,
+    weightKg: 1320,
+    maxSpeedRating: 9.4,
+    accelRating: 9.2,
+    handlingRating: 9.0,
+    brakingRating: 8.8,
+    stabilityRating: 8.9
   },
 
   inferno: {
@@ -24,7 +35,18 @@ export const CARS = {
     cabinColor: "#1e1b4b",
     accentColor: "#f97316",
     style: "muscle",
-    modelKey: "sport2"
+    modelKey: "sport2",
+    category: "V8 MUSCLE",
+    image: "./assets/images/cars/inferno.jpg",
+    tagline: "High-displacement naturally aspirated V8 drag fury",
+    hp: 750,
+    topSpeedMph: 218,
+    weightKg: 1540,
+    maxSpeedRating: 9.8,
+    accelRating: 9.6,
+    handlingRating: 7.8,
+    brakingRating: 8.2,
+    stabilityRating: 8.0
   },
 
   neon: {
@@ -38,7 +60,18 @@ export const CARS = {
     cabinColor: "#09090b",
     accentColor: "#d946ef",
     style: "futuristic",
-    modelKey: "hatchback"
+    modelKey: "hatchback",
+    category: "STREET TUNER",
+    image: "./assets/images/cars/neon.jpg",
+    tagline: "Ultra-agile turbocharged AWD cyber track-hatch",
+    hp: 520,
+    topSpeedMph: 192,
+    weightKg: 1180,
+    maxSpeedRating: 8.7,
+    accelRating: 9.0,
+    handlingRating: 9.8,
+    brakingRating: 9.4,
+    stabilityRating: 9.3
   },
 
   phantom: {
@@ -52,7 +85,18 @@ export const CARS = {
     cabinColor: "#0f172a",
     accentColor: "#38bdf8",
     style: "suv",
-    modelKey: "suv"
+    modelKey: "suv",
+    category: "4x4 LUXURY SUV",
+    image: "./assets/images/cars/phantom.jpg",
+    tagline: "Armored high-torque twin-turbo luxury all-terrain SUV",
+    hp: 580,
+    topSpeedMph: 178,
+    weightKg: 2100,
+    maxSpeedRating: 7.9,
+    accelRating: 8.2,
+    handlingRating: 8.4,
+    brakingRating: 8.6,
+    stabilityRating: 9.9
   },
 
   taxi: {
@@ -66,7 +110,18 @@ export const CARS = {
     cabinColor: "#18181b",
     accentColor: "#fef08a",
     style: "taxi",
-    modelKey: "taxi"
+    modelKey: "taxi",
+    category: "COMMERCIAL TAXI",
+    image: "./assets/images/cars/taxi.jpg",
+    tagline: "Heavy-duty iconic city taxi built for enduring traffic",
+    hp: 380,
+    topSpeedMph: 165,
+    weightKg: 1720,
+    maxSpeedRating: 7.5,
+    accelRating: 7.8,
+    handlingRating: 8.0,
+    brakingRating: 8.5,
+    stabilityRating: 8.8
   },
 
   cop: {
@@ -80,7 +135,18 @@ export const CARS = {
     cabinColor: "#f8fafc",
     accentColor: "#3b82f6",
     style: "police",
-    modelKey: "cop"
+    modelKey: "cop",
+    category: "POLICE PURSUIT",
+    image: "./assets/images/cars/cop.jpg",
+    tagline: "Police pursuit interceptor with bullbar and sirens",
+    hp: 720,
+    topSpeedMph: 212,
+    weightKg: 1820,
+    maxSpeedRating: 9.5,
+    accelRating: 9.5,
+    handlingRating: 9.1,
+    brakingRating: 9.3,
+    stabilityRating: 9.4
   },
 
   cruiser: {
@@ -94,7 +160,18 @@ export const CARS = {
     cabinColor: "#1e293b",
     accentColor: "#93c5fd",
     style: "sedan",
-    modelKey: "sedan"
+    modelKey: "sedan",
+    category: "EXECUTIVE SEDAN",
+    image: "./assets/images/cars/cruiser.jpg",
+    tagline: "Smooth executive sports sedan for long highway cruises",
+    hp: 420,
+    topSpeedMph: 175,
+    weightKg: 1620,
+    maxSpeedRating: 8.0,
+    accelRating: 8.1,
+    handlingRating: 8.5,
+    brakingRating: 8.7,
+    stabilityRating: 8.9
   }
 };
 
