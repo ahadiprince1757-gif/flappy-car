@@ -40,6 +40,8 @@ import {
   requestLandscapeOrientation,
   releaseOrientationLock
 } from "../systems/orientation.js";
+import { createStage, getRoadPoint } from "../stages/stageRenderer.js";
+import { createPlayer } from "../player/player.js";
 
 let initialized = false;
 let resultOverlay = null;
@@ -110,11 +112,20 @@ function resetRunSystems() {
     player.slideTimer = 0;
     player.invulnerable = false;
 
+    const initialZ = 4;
+    const pt = getRoadPoint(initialZ, player.targetLaneOffset);
     if (player.group) {
-      player.group.rotation.set(0, 0, 0);
+      player.group.position.set(pt.x, pt.y, pt.z);
+      player.group.rotation.set(0, pt.heading, 0);
       if (player.group.userData.originalScale) {
         player.group.scale.copy(player.group.userData.originalScale);
       }
+    }
+
+    if (gameState.camera && player.group) {
+      const pos = player.group.position;
+      gameState.camera.position.set(pos.x, pos.y + 4.8, pos.z + 9.0);
+      gameState.camera.lookAt(pos.x, pos.y + 1.2, pos.z - 10);
     }
   }
 }
@@ -176,7 +187,12 @@ function showResultOverlay(title, isWin, stats = [], actions = []) {
 function finishRun(title, isWin, stats) {
   gameState.status = "gameOver";
   stopEngineSound();
-  setGameplayVisible(false);
+
+  // Hide gameplay controls while keeping the scene and orientation steady
+  setHidden("controls", true);
+  setHidden("inGameTopActions", true);
+  setHidden("pauseBtn", true);
+  setHidden("ui", true);
   hidePauseMenu();
 
   // Submit high score to backend API
@@ -241,26 +257,30 @@ function startAdventure() {
   setHidden("levelSelectScreen", true);
   hidePauseMenu();
 
+  const stageId = gameState.selectedStage || "city";
+  const carId = gameState.selectedCar || "cyber";
+
   // Rebuild stage for the selected environment
   if (gameState.scene) {
-    createStage(gameState.selectedStage || "city");
+    createStage(stageId);
   }
 
-  // If car model is already cached and player group exists, start immediately
-  if (gameState.player?.group) {
+  // Ensure player vehicle is created with selected car
+  const playerReady = createPlayer(carId);
+
+  if (playerReady && gameState.player?.group) {
     _launchAdventure();
     return;
   }
 
   // Otherwise show a quick loading overlay and wait for models
   setGameplayVisible(true);
-  showHUDMessage("\uD83D\uDE97 Loading vehicle...");
+  showHUDMessage("🚗 Loading vehicle...");
 
   preloadCarModels(() => {
     if (gameState.scene) {
-      createPlayer(gameState.selectedCar || "cyber");
+      createPlayer(carId);
     }
-    // Brief frame delay to let Three.js process the new model
     requestAnimationFrame(() => {
       hideHUDMessage();
       _launchAdventure();

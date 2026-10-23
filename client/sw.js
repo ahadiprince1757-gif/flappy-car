@@ -2,7 +2,7 @@
  * Flappy Car 3D — Service Worker (PWA Offline & Asset Cache)
  */
 
-const CACHE_NAME = "flappy-car-v2.2";
+const CACHE_NAME = "flappy-car-v2.3";
 
 const CORE_ASSETS = [
   "./",
@@ -41,7 +41,7 @@ const CORE_ASSETS = [
   "./js/systems/audio.js",
   "./js/systems/orientation.js",
   "./js/racing/racing.js",
-  "./js/racing/levelRenderer.js",
+  "./js/racing/racingLevels.js",
   "./js/traffic/trafficCars.js",
   "./js/ui/ui.js",
   "./js/ui/hud.js",
@@ -53,9 +53,9 @@ const CORE_ASSETS = [
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(CORE_ASSETS).catch((err) => {
-        console.warn("[SW] Some assets failed to precache:", err);
-      });
+      return Promise.allSettled(
+        CORE_ASSETS.map((asset) => cache.add(asset))
+      );
     }).then(() => self.skipWaiting())
   );
 });

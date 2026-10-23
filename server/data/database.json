@@ -52,7 +52,7 @@
   "garage": {
     "coins": 1854,
     "selectedCar": "neon",
-    "selectedStage": "city",
+    "selectedStage": "jungle",
     "unlockedCars": [
       "cyber",
       "inferno",

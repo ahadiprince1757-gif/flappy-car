@@ -24,41 +24,14 @@ export async function requestLandscapeOrientation() {
   isGameActive = true;
   document.body.classList.add("in-game");
 
-  // Attempt screen orientation lock (supported in Android Chrome, Samsung, Capacitor/Cordova, PWAs)
-  try {
-    if (screen.orientation && typeof screen.orientation.lock === "function") {
-      await screen.orientation.lock("landscape").catch(() => {});
-    }
-  } catch (_) {}
-
-  // On mobile touch devices, attempt fullscreen to permit landscape locking and remove browser URL chrome
-  try {
-    const isMobile = window.innerWidth <= 1024 || isTouchDevice();
-    if (isMobile && !document.fullscreenElement) {
-      const docEl = document.documentElement;
-      if (docEl.requestFullscreen) {
-        await docEl.requestFullscreen().catch(() => {});
-      } else if (docEl.webkitRequestFullscreen) {
-        await docEl.webkitRequestFullscreen().catch(() => {});
-      }
-      if (screen.orientation && typeof screen.orientation.lock === "function") {
-        await screen.orientation.lock("landscape").catch(() => {});
-      }
-    }
-  } catch (_) {}
-
+  // Keep orientation handling non-intrusive: let the player tilt naturally
+  // without jarring forced locks or fullscreen jumps
   checkOrientationPrompt();
 }
 
 export function releaseOrientationLock() {
   isGameActive = false;
   document.body.classList.remove("in-game");
-
-  try {
-    if (screen.orientation && typeof screen.orientation.unlock === "function") {
-      screen.orientation.unlock().catch(() => {});
-    }
-  } catch (_) {}
 
   checkOrientationPrompt();
 }
@@ -67,22 +40,9 @@ export function checkOrientationPrompt() {
   const overlay = document.getElementById("rotateOverlay");
   if (!overlay) return;
 
-  if (!isGameActive) {
-    overlay.hidden = true;
-    overlay.style.display = "none";
-    return;
-  }
-
-  const portrait = isPortrait();
-  const isMobile = window.innerWidth <= 960 || isTouchDevice();
-
-  if (!portrait || !isMobile || userDismissedRotate) {
-    overlay.hidden = true;
-    overlay.style.display = "none";
-  } else {
-    overlay.hidden = false;
-    overlay.style.display = "flex";
-  }
+  // Never block the user with a forced rotate overlay
+  overlay.hidden = true;
+  overlay.style.display = "none";
 }
 
 export function initOrientation() {
