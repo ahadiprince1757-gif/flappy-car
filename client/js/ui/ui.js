@@ -61,7 +61,6 @@ function setHidden(id, hidden) {
 function setGameplayVisible(visible) {
   setHidden("controls", !visible);
   setHidden("inGameTopActions", !visible);
-  setHidden("pauseBtn", !visible);
   setHidden("ui", !visible);
 
   if (visible) {
@@ -191,7 +190,6 @@ function finishRun(title, isWin, stats) {
   // Hide gameplay controls while keeping the scene and orientation steady
   setHidden("controls", true);
   setHidden("inGameTopActions", true);
-  setHidden("pauseBtn", true);
   setHidden("ui", true);
   hidePauseMenu();
 
@@ -529,7 +527,6 @@ export function initializeUI() {
     onStartRace: startSelectedRace
   });
 
-  bindButton("pauseBtn", pauseGame);
   bindButton("resumeBtn", resumeGame);
   bindButton("restartBtn", restartRun);
   bindButton("homeBtn", returnHome);

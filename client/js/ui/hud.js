@@ -37,24 +37,6 @@ export function initializeHUD() {
       </div>
     </div>
 
-    <div class="hud-progress">
-      <div class="hud-progress-heading">
-        <span id="hudMode">ADVENTURE</span>
-        <span id="hudCheckpointIndicator" class="hud-cp-pill">CP: 250m</span>
-        <span id="hudDistance">0 m</span>
-      </div>
-
-      <div class="hud-progress-track">
-        <div id="hudProgressFill" class="hud-progress-fill"></div>
-      </div>
-
-      <div id="hudRaceDetails" class="hud-race-details" hidden>
-        <span id="hudLives">❤️ 3</span>
-        <span id="hudRaceObjective">0%</span>
-        <span id="hudRaceTime">0s</span>
-      </div>
-    </div>
-
     <div id="hudMessage" class="hud-message" role="status" aria-live="polite" hidden></div>
   `;
 
@@ -72,71 +54,16 @@ export function updateHUD(force = false) {
 
   const score = getElement("hudScore");
   const speed = getElement("hudSpeed");
-  const distance = getElement("hudDistance");
-  const mode = getElement("hudMode");
   const tierName = getElement("hudTierName");
-  const cpIndicator = getElement("hudCheckpointIndicator");
-  const progressFill = getElement("hudProgressFill");
-  const raceDetails = getElement("hudRaceDetails");
-  const lives = getElement("hudLives");
-  const objective = getElement("hudRaceObjective");
-  const raceTime = getElement("hudRaceTime");
 
   if (score) score.textContent = formatNumber(gameState.score);
   if (speed) speed.textContent = `${formatNumber(gameState.speed)} MPH`;
-  if (distance) distance.textContent = `${formatNumber(gameState.distance)} m`;
 
   const diff = getCurrentDifficulty();
   if (tierName) tierName.textContent = diff.name;
-
-  if (cpIndicator) {
-    const dist = Math.floor(gameState.distance || 0);
-    const nextCP = Math.ceil((dist + 1) / 250) * 250;
-    const toGo = Math.max(0, nextCP - dist);
-    cpIndicator.textContent = `⚡ CP: ${toGo}m`;
-  }
-
-  const isRacing = gameState.gameMode === "racing";
-  const race = gameState.race;
-
-  if (mode) {
-    mode.textContent = isRacing
-      ? `RACING · LEVEL ${gameState.currentLevel}`
-      : "ADVENTURE";
-  }
-
-  if (raceDetails) {
-    raceDetails.hidden = !isRacing || !race;
-  }
-
-  if (isRacing && race) {
-    const distanceTarget = Number(race.level?.distance) || 1;
-    const distancePercent = Math.min(
-      100,
-      (gameState.distance / distanceTarget) * 100
-    );
-
-    if (progressFill) {
-      progressFill.style.width = `${distancePercent}%`;
-    }
-
-    if (lives) {
-      lives.textContent = `❤️ ${Math.max(0, race.lives || 0)}`;
-    }
-
-    if (objective) {
-      objective.textContent = `${Math.floor(distancePercent)}% REACHED`;
-    }
-
-    if (raceTime) {
-      const limit = Number(race.level?.timeLimit) || 0;
-      const remaining = Math.max(0, Math.ceil(limit - (race.elapsedTime || 0)));
-      raceTime.textContent = `⏱️ ${remaining}s`;
-    }
-  } else {
-    if (progressFill) progressFill.style.width = "0%";
-  }
 }
+
+let _msgTimer = null;
 
 export function showHUDMessage(message) {
   if (!hudRoot) return;
@@ -144,11 +71,22 @@ export function showHUDMessage(message) {
   const messageElement = getElement("hudMessage");
   if (!messageElement) return;
 
+  // Clear any existing auto-hide timer
+  if (_msgTimer) { clearTimeout(_msgTimer); _msgTimer = null; }
+
   messageElement.textContent = String(message);
   messageElement.hidden = false;
+
+  // Auto-hide after 100ms (0.1 second)
+  _msgTimer = setTimeout(() => {
+    messageElement.hidden = true;
+    messageElement.textContent = "";
+    _msgTimer = null;
+  }, 100);
 }
 
 export function hideHUDMessage() {
+  if (_msgTimer) { clearTimeout(_msgTimer); _msgTimer = null; }
   const messageElement = getElement("hudMessage");
   if (messageElement) {
     messageElement.hidden = true;
