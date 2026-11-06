@@ -5,13 +5,18 @@ import {
   getRoadHeight,
   getRoadSlope
 } from "../stages/stageRenderer.js";
-import { playJumpSound } from "../systems/audio.js";
-import { createTireSmoke } from "../systems/effects.js";
+import { playJumpSound, playDriftSound, playTurboBlowOffSound, playNitroBoostSound } from "../systems/audio.js";
+import { createTireSmoke, triggerCameraShake } from "../systems/effects.js";
 
 const CAMERA_BASE_OFFSET = new THREE.Vector3(0, 4.6, 8.8);
 const SLIDE_DURATION = 0.7;
 const SLIDE_SCALE_Y = 0.58;
 const ROAD_LOOK_AHEAD = 22;
+
+const NITRO_CHARGE_RATE = 0.08;   // per second from drafting / drifting
+const NITRO_DRAIN_RATE = 0.22;    // per second when active
+const NITRO_BOOST_SPEED = 1.55;   // multiplier over base speed
+const NEAR_MISS_WINDOW = 2.5;     // seconds before combo resets
 
 export function changeLane(direction) {
   const player = gameState.player;
@@ -41,12 +46,26 @@ export function moveRight() {
 export function jump() {
   const player = gameState.player;
   if (!player || gameState.status !== "playing") return;
-  if (player.isJumping || player.isSliding) return;
+  if (player.isSliding) return;
 
-  player.isJumping = true;
-  player.verticalVelocity = gameState.jumpForce;
-  gameState.isJumping = true;
-  playJumpSound();
+  // Ground jump
+  if (!player.isJumping) {
+    player.isJumping = true;
+    player.verticalVelocity = gameState.jumpForce;
+    gameState.isJumping = true;
+    gameState.airHopsRemaining = 1; // reset mid-air charges on fresh jump
+    playJumpSound();
+    triggerCameraShake(0.12, 0.18);
+    return;
+  }
+
+  // Flappy mid-air double-hop (rocket thruster burst)
+  if (player.isJumping && gameState.airHopsRemaining > 0) {
+    gameState.airHopsRemaining--;
+    player.verticalVelocity = gameState.jumpForce * 0.75;
+    playJumpSound();
+    triggerCameraShake(0.14, 0.2);
+  }
 }
 
 export function slide() {
@@ -111,6 +130,10 @@ function updateLaneMovement(player, deltaTime) {
     const rearPosR = new THREE.Vector3(pt.x + 0.55, pt.y + 0.15, pt.z + 1.2);
     createTireSmoke(rearPosL, shouldDrift ? 1.3 : 0.9);
     createTireSmoke(rearPosR, shouldDrift ? 1.3 : 0.9);
+    // Drift tire screech audio (throttled to avoid audio spam)
+    if (Math.random() < 0.08) playDriftSound();
+    // Charge nitro from drifting
+    gameState.nitro = Math.min(1, gameState.nitro + 0.015);
   }
 }
 
@@ -156,6 +179,7 @@ function updateJump(player, deltaTime) {
       player.verticalVelocity = 0;
       player.isJumping = false;
       gameState.isJumping = false;
+      gameState.airHopsRemaining = 1; // restore hop charge on landing
 
       // Landing suspension compression rebound
       if (player.group) {
@@ -308,10 +332,63 @@ function playerAccelFactor() {
   return gameState.player?.config?.acceleration || 1.2;
 }
 
+let _nitroActivePrev = false;
+
+/* ── 7. NITRO BOOST MANAGEMENT ─────────────────────────────── */
+function updateNitro(deltaTime) {
+  if (gameState.input.nitro && gameState.nitro > 0) {
+    if (!_nitroActivePrev) {
+      _nitroActivePrev = true;
+      playNitroBoostSound();
+      triggerCameraShake(0.18, 0.25);
+    }
+    // Drain nitro and apply speed boost
+    gameState.nitro = Math.max(0, gameState.nitro - NITRO_DRAIN_RATE * deltaTime);
+    gameState.nitroDraining = true;
+    gameState.speed = Math.min(
+      gameState.maxSpeed * 1.3,
+      gameState.speed + (gameState.baseSpeed * NITRO_BOOST_SPEED - gameState.speed) * deltaTime * 4
+    );
+  } else {
+    _nitroActivePrev = false;
+    gameState.nitroDraining = false;
+    // Passive nitro regeneration from speed (driving fast charges nitro slowly)
+    const passiveCharge = Math.max(0, (gameState.speed - gameState.baseSpeed * 0.9) / gameState.baseSpeed) * 0.015;
+    gameState.nitro = Math.min(1, gameState.nitro + passiveCharge * deltaTime);
+  }
+}
+
+/* ── 8. NEAR-MISS COMBO TRACKER ───────────────────────────── */
+export function registerNearMiss() {
+  if (gameState.status !== "playing") return;
+  gameState.nearMissCombo++;
+  gameState.nearMissTimer = NEAR_MISS_WINDOW;
+  gameState.scoreMultiplier = Math.min(5, 1 + Math.floor(gameState.nearMissCombo / 2) * 0.5);
+  const bonus = Math.round(75 * gameState.scoreMultiplier);
+  gameState.score += bonus;
+  // Charge nitro from near-miss
+  gameState.nitro = Math.min(1, gameState.nitro + 0.2);
+  window.dispatchEvent(new CustomEvent("flappycar:near-miss", {
+    detail: { combo: gameState.nearMissCombo, bonus, multiplier: gameState.scoreMultiplier }
+  }));
+}
+
+function updateNearMissTimer(deltaTime) {
+  if (gameState.nearMissTimer > 0) {
+    gameState.nearMissTimer -= deltaTime;
+    if (gameState.nearMissTimer <= 0) {
+      gameState.nearMissCombo = 0;
+      gameState.scoreMultiplier = 1;
+    }
+  }
+}
+
 export function updatePlayerMovement(deltaTime) {
   const player = gameState.player;
   if (!player || gameState.status !== "playing") return;
 
+  updateNitro(deltaTime);
+  updateNearMissTimer(deltaTime);
   updatePlayerSpeed(deltaTime);
   updateLaneMovement(player, deltaTime);
   updateJump(player, deltaTime);

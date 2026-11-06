@@ -13,24 +13,26 @@ export function createPlayer(carId = gameState.selectedCar) {
   }
 
   const config = getCarConfig(carId);
-  const group  = createCarModel(carId);   // returns null until FBX is cached
+  const group = createCarModel(carId);
 
-  if (!group) {
-    // FBX not ready — caller should retry after preloadCarModels completes
-    console.warn(`[Player] FBX not ready for "${carId}". Player not created yet.`);
-    return false;
+  // Preserve existing runtime state if replacing an active player (e.g. proxy -> FBX upgrade)
+  const existing = gameState.player;
+  const currentLane = existing ? existing.lane : 1;
+  const currentLaneOffset = existing ? existing.currentLaneOffset : gameState.lanePositions[currentLane];
+  const targetLaneOffset = existing ? existing.targetLaneOffset : currentLaneOffset;
+  const baseZ = existing ? existing.baseZ : 4;
+  const jumpHeight = existing ? existing.jumpHeight : 0;
+  const isJumping = existing ? existing.isJumping : false;
+  const isSliding = existing ? existing.isSliding : false;
+  const verticalVelocity = existing ? existing.verticalVelocity : 0;
+  const currentY = existing && existing.group ? existing.group.position.y : null;
+
+  if (existing?.group) {
+    gameState.scene.remove(existing.group);
   }
 
-  // Remove old player if present
-  if (gameState.player?.group) {
-    gameState.scene.remove(gameState.player.group);
-  }
-
-  const initialZ          = 4;
-  const initialLaneOffset = gameState.lanePositions[1];
-  const pt                = getRoadPoint(initialZ, initialLaneOffset);
-
-  group.position.set(pt.x, pt.y, pt.z);
+  const pt = getRoadPoint(baseZ, currentLaneOffset);
+  group.position.set(pt.x, currentY ?? pt.y, pt.z);
   group.rotation.set(0, pt.heading, 0);
 
   gameState.scene.add(group);
@@ -39,37 +41,35 @@ export function createPlayer(carId = gameState.selectedCar) {
     group,
     carId,
     config,
-
-    lane:              1,
-    targetLaneOffset:  initialLaneOffset,
-    currentLaneOffset: initialLaneOffset,
-    baseZ:             initialZ,
-
-    verticalVelocity: 0,
-    jumpHeight:       0,
-    groundY:          pt.y,
-
-    isJumping:  false,
-    isSliding:  false,
-    slideTimer: 0,
-
+    lane: currentLane,
+    targetLaneOffset,
+    currentLaneOffset,
+    baseZ,
+    verticalVelocity,
+    jumpHeight,
+    groundY: pt.y,
+    isJumping,
+    isSliding,
+    slideTimer: existing ? existing.slideTimer : 0,
     laneChangeSpeed: 14,
-    invulnerable:    false,
+    invulnerable: existing ? existing.invulnerable : false,
   };
 
   gameState.selectedCar = carId;
-  gameState.currentLane = 1;
-  gameState.baseSpeed   = config.speed;
-  gameState.speed       = config.speed;
+  gameState.currentLane = currentLane;
+  gameState.baseSpeed = config.speed;
+  if (!existing) {
+    gameState.speed = config.speed;
+  }
 
-  // Snap camera directly behind the car so it's visible immediately
-  if (gameState.camera) {
+  // Snap camera directly behind the car on first spawn
+  if (!existing && gameState.camera) {
     const pos = group.position;
     gameState.camera.position.set(pos.x, pos.y + 4.8, pos.z + 9.0);
     gameState.camera.lookAt(pos.x, pos.y + 1.2, pos.z - 10);
   }
 
-  console.info(`[Player] FBX car "${carId}" spawned successfully.`);
+  console.info(`[Player] Car "${carId}" (${group.userData.isPlaceholder ? "proxy" : "FBX"}) spawned.`);
   return true;
 }
 

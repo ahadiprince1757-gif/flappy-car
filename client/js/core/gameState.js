@@ -15,11 +15,23 @@ export const gameState = {
   isJumping: false,
   isSliding: false,
 
-  currentLane: 1,
-  lanePositions: [-3.6, 0, 3.6],
+  currentLane: 2,
+  lanePositions: [-7.2, -3.6, 0, 3.6, 7.2],
 
   shieldActive: false,
   boostActive: false,
+
+  // ── Nitro & Boost Gauge ─────────────────────────────────────────
+  nitro: 0,              // 0.0 to 1.0
+  nitroDraining: false,  // true when nitro boost is active
+
+  // ── Flappy Mid-Air Double-Hop ───────────────────────────────
+  airHopsRemaining: 1,   // double-hop charges available while airborne
+
+  // ── Near-Miss Combo System ─────────────────────────────────
+  nearMissCombo: 0,       // consecutive near-miss streak
+  nearMissTimer: 0,       // countdown to reset streak
+  scoreMultiplier: 1,     // 1x base, increases with combo streak
 
   gameMode: "adventure", // adventure, racing
   currentLevel: 1,
@@ -52,7 +64,8 @@ export const gameState = {
     jump: false,
     slide: false,
     accelerate: false,
-    brake: false
+    brake: false,
+    nitro: false
   }
 };
 
@@ -67,9 +80,16 @@ export function resetGameState() {
   gameState.isJumping = false;
   gameState.isSliding = false;
 
-  gameState.currentLane = 1;
+  gameState.currentLane = 2;
+  gameState.lanePositions = [-7.2, -3.6, 0, 3.6, 7.2];
   gameState.shieldActive = false;
   gameState.boostActive = false;
+  gameState.nitro = 0;
+  gameState.nitroDraining = false;
+  gameState.airHopsRemaining = 1;
+  gameState.nearMissCombo = 0;
+  gameState.nearMissTimer = 0;
+  gameState.scoreMultiplier = 1;
 
   gameState.elapsedTime = 0;
   gameState.lastFrameTime = 0;
@@ -86,4 +106,5 @@ export function resetGameState() {
   gameState.input.slide = false;
   gameState.input.accelerate = false;
   gameState.input.brake = false;
+  gameState.input.nitro = false;
 }

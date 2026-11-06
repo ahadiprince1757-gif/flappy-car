@@ -219,6 +219,13 @@
                   </div>
                 </div>
               </div>
+
+              <!-- Purchase or Equip Action in Inspector -->
+              <div class="inspector-action-row" id="inspectorActionRow" style="margin-top: 14px;">
+                <button class="btn-action btn-primary" id="inspectorBuyEquipBtn" type="button" style="width: 100%; height: 44px; font-weight: 900; letter-spacing: 0.08em;">
+                  EQUIPPED ✓
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -405,6 +412,14 @@
               <path d="M10 20l2 3 2-3h-4z" fill="#ff7b00"/>
             </svg>
             <span class="cockpit-label">JUMP</span>
+          </button>
+
+          <!-- Nitro Thruster Booster -->
+          <button class="cockpit-btn nitro-btn" id="nitroBtn" type="button" aria-label="Nitro Boost">
+            <svg viewBox="0 0 24 24" class="cockpit-icon icon-nitro">
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="currentColor"/>
+            </svg>
+            <span class="cockpit-label">NITRO</span>
           </button>
 
           <!-- Gas / Accelerate Pedal -->

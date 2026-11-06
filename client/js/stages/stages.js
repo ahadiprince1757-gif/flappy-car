@@ -31,7 +31,7 @@ export const STAGES = {
   savannah: {
     id: "savannah",
     name: "African Savannah",
-    price: 0,
+    price: 500,
     category: "WILD SAVANNAH",
     tagline: "Golden grassland plains with acacia trees and radiant sunset",
     atmosphere: "Sunset Glow · Warm Amber",
@@ -57,10 +57,37 @@ export const STAGES = {
     scenery: "savannah"
   },
 
+  beach: {
+    id: "beach",
+    name: "Sunset Coast",
+    price: 1200,
+    category: "COASTAL BOULEVARD",
+    tagline: "Breathtaking seaside highway with palm trees and ocean breeze",
+    atmosphere: "Golden Hour · Coastal",
+    gripRating: "9.0 / 10",
+    difficulty: "CASUAL",
+    badgeColor: "#38bdf8",
+
+    skyColor: "#fdba74",
+    fogColor: "#fed7aa",
+    groundColor: "#fde047",
+    roadColor: "#334155",
+    laneColor: "#ffffff",
+    sidewalkColor: "#d97706",
+
+    buildingColors: [
+      "#fb923c",
+      "#f43f5e",
+      "#38bdf8"
+    ],
+
+    scenery: "beach"
+  },
+
   desert: {
     id: "desert",
     name: "Dune Canyon",
-    price: 0,
+    price: 2500,
     category: "DESERT CANYON",
     tagline: "Scorching red rock canyon roads carved through desert dunes",
     atmosphere: "High Noon · Heat Haze",
@@ -87,7 +114,7 @@ export const STAGES = {
   jungle: {
     id: "jungle",
     name: "Rainforest Trail",
-    price: 0,
+    price: 4000,
     category: "TROPICAL JUNGLE",
     tagline: "Dense emerald rainforest canopy with winding misty roads",
     atmosphere: "Misty Rain · Humid",
@@ -111,37 +138,10 @@ export const STAGES = {
     scenery: "jungle"
   },
 
-  beach: {
-    id: "beach",
-    name: "Sunset Coast",
-    price: 0,
-    category: "COASTAL BOULEVARD",
-    tagline: "Breathtaking seaside highway with palm trees and ocean breeze",
-    atmosphere: "Golden Hour · Coastal",
-    gripRating: "9.0 / 10",
-    difficulty: "CASUAL",
-    badgeColor: "#38bdf8",
-
-    skyColor: "#fdba74",
-    fogColor: "#fed7aa",
-    groundColor: "#fde047",
-    roadColor: "#334155",
-    laneColor: "#ffffff",
-    sidewalkColor: "#d97706",
-
-    buildingColors: [
-      "#fb923c",
-      "#f43f5e",
-      "#38bdf8"
-    ],
-
-    scenery: "beach"
-  },
-
   village: {
     id: "village",
     name: "Alpine Resort",
-    price: 0,
+    price: 6000,
     category: "ALPINE PEAKS",
     tagline: "Snow-dusted mountain valley pass with tall evergreen pines",
     atmosphere: "Crisp Morning · Mountain Air",

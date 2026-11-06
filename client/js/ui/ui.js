@@ -18,7 +18,7 @@ import { clearObstacles } from "../obstacles/obstacles.js";
 import { resetObstacleSpawner } from "../obstacles/obstacleSpawner.js";
 import { resetCoins } from "../systems/coins.js";
 import { resetPowerUps } from "../systems/powerups.js";
-import { clearEffects, createBurst } from "../systems/effects.js";
+import { clearEffects, createBurst, triggerCameraShake } from "../systems/effects.js";
 import { startRace, abandonRace } from "../racing/racing.js";
 import { resetTraffic } from "../traffic/trafficCars.js";
 import {
@@ -100,10 +100,10 @@ function resetRunSystems() {
   };
 
   if (gameState.player) {
-    const player = gameState.player;
-    player.lane = 1;
-    player.targetLaneOffset = gameState.lanePositions[1];
-    player.currentLaneOffset = gameState.lanePositions[1];
+    const centerLane = Math.floor(gameState.lanePositions.length / 2);
+    player.lane = centerLane;
+    player.targetLaneOffset = gameState.lanePositions[centerLane];
+    player.currentLaneOffset = gameState.lanePositions[centerLane];
     player.verticalVelocity = 0;
     player.jumpHeight = 0;
     player.isJumping = false;
@@ -462,6 +462,7 @@ function bindContinuousTouchControl(id, startActionName, stopActionName) {
 function bindGameEvents() {
   window.addEventListener("flappycar:gameover", () => {
     playCrashSound();
+    triggerCameraShake(0.65, 0.45);
     if (gameState.player?.group) {
       createBurst(gameState.player.group.position, 0xff3366, 20);
     }
@@ -477,6 +478,7 @@ function bindGameEvents() {
 
   window.addEventListener("flappycar:race-life-lost", () => {
     playCrashSound();
+    triggerCameraShake(0.5, 0.35);
     if (gameState.player?.group) {
       createBurst(gameState.player.group.position, 0xff7a36, 16);
     }
@@ -534,6 +536,7 @@ export function initializeUI() {
   bindTouchControl("leftBtn", "left");
   bindTouchControl("rightBtn", "right");
   bindTouchControl("jumpBtn", "jump");
+  bindContinuousTouchControl("nitroBtn", "startNitro", "stopNitro");
   bindContinuousTouchControl("gasBtn", "startAccelerate", "stopAccelerate");
   bindContinuousTouchControl("brakeBtn", "startBrake", "stopBrake");
 

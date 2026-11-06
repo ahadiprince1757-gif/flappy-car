@@ -730,6 +730,24 @@ button {
   border: 1px solid rgba(16, 185, 129, 0.5);
 }
 
+.car-card-status.locked,
+.track-select-status-tag.locked {
+  background: rgba(255, 183, 3, 0.15);
+  color: #ffd166;
+  border: 1px solid rgba(255, 183, 3, 0.5);
+  box-shadow: 0 0 8px rgba(255, 183, 3, 0.25);
+}
+
+.car-select-card.locked-card .car-card-thumb,
+.track-select-card.locked-card .track-card-photo-img {
+  filter: grayscale(40%) brightness(0.85);
+}
+
+.car-select-card.preview-selected {
+  border-color: #ffd166;
+  box-shadow: 0 0 18px rgba(255, 209, 102, 0.4);
+}
+
 .car-card-thumb-wrap {
   position: relative;
   width: 100%;
@@ -3162,4 +3180,204 @@ button {
   background: rgba(255, 255, 255, 0.12);
   border-color: rgba(0, 239, 255, 0.5);
 }
+
+/* =====================================================
+   HUD & NITRO GAUGE & NEAR-MISS POPUPS
+===================================================== */
+#ui {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+  z-index: 25;
+  padding: env(safe-area-inset-top, 16px) 16px 0 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.hud-top {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(8px, 2.5vw, 20px);
+  background: rgba(2, 12, 24, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 239, 255, 0.22);
+  border-radius: 999px;
+  padding: 8px 18px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 16px rgba(0, 239, 255, 0.12);
+}
+
+.hud-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.1;
+}
+
+.hud-label {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: #94a3b8;
+  text-transform: uppercase;
+}
+
+.hud-stat strong {
+  font-size: clamp(14px, 2.8vw, 18px);
+  font-weight: 900;
+  color: #ffffff;
+  letter-spacing: 0.04em;
+  font-family: 'Space Grotesk', monospace;
+}
+
+.hud-tier-badge strong {
+  color: #00efff;
+  text-shadow: 0 0 10px rgba(0, 239, 255, 0.6);
+}
+
+.hud-coins-stat strong {
+  color: #ffb703;
+  text-shadow: 0 0 10px rgba(255, 183, 3, 0.5);
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.hud-coin-icon {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  line-height: 14px;
+  text-align: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ffd166, #ffb703);
+  color: #1a0f00;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+/* Nitro Boost Meter */
+.hud-nitro-container {
+  margin-top: 10px;
+  width: min(280px, 80vw);
+  background: rgba(2, 12, 24, 0.7);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(0, 239, 255, 0.3);
+  border-radius: 8px;
+  padding: 5px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.hud-nitro-labels {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #00efff;
+}
+
+.hud-nitro-pct {
+  color: #ffffff;
+  font-family: 'Space Grotesk', monospace;
+}
+
+.hud-nitro-track {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.hud-nitro-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #00efff, #0088ff);
+  border-radius: 4px;
+  transition: width 0.08s ease;
+  box-shadow: 0 0 10px rgba(0, 239, 255, 0.8);
+}
+
+.hud-nitro-bar.nitro-draining {
+  background: linear-gradient(90deg, #ff6800, #ff0055);
+  box-shadow: 0 0 14px rgba(255, 100, 0, 0.9);
+  animation: pulse-nitro 0.2s infinite alternate;
+}
+
+@keyframes pulse-nitro {
+  from { filter: brightness(1); }
+  to { filter: brightness(1.5); }
+}
+
+/* Near Miss Combo Card */
+.hud-near-miss-card {
+  position: absolute;
+  top: 100px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, rgba(255, 104, 0, 0.9), rgba(255, 0, 85, 0.9));
+  border: 2px solid #ffd166;
+  border-radius: 999px;
+  padding: 6px 18px;
+  box-shadow: 0 8px 30px rgba(255, 80, 0, 0.6), 0 0 20px rgba(255, 209, 102, 0.5);
+  pointer-events: none;
+  z-index: 30;
+}
+
+.hud-near-miss-card.pop-anim {
+  animation: stunt-pop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes stunt-pop {
+  0% { transform: scale(0.6) translateY(-20px); opacity: 0; }
+  35% { transform: scale(1.15) translateY(0); opacity: 1; }
+  75% { transform: scale(1.0); opacity: 1; }
+  100% { transform: scale(0.95) translateY(10px); opacity: 0; }
+}
+
+.near-miss-title {
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  color: #ffffff;
+}
+
+.near-miss-combo {
+  font-size: 15px;
+  font-weight: 900;
+  color: #ffd166;
+  font-family: 'Space Grotesk', monospace;
+}
+
+.near-miss-bonus {
+  font-size: 14px;
+  font-weight: 900;
+  color: #00efff;
+  text-shadow: 0 0 8px rgba(0, 239, 255, 0.8);
+}
+
+/* Cockpit Nitro Button */
+.cockpit-btn.nitro-btn {
+  background: linear-gradient(135deg, rgba(0, 239, 255, 0.25), rgba(0, 136, 255, 0.35));
+  border-color: #00efff;
+  box-shadow: 0 0 16px rgba(0, 239, 255, 0.35);
+  color: #00efff;
+}
+
+.cockpit-btn.nitro-btn:active {
+  background: linear-gradient(135deg, rgba(0, 239, 255, 0.6), rgba(0, 136, 255, 0.8));
+  color: #ffffff;
+  box-shadow: 0 0 26px rgba(0, 239, 255, 0.8);
+  transform: scale(0.95);
+}
+
 

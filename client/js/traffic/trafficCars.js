@@ -21,11 +21,11 @@ import { buildTrafficCar } from "./trafficRenderer.js";
  *  - Use object-pooling to avoid GC jank
  */
 
-const POOL_SIZE = 14;          // Max live traffic cars
-const SPAWN_AHEAD_Z = -55;     // Z ahead of player to spawn new cars
+const POOL_SIZE = 28;          // Increased live traffic cars for bustling 5-lane highway
+const SPAWN_AHEAD_Z = -60;     // Z ahead of player to spawn new cars
 const DESPAWN_BEHIND_Z = 18;   // Z behind player to remove car
-const SAME_DIR_SPEED = 10;     // m/s — slower than player (player overtakes)
-const ONCOMING_SPEED = 22;     // m/s — oncoming at highway pace
+const SAME_DIR_SPEED = 12;     // m/s — slower than player (player overtakes)
+const ONCOMING_SPEED = 24;     // m/s — oncoming at highway pace
 
 // Z-world coords:  negative Z = far ahead  /  positive Z = far behind camera
 // Player sits at roughly z = +4 fixed in world; road scrolls forward.
@@ -69,10 +69,12 @@ function spawnCar(playerZ) {
     }
   }
 
-  // Pick a random lane (0,1,2) and direction
-  const isOncoming = Math.random() < 0.3; // 30% oncoming
+  // Pick a lane across all 5 lanes
   const lane = Math.floor(Math.random() * LANE_CENTERS.length);
   const laneOffset = LANE_CENTERS[lane];
+
+  // Divided expressway rule: left 2 lanes (0, 1) have oncoming traffic; right lanes cruise forward
+  const isOncoming = lane <= 1 && Math.random() < 0.65;
 
   // Spawn ahead of the player in world-Z (far negative)
   const spawnZ = playerZ + SPAWN_AHEAD_Z - Math.random() * 30;
@@ -123,10 +125,10 @@ export function getTrafficPool() {
 
 
 // ── Per-frame update ──────────────────────────────────────────────
-const SPAWN_INTERVAL_MIN = 1.8; // seconds
-const SPAWN_INTERVAL_MAX = 3.5;
+const SPAWN_INTERVAL_MIN = 0.65; // seconds — rapid lively city traffic
+const SPAWN_INTERVAL_MAX = 1.35;
 let   _spawnTimer = 0;
-let   _nextSpawn  = 2.0;
+let   _nextSpawn  = 1.0;
 
 export function updateTraffic(deltaTime) {
   if (!gameState.scene || gameState.status !== "playing") return;

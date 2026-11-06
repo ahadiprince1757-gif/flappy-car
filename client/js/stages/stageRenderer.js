@@ -15,9 +15,9 @@ import { createBackground, updateBackground } from "./backgrounds.js";
  *   - Guarantees 100% mathematical alignment between road, curbs, obstacles, and player.
  */
 
-export const ROAD_WIDTH = 10.8; // 3 lanes of 3.6m each
-export const LANE_CENTERS = [-3.6, 0, 3.6];
-export const MARKING_OFFSETS = [-1.8, 1.8];
+export const ROAD_WIDTH = 18.0; // 5 lanes of 3.6m each
+export const LANE_CENTERS = [-7.2, -3.6, 0, 3.6, 7.2];
+export const MARKING_OFFSETS = [-5.4, -1.8, 1.8, 5.4];
 
 const TRACK_START_Z = 20;
 const TRACK_END_Z = -260;
@@ -259,7 +259,7 @@ function createRoadsidePosts(stage, parent) {
     const roadZ = TRACK_START_Z - i * postSpacing;
 
     for (const side of [-1, 1]) {
-      const lateralOffset = side * 5.9; // Just outside the rumble curb
+      const lateralOffset = side * 9.6; // Just outside the rumble curb
       const pt = getRoadPoint(roadZ, lateralOffset);
 
       const postGroup = new THREE.Group();
@@ -311,8 +311,8 @@ export function createStage(stageId = "city") {
 
   const asphaltMat = new THREE.MeshStandardMaterial({
     map: asphaltTex,
-    roughness: 0.88,
-    metalness: 0.06,
+    roughness: 0.38, // Sleek wet asphalt specular sheen with ambient reflections
+    metalness: 0.22,
     side: THREE.DoubleSide
   });
 
@@ -345,46 +345,46 @@ export function createStage(stageId = "city") {
   );
   group.add(createMeshStrip(asphaltGeo, asphaltMat));
 
-  // 2. White Edge Lines (0.16m wide at ±5.32m)
+  // 2. White Edge Lines (0.16m wide at ±8.92m)
   const leftEdgeGeo = buildContinuousStripGeometry(
     TRACK_START_Z, TRACK_END_Z, LONGITUDINAL_SEGMENTS,
-    -5.32, 0.16, 0.055, 1, 1
+    -8.92, 0.16, 0.055, 1, 1
   );
   group.add(createMeshStrip(leftEdgeGeo, edgeLineMat));
 
   const rightEdgeGeo = buildContinuousStripGeometry(
     TRACK_START_Z, TRACK_END_Z, LONGITUDINAL_SEGMENTS,
-    5.32, 0.16, 0.055, 1, 1
+    8.92, 0.16, 0.055, 1, 1
   );
   group.add(createMeshStrip(rightEdgeGeo, edgeLineMat));
 
-  // 3. Red & White Rumble Curbs (0.4m wide at ±5.6m, raised +0.075m)
+  // 3. Red & White Rumble Curbs (0.5m wide at ±9.25m, raised +0.075m)
   const leftCurbGeo = buildContinuousStripGeometry(
     TRACK_START_Z, TRACK_END_Z, LONGITUDINAL_SEGMENTS,
-    -5.6, 0.4, 0.075, 1, 50
+    -9.25, 0.5, 0.075, 1, 50
   );
   group.add(createMeshStrip(leftCurbGeo, curbMat));
 
   const rightCurbGeo = buildContinuousStripGeometry(
     TRACK_START_Z, TRACK_END_Z, LONGITUDINAL_SEGMENTS,
-    5.6, 0.4, 0.075, 1, 50
+    9.25, 0.5, 0.075, 1, 50
   );
   group.add(createMeshStrip(rightCurbGeo, curbMat));
 
-  // 4. Sidewalks (2.8m wide at ±7.2m, raised +0.09m)
+  // 4. Sidewalks (3.4m wide at ±11.2m, raised +0.09m)
   const leftSidewalkGeo = buildContinuousStripGeometry(
     TRACK_START_Z, TRACK_END_Z, LONGITUDINAL_SEGMENTS,
-    -7.2, 2.8, 0.09, 1, 35
+    -11.2, 3.4, 0.09, 1, 35
   );
   group.add(createMeshStrip(leftSidewalkGeo, sidewalkMat));
 
   const rightSidewalkGeo = buildContinuousStripGeometry(
     TRACK_START_Z, TRACK_END_Z, LONGITUDINAL_SEGMENTS,
-    7.2, 2.8, 0.09, 1, 35
+    11.2, 3.4, 0.09, 1, 35
   );
   group.add(createMeshStrip(rightSidewalkGeo, sidewalkMat));
 
-  // 4b. Smooth Roadside Shoulder / Verge Strip (2.6m wide at ±9.9m, raised +0.02m)
+  // 4b. Smooth Roadside Shoulder / Verge Strip (2.8m wide at ±14.3m, raised +0.02m)
   const shoulderMat = new THREE.MeshStandardMaterial({
     color: config.groundColor || "#475569",
     roughness: 0.95,
@@ -393,13 +393,13 @@ export function createStage(stageId = "city") {
   });
   const leftShoulderGeo = buildContinuousStripGeometry(
     TRACK_START_Z, TRACK_END_Z, LONGITUDINAL_SEGMENTS,
-    -9.9, 2.6, 0.02, 1, 10
+    -14.3, 2.8, 0.02, 1, 10
   );
   group.add(createMeshStrip(leftShoulderGeo, shoulderMat));
 
   const rightShoulderGeo = buildContinuousStripGeometry(
     TRACK_START_Z, TRACK_END_Z, LONGITUDINAL_SEGMENTS,
-    9.9, 2.6, 0.02, 1, 10
+    14.3, 2.8, 0.02, 1, 10
   );
   group.add(createMeshStrip(rightShoulderGeo, shoulderMat));
 
@@ -507,6 +507,44 @@ export function updateStage(deltaTime) {
 
   // 5. Update odometer
   gameState.distance += movement;
+
+  // 6. Dynamic Day / Cyber-Dusk / Midnight Atmosphere Transition
+  updateAtmosphereLighting(road, deltaTime);
+}
+
+function updateAtmosphereLighting(road, deltaTime) {
+  if (!gameState.scene || !gameState.scene.fog || !road.config) return;
+
+  const dist = gameState.distance || 0;
+  const cycleDistance = dist % 4500;
+  let targetSky, targetFog;
+
+  if (cycleDistance < 1500) {
+    // Stage 1: Golden sunset / bright daytime (0 - 1500m)
+    targetSky = new THREE.Color(road.config.skyColor);
+    targetFog = new THREE.Color(road.config.fogColor);
+  } else if (cycleDistance < 3000) {
+    // Stage 2: Cyber Dusk & Purple Horizon (1500 - 3000m)
+    const t = (cycleDistance - 1500) / 1500;
+    const duskSky = new THREE.Color(0x3b0764); // deep violet
+    const duskFog = new THREE.Color(0x701a75); // fuchsia mist
+    targetSky = new THREE.Color(road.config.skyColor).lerp(duskSky, t);
+    targetFog = new THREE.Color(road.config.fogColor).lerp(duskFog, t);
+  } else {
+    // Stage 3: High-contrast Neon Midnight (3000m - 4500m)
+    const t = (cycleDistance - 3000) / 1500;
+    const midnightSky = new THREE.Color(0x020617); // midnight navy
+    const midnightFog = new THREE.Color(0x0f172a); // dark mist
+    targetSky = new THREE.Color(0x3b0764).lerp(midnightSky, t);
+    targetFog = new THREE.Color(0x701a75).lerp(midnightFog, t);
+  }
+
+  if (gameState.scene.background instanceof THREE.Color) {
+    gameState.scene.background.lerp(targetSky, deltaTime * 1.5);
+  }
+  if (gameState.scene.fog) {
+    gameState.scene.fog.color.lerp(targetFog, deltaTime * 1.5);
+  }
 }
 
 /* ── Clean Resource Teardown ──────────────────────────────────── */

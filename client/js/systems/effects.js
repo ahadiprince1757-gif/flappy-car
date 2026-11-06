@@ -109,7 +109,26 @@ function removeEffect(effect) {
   }
 }
 
+let cameraShakeTimer = 0;
+let cameraShakeDuration = 0;
+let cameraShakeIntensity = 0;
+
+export function triggerCameraShake(intensity = 0.35, duration = 0.3) {
+  cameraShakeIntensity = intensity;
+  cameraShakeDuration = duration;
+  cameraShakeTimer = duration;
+}
+
 export function updateEffects(deltaTime) {
+  // Update camera shake
+  if (cameraShakeTimer > 0 && gameState.camera) {
+    cameraShakeTimer -= deltaTime;
+    const progress = Math.max(0, cameraShakeTimer / cameraShakeDuration);
+    const currIntensity = cameraShakeIntensity * progress;
+    gameState.camera.position.x += (Math.random() - 0.5) * 2 * currIntensity;
+    gameState.camera.position.y += (Math.random() - 0.5) * 2 * currIntensity;
+  }
+
   for (const effect of [...gameState.effects]) {
     effect.age += deltaTime;
 
@@ -133,8 +152,14 @@ export function updateEffects(deltaTime) {
   }
 }
 
+export function createSparks(position, count = 8) {
+  createBurst(position, 0xffd700, count);
+}
+
 export function clearEffects() {
+  cameraShakeTimer = 0;
   for (const effect of [...gameState.effects]) {
     removeEffect(effect);
   }
 }
+

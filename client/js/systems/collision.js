@@ -2,10 +2,30 @@ import { gameState } from "../core/gameState.js";
 import { removeObstacle } from "../obstacles/obstacles.js";
 import { handleRaceCollision } from "../racing/racing.js";
 import { getTrafficPool } from "../traffic/trafficCars.js";
+import { registerNearMiss } from "../player/movement.js";
+import { playNearMissSound } from "../systems/audio.js";
 
 const COLLISION_FORWARD_DISTANCE = 1.4;
 const COLLISION_LANE_DISTANCE = 1.25;
 const JUMP_CLEARANCE = 0.75;
+
+// Near-miss zone: closer than this but NOT an actual hit
+const NEAR_MISS_FORWARD_MIN = 0.6;
+const NEAR_MISS_FORWARD_MAX = 2.4;
+const NEAR_MISS_LATERAL_MIN = COLLISION_LANE_DISTANCE;
+const NEAR_MISS_LATERAL_MAX = 1.9;
+
+// Throttle near-miss events so we don't spam per-frame
+let _lastNearMissTime = 0;
+const NEAR_MISS_COOLDOWN_MS = 500;
+
+function tryNearMiss() {
+  const now = performance.now();
+  if (now - _lastNearMissTime < NEAR_MISS_COOLDOWN_MS) return;
+  _lastNearMissTime = now;
+  registerNearMiss();
+  playNearMissSound();
+}
 
 export function checkCollisions() {
   const player = gameState.player;
@@ -28,9 +48,7 @@ export function checkCollisions() {
     const model = obstacle.model || obstacle.group;
     if (!model) continue;
 
-    // roadZ tracks progress along the road in the obstacle module.
     const obstacleZ = obstacle.roadZ ?? model.position.z;
-
     const forwardDistance = Math.abs(obstacleZ - playerZ);
 
     if (forwardDistance >= COLLISION_FORWARD_DISTANCE) continue;
@@ -40,9 +58,7 @@ export function checkCollisions() {
       gameState.lanePositions[obstacle.lane] ??
       0;
 
-    const lateralDistance = Math.abs(
-      obstacleLaneOffset - playerLaneOffset
-    );
+    const lateralDistance = Math.abs(obstacleLaneOffset - playerLaneOffset);
 
     if (lateralDistance >= COLLISION_LANE_DISTANCE) continue;
 
@@ -67,38 +83,50 @@ export function checkCollisions() {
     }
 
     removeObstacle(obstacle);
-
-    handleRaceCollision({
-      type: obstacle.type
-    });
-
+    handleRaceCollision({ type: obstacle.type });
     return true;
   }
 
-  // ── Traffic car collisions ────────────────────────────────────
+  // ── Traffic car collisions & near-miss detection ────────────────────
   const trafficPool = getTrafficPool();
   for (const entry of trafficPool) {
     if (!entry.active) continue;
 
     const forwardDist = Math.abs(entry.roadZ - playerZ);
-    if (forwardDist >= COLLISION_FORWARD_DISTANCE + 0.6) continue;
-
     const lateralDist = Math.abs(entry.laneOffset - playerLaneOffset);
-    if (lateralDist >= COLLISION_LANE_DISTANCE + 0.2) continue;
 
-    // Can jump over traffic cars
-    if (player.isJumping && (player.jumpHeight || 0) > JUMP_CLEARANCE) continue;
+    // ── Full collision ──
+    if (
+      forwardDist < COLLISION_FORWARD_DISTANCE + 0.6 &&
+      lateralDist < COLLISION_LANE_DISTANCE + 0.2
+    ) {
+      // Can jump over traffic cars
+      if (player.isJumping && (player.jumpHeight || 0) > JUMP_CLEARANCE) {
+        // Near-miss for jumping very close over a traffic car
+        if (player.jumpHeight < JUMP_CLEARANCE * 1.6) tryNearMiss();
+        continue;
+      }
 
-    if (gameState.shieldActive) {
-      gameState.shieldActive = false;
-      continue;
+      if (gameState.shieldActive) {
+        gameState.shieldActive = false;
+        continue;
+      }
+
+      entry.active = false;
+      entry.group.visible = false;
+      handleRaceCollision({ type: "traffic" });
+      return true;
     }
 
-    entry.active = false;
-    entry.group.visible = false;
-
-    handleRaceCollision({ type: "traffic" });
-    return true;
+    // ── Near-miss zone (passed close but no crash) ──
+    if (
+      forwardDist >= NEAR_MISS_FORWARD_MIN &&
+      forwardDist < NEAR_MISS_FORWARD_MAX &&
+      lateralDist >= NEAR_MISS_LATERAL_MIN &&
+      lateralDist < NEAR_MISS_LATERAL_MAX
+    ) {
+      tryNearMiss();
+    }
   }
 
   return false;

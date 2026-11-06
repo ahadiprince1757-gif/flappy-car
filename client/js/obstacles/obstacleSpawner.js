@@ -116,6 +116,14 @@ export function spawnObstacleNow(
 
   if (obstacle) {
     lastObstacleZ = spawnZ;
+
+    // On 5-lane highways, 40% chance to spawn an obstacle in an alternate lane,
+    // creating exciting slalom gates while always leaving clear escape routes
+    if (laneCount >= 5 && Math.random() < 0.4) {
+      const secondLane = (safeLane + (Math.random() < 0.5 ? 2 : 3)) % laneCount;
+      const secondType = getProgressiveObstacleType();
+      createObstacle(secondType, secondLane, spawnZ);
+    }
   }
 
   return obstacle;

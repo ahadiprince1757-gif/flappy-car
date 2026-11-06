@@ -167,11 +167,15 @@ function start() {
     // 8. Preload FBX car models & background buildings in background
     preloadBuildingModels();
     preloadTreeModels();
+
+    // Spawn player immediately (will use stylish proxy if FBX is still parsing)
+    createPlayer(gameState.selectedCar);
+
     preloadCarModels(() => {
-      if (gameState.scene) {
+      if (gameState.scene && gameState.player?.group?.userData?.isPlaceholder) {
         createPlayer(gameState.selectedCar);
       }
-      console.info("FBX car models ready. Player spawned.");
+      console.info("FBX car models ready. Player active.");
     });
 
     console.info("Flappy Car 3D successfully initialized.");

@@ -21,7 +21,8 @@ function handleKeyDown(event) {
     "d",
     "w",
     "s",
-    "shift"
+    "shift",
+    "n"
   ];
 
   if (controlledKeys.includes(key)) {
@@ -75,12 +76,18 @@ function handleKeyDown(event) {
       }
       break;
 
-    // Shift: Slide
+    // Shift / J: Slide
     case "shift":
+    case "j":
       if (!event.repeat) {
         gameState.input.slide = true;
         slide();
       }
+      break;
+
+    // N: Nitro Boost
+    case "n":
+      gameState.input.nitro = true;
       break;
   }
 }
@@ -112,7 +119,12 @@ function handleKeyUp(event) {
       break;
 
     case "shift":
+    case "j":
       gameState.input.slide = false;
+      break;
+
+    case "n":
+      gameState.input.nitro = false;
       break;
   }
 }
@@ -124,6 +136,7 @@ function handleBlur() {
   gameState.input.slide = false;
   gameState.input.accelerate = false;
   gameState.input.brake = false;
+  gameState.input.nitro = false;
 }
 
 export function startAccelerate() {
@@ -140,6 +153,14 @@ export function startBrake() {
 
 export function stopBrake() {
   gameState.input.brake = false;
+}
+
+export function startNitro() {
+  gameState.input.nitro = true;
+}
+
+export function stopNitro() {
+  gameState.input.nitro = false;
 }
 
 export function initializeControls() {
@@ -171,5 +192,7 @@ export const playerControls = {
   startAccelerate,
   stopAccelerate,
   startBrake,
-  stopBrake
+  stopBrake,
+  startNitro,
+  stopNitro
 };

@@ -1,11 +1,14 @@
-﻿import * as THREE from "three";
+import * as THREE from "three";
 import { getAllCars, getCarConfig } from "./cars.js";
 import { getAllStages, getStageConfig } from "../stages/stages.js";
 import {
   getWallet,
   selectCar,
-  selectStage
+  selectStage,
+  purchaseCar,
+  purchaseStage
 } from "../systems/economy.js";
+import { playCoinSound } from "../systems/audio.js";
 import { gameState } from "../core/gameState.js";
 import { createPlayer } from "../player/player.js";
 import { createStage } from "../stages/stageRenderer.js";
@@ -234,13 +237,13 @@ export function updateShowcaseCar(carId) {
   updateInspectorPanel(carConfig);
 }
 
-// â”€â”€ Update Inspector Details & Stats â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Update Inspector Details & Stats ──────────────────────────────
 function updateInspectorPanel(car) {
   const nameEl = byId("inspectorCarName");
   if (nameEl) nameEl.textContent = car.name;
 
   const tagEl = byId("inspectorCarTagline");
-  if (tagEl) tagEl.textContent = car.tagline || `${car.category} Â· High Performance`;
+  if (tagEl) tagEl.textContent = car.tagline || `${car.category} · High Performance`;
 
   const catTagEl = byId("inspectorCategoryTag");
   if (catTagEl) {
@@ -273,9 +276,58 @@ function updateInspectorPanel(car) {
   setBar("statHandlingVal", "statHandlingFill", car.handlingRating);
   setBar("statBrakingVal", "statBrakingFill", car.brakingRating);
   setBar("statStabilityVal", "statStabilityFill", car.stabilityRating);
+
+  // Buy / Equip Button in Inspector
+  const buyBtn = byId("inspectorBuyEquipBtn");
+  if (buyBtn) {
+    const wallet = getWallet();
+    const isOwned = wallet.ownedCars.includes(car.id);
+    const isSelected = isOwned && (gameState.selectedCar === car.id || wallet.selectedCar === car.id);
+
+    if (isSelected) {
+      buyBtn.textContent = "EQUIPPED ✓";
+      buyBtn.className = "btn-action btn-secondary";
+      buyBtn.style.opacity = "0.7";
+      buyBtn.onclick = null;
+    } else if (isOwned) {
+      buyBtn.textContent = "EQUIP CAR";
+      buyBtn.className = "btn-action btn-primary";
+      buyBtn.style.opacity = "1";
+      buyBtn.onclick = () => {
+        selectCar(car.id);
+        gameState.selectedCar = car.id;
+        if (gameState.scene) createPlayer(car.id);
+        renderCarSelectionScreen();
+        onSelectionChangeCallback?.("car", car.id);
+      };
+    } else {
+      buyBtn.textContent = `UNLOCK · 🪙 ${car.price}`;
+      buyBtn.className = "btn-action btn-primary";
+      buyBtn.style.opacity = "1";
+      buyBtn.onclick = () => {
+        const currentWallet = getWallet();
+        if (currentWallet.coins < car.price) {
+          alert(`Insufficient Coins!\nYou need ${car.price} coins to unlock ${car.name}.\nYou currently have ${currentWallet.coins} coins.\n\nPlay more races to collect coins!`);
+          return;
+        }
+
+        const res = purchaseCar(car.id);
+        if (res.success) {
+          playCoinSound();
+          selectCar(car.id);
+          gameState.selectedCar = car.id;
+          if (gameState.scene) createPlayer(car.id);
+          const coinDisplay = byId("coinDisplay");
+          if (coinDisplay) coinDisplay.textContent = res.coins;
+          renderCarSelectionScreen();
+          onSelectionChangeCallback?.("car", car.id);
+        }
+      };
+    }
+  }
 }
 
-// â”€â”€ Render Car Selection Grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Render Car Selection Grid ──────────────────────────────
 export function renderCarSelectionScreen(category = activeCategoryFilter) {
   activeCategoryFilter = category;
   const container = byId("carCardsGrid");
@@ -297,10 +349,11 @@ export function renderCarSelectionScreen(category = activeCategoryFilter) {
   });
 
   for (const car of filteredCars) {
-    const isSelected = selectedCarId === car.id;
+    const isOwned = wallet.ownedCars.includes(car.id);
+    const isSelected = isOwned && selectedCarId === car.id;
 
     const card = document.createElement("article");
-    card.className = `car-select-card ${isSelected ? "selected" : ""}`;
+    card.className = `car-select-card ${isSelected ? "selected" : ""} ${!isOwned ? "locked-card" : ""}`;
     card.dataset.carId = car.id;
 
     // Top Row: Category badge & Selection checkmark
@@ -313,12 +366,17 @@ export function renderCarSelectionScreen(category = activeCategoryFilter) {
     catBadge.style.color = car.accentColor || "#00efff";
 
     const statusBadge = document.createElement("span");
-    statusBadge.className = `car-card-status ${isSelected ? "active" : ""}`;
-    statusBadge.textContent = isSelected ? "EQUIPPED âœ“" : "SELECT";
+    if (!isOwned) {
+      statusBadge.className = "car-card-status locked";
+      statusBadge.textContent = `🔒 ${car.price}`;
+    } else {
+      statusBadge.className = `car-card-status ${isSelected ? "active" : ""}`;
+      statusBadge.textContent = isSelected ? "EQUIPPED ✓" : "SELECT";
+    }
 
     topRow.append(catBadge, statusBadge);
 
-    // Image Box (Fully displays car with zero clipping)
+    // Image Box
     const imgBox = document.createElement("div");
     imgBox.className = "car-card-thumb-wrap";
 
@@ -340,8 +398,8 @@ export function renderCarSelectionScreen(category = activeCategoryFilter) {
     const statsMini = document.createElement("div");
     statsMini.className = "car-card-mini-specs";
     statsMini.innerHTML = `
-      <span>âš¡ ${car.hp || 600} HP</span>
-      <span>ðŸ ${car.topSpeedMph || 190} MPH</span>
+      <span>⚡ ${car.hp || 600} HP</span>
+      <span>🏎️ ${car.topSpeedMph || 190} MPH</span>
     `;
 
     infoRow.append(title, statsMini);
@@ -349,6 +407,16 @@ export function renderCarSelectionScreen(category = activeCategoryFilter) {
 
     // Selection Click Event
     card.addEventListener("click", () => {
+      updateShowcaseCar(car.id);
+
+      if (!isOwned) {
+        // Preview on turntable, and trigger inspector buy flow
+        container.querySelectorAll(".car-select-card").forEach((c) => {
+          c.classList.toggle("preview-selected", c.dataset.carId === car.id);
+        });
+        return;
+      }
+
       selectCar(car.id);
       gameState.selectedCar = car.id;
 
@@ -356,14 +424,13 @@ export function renderCarSelectionScreen(category = activeCategoryFilter) {
         createPlayer(car.id);
       }
 
-      updateShowcaseCar(car.id);
-
       container.querySelectorAll(".car-select-card").forEach((c) => {
         const isThis = c.dataset.carId === car.id;
         c.classList.toggle("selected", isThis);
+        c.classList.remove("preview-selected");
         const st = c.querySelector(".car-card-status");
-        if (st) {
-          st.textContent = isThis ? "EQUIPPED âœ“" : "SELECT";
+        if (st && !c.classList.contains("locked-card")) {
+          st.textContent = isThis ? "EQUIPPED ✓" : "SELECT";
           st.classList.toggle("active", isThis);
         }
       });
@@ -994,10 +1061,11 @@ export function renderTrackSelectionScreen() {
   container.replaceChildren();
 
   for (const stage of stages) {
-    const isSelected = selectedStageId === stage.id;
+    const isOwned = wallet.ownedStages.includes(stage.id);
+    const isSelected = isOwned && selectedStageId === stage.id;
 
     const card = document.createElement("article");
-    card.className = `track-select-card ${isSelected ? "selected" : ""}`;
+    card.className = `track-select-card ${isSelected ? "selected" : ""} ${!isOwned ? "locked-card" : ""}`;
     card.dataset.stageId = stage.id;
 
     // 1. Stage Picture Container (Large, prominent photo of the stage)
@@ -1040,8 +1108,13 @@ export function renderTrackSelectionScreen() {
     title.textContent = stage.name;
 
     const selectStatus = document.createElement("span");
-    selectStatus.className = `track-select-status-tag ${isSelected ? "active" : ""}`;
-    selectStatus.textContent = isSelected ? "SELECTED âœ“" : "SELECT";
+    if (!isOwned) {
+      selectStatus.className = "track-select-status-tag locked";
+      selectStatus.textContent = `🔒 ${stage.price}`;
+    } else {
+      selectStatus.className = `track-select-status-tag ${isSelected ? "active" : ""}`;
+      selectStatus.textContent = isSelected ? "SELECTED ✓" : "SELECT";
+    }
 
     headerRow.append(title, selectStatus);
 
@@ -1068,6 +1141,30 @@ export function renderTrackSelectionScreen() {
 
     // Selection Click Event
     card.addEventListener("click", () => {
+      if (!isOwned) {
+        const currentWallet = getWallet();
+        if (currentWallet.coins < stage.price) {
+          alert(`Insufficient Coins!\nYou need ${stage.price} coins to unlock ${stage.name}.\nYou currently have ${currentWallet.coins} coins.`);
+          return;
+        }
+
+        const confirmUnlock = confirm(`Unlock track "${stage.name}" for ${stage.price} coins?`);
+        if (!confirmUnlock) return;
+
+        const res = purchaseStage(stage.id);
+        if (res.success) {
+          playCoinSound();
+          selectStage(stage.id);
+          gameState.selectedStage = stage.id;
+          if (gameState.scene) createStage(stage.id);
+          const coinDisplay = byId("coinDisplay");
+          if (coinDisplay) coinDisplay.textContent = res.coins;
+          renderTrackSelectionScreen();
+          onSelectionChangeCallback?.("stage", stage.id);
+        }
+        return;
+      }
+
       selectStage(stage.id);
       gameState.selectedStage = stage.id;
 
@@ -1079,8 +1176,8 @@ export function renderTrackSelectionScreen() {
         const isThis = c.dataset.stageId === stage.id;
         c.classList.toggle("selected", isThis);
         const tag = c.querySelector(".track-select-status-tag");
-        if (tag) {
-          tag.textContent = isThis ? "SELECTED âœ“" : "SELECT";
+        if (tag && !c.classList.contains("locked-card")) {
+          tag.textContent = isThis ? "SELECTED ✓" : "SELECT";
           tag.classList.toggle("active", isThis);
         }
       });

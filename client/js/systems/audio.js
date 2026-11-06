@@ -1,9 +1,13 @@
 /**
- * Flappy Car 3D — Dual-Channel Audio & Custom Music Jukebox System
- * 
+ * Flappy Car 3D — Triple-Channel Audio System
+ *
  * Features:
  * - Channel 1 (SFX & Engine): Real-time WebAudio synthesis (engine revs, crashes, drifts, coins)
  * - Channel 2 (Custom BGM): HTML5 Audio element loading user-selected local audio files
+ * - Channel 3 (Built-in BGM): Procedural synthwave sequencer via WebAudio (no file needed)
+ * - Pentatonic coin arpeggios with streak pitch-shifting
+ * - Enhanced crash SFX (multi-oscillator noise burst)
+ * - Tire screech drift audio, turbo blow-off valve, near-miss whoosh
  * - Independent volume sliders for Engine/SFX vs Music
  * - Mobile / Android & Capacitor lifecycle protection (auto-pause on background / lock screen)
  * - Safe memory management with URL.revokeObjectURL
@@ -24,6 +28,18 @@ let musicUrl = null;
 let currentTrackName = "";
 let wasMusicPlayingBeforeHide = false;
 let audioInitialized = false;
+
+// Coin streak arpeggio state
+let coinStreakCount = 0;
+let coinStreakTimer = null;
+const PENTATONIC_FREQS = [523, 587, 659, 784, 880, 1047, 1175, 1319]; // C5 pentatonic
+
+// Built-in synthwave BGM state
+let synthBGMActive = false;
+let synthBGMTimeout = null;
+let synthBGMNodes = [];
+const SYNTH_BGM_TEMPO = 142; // BPM
+const SYNTH_BEAT_SEC = 60 / SYNTH_BGM_TEMPO;
 
 // Storage keys
 const STORAGE_MUSIC_VOL = "flappyCar.musicVol";
@@ -495,46 +511,349 @@ export function initializeAudio() {
   audioInitialized = true;
   initializeAudioContext();
   setupCustomMusicPlayer();
+  // Auto-start built-in synthwave BGM if user hasn't loaded a custom track
+  if (!musicPlayer?.src && !muted) {
+    setTimeout(() => startSynthwaveBGM(), 200);
+  }
+}
+
+export function startSynthwaveBGM() {
+  if (synthBGMActive) return;
+  const context = initializeAudioContext();
+  if (!context || muted || !masterGain) return;
+
+  synthBGMActive = true;
+
+  // Synthwave BGM: 4-bar looping pattern using bass synth + arp melody + kick pulse
+  // Tempo: 142 BPM
+  const BPS = SYNTH_BEAT_SEC; // seconds per beat
+  const BAR = BPS * 4; // 4 beats = 1 bar
+  const LOOP_BARS = 8; // 8-bar loop
+  const LOOP_DURATION = BAR * LOOP_BARS;
+
+  // Bass sequence (root notes per bar): D2 D2 A1 Bb1 (classic retrowave IV-I-V-VI)
+  const BASS_NOTES = [73.42, 73.42, 55, 58.27, 73.42, 73.42, 65.41, 61.74];
+  // Arp melody: D4 F#4 A4 C5 B4 A4 G4 F#4
+  const ARP_NOTES = [293.66, 369.99, 440, 523.25, 493.88, 440, 392, 369.99,
+                     329.63, 293.66, 261.63, 246.94, 293.66, 369.99, 440, 523.25];
+
+  const bgmGain = context.createGain();
+  bgmGain.gain.value = muted ? 0 : Math.min(0.09, musicVolume * 0.14);
+  bgmGain.connect(context.destination); // connect directly (not through SFX masterGain)
+  synthBGMNodes.push(bgmGain);
+
+  function scheduleLoop(startTime) {
+    if (!synthBGMActive) return;
+
+    // ── Bass synth ────────────────────────────────────────────────
+    for (let bar = 0; bar < LOOP_BARS; bar++) {
+      const freq = BASS_NOTES[bar % BASS_NOTES.length];
+      const t = startTime + bar * BAR;
+
+      const bassOsc = context.createOscillator();
+      const bassEnv = context.createGain();
+      bassOsc.type = "sawtooth";
+      bassOsc.frequency.setValueAtTime(freq, t);
+      bassEnv.gain.setValueAtTime(0.001, t);
+      bassEnv.gain.exponentialRampToValueAtTime(0.9, t + 0.02);
+      bassEnv.gain.exponentialRampToValueAtTime(0.4, t + BPS * 1.5);
+      bassEnv.gain.exponentialRampToValueAtTime(0.001, t + BAR - 0.04);
+      bassOsc.connect(bassEnv);
+      bassEnv.connect(bgmGain);
+      bassOsc.start(t);
+      bassOsc.stop(t + BAR);
+      bassOsc.onended = () => { bassOsc.disconnect(); bassEnv.disconnect(); };
+      synthBGMNodes.push(bassOsc, bassEnv);
+    }
+
+    // ── Arp melody ───────────────────────────────────────────────
+    for (let step = 0; step < ARP_NOTES.length * 2; step++) {
+      const freq = ARP_NOTES[step % ARP_NOTES.length];
+      const t = startTime + step * (BPS / 2);
+      if (t >= startTime + LOOP_DURATION) break;
+
+      const arpOsc = context.createOscillator();
+      const arpEnv = context.createGain();
+      arpOsc.type = "triangle";
+      arpOsc.frequency.setValueAtTime(freq, t);
+      arpEnv.gain.setValueAtTime(0.001, t);
+      arpEnv.gain.exponentialRampToValueAtTime(0.5, t + 0.015);
+      arpEnv.gain.exponentialRampToValueAtTime(0.001, t + BPS / 2 - 0.02);
+      arpOsc.connect(arpEnv);
+      arpEnv.connect(bgmGain);
+      arpOsc.start(t);
+      arpOsc.stop(t + BPS / 2);
+      arpOsc.onended = () => { arpOsc.disconnect(); arpEnv.disconnect(); };
+      synthBGMNodes.push(arpOsc, arpEnv);
+    }
+
+    // ── Kick drum pulse (every beat) ─────────────────────────────
+    for (let beat = 0; beat < LOOP_BARS * 4; beat++) {
+      const t = startTime + beat * BPS;
+      const kickOsc = context.createOscillator();
+      const kickEnv = context.createGain();
+      kickOsc.type = "sine";
+      kickOsc.frequency.setValueAtTime(120, t);
+      kickOsc.frequency.exponentialRampToValueAtTime(35, t + 0.1);
+      kickEnv.gain.setValueAtTime(0.001, t);
+      kickEnv.gain.exponentialRampToValueAtTime(0.6, t + 0.005);
+      kickEnv.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+      kickOsc.connect(kickEnv);
+      kickEnv.connect(bgmGain);
+      kickOsc.start(t);
+      kickOsc.stop(t + 0.16);
+      kickOsc.onended = () => { kickOsc.disconnect(); kickEnv.disconnect(); };
+      synthBGMNodes.push(kickOsc, kickEnv);
+    }
+
+    // Schedule next loop
+    synthBGMTimeout = setTimeout(() => scheduleLoop(startTime + LOOP_DURATION), (LOOP_DURATION - 0.5) * 1000);
+  }
+
+  scheduleLoop(context.currentTime + 0.1);
+}
+
+export function stopSynthwaveBGM() {
+  synthBGMActive = false;
+  if (synthBGMTimeout) {
+    clearTimeout(synthBGMTimeout);
+    synthBGMTimeout = null;
+  }
+  for (const node of synthBGMNodes) {
+    try { node.stop?.(); } catch {}
+    try { node.disconnect(); } catch {}
+  }
+  synthBGMNodes = [];
+}
+
+export function isSynthBGMActive() {
+  return synthBGMActive;
 }
 
 export function playCoinSound() {
-  playTone({
-    frequency: 850,
-    endFrequency: 1320,
-    duration: 0.11,
-    type: "sine",
-    gain: 0.22
-  });
+  const context = initializeAudioContext();
+  if (!context || muted || !masterGain) return;
+
+  // Pentatonic arpeggio: each coin in quick succession steps up the scale
+  if (coinStreakTimer) clearTimeout(coinStreakTimer);
+  coinStreakTimer = setTimeout(() => { coinStreakCount = 0; }, 800);
+
+  const idx = Math.min(coinStreakCount, PENTATONIC_FREQS.length - 1);
+  const baseFreq = PENTATONIC_FREQS[idx];
+  coinStreakCount = (coinStreakCount + 1) % PENTATONIC_FREQS.length;
+
+  const now = context.currentTime;
+
+  // Primary chime tone
+  const osc1 = context.createOscillator();
+  const env1 = context.createGain();
+  osc1.type = "sine";
+  osc1.frequency.setValueAtTime(baseFreq, now);
+  osc1.frequency.exponentialRampToValueAtTime(baseFreq * 1.5, now + 0.08);
+  env1.gain.setValueAtTime(0.001, now);
+  env1.gain.exponentialRampToValueAtTime(0.28, now + 0.012);
+  env1.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+  osc1.connect(env1);
+  env1.connect(masterGain);
+  osc1.start(now);
+  osc1.stop(now + 0.16);
+  osc1.onended = () => { osc1.disconnect(); env1.disconnect(); };
+
+  // Sparkle harmonic overtone
+  const osc2 = context.createOscillator();
+  const env2 = context.createGain();
+  osc2.type = "triangle";
+  osc2.frequency.setValueAtTime(baseFreq * 2, now + 0.02);
+  env2.gain.setValueAtTime(0.001, now + 0.02);
+  env2.gain.exponentialRampToValueAtTime(0.1, now + 0.04);
+  env2.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+  osc2.connect(env2);
+  env2.connect(masterGain);
+  osc2.start(now + 0.02);
+  osc2.stop(now + 0.12);
+  osc2.onended = () => { osc2.disconnect(); env2.disconnect(); };
 }
 
 export function playJumpSound() {
   playTone({
     frequency: 240,
-    endFrequency: 520,
-    duration: 0.16,
+    endFrequency: 580,
+    duration: 0.18,
     type: "triangle",
-    gain: 0.2
+    gain: 0.22
   });
 }
 
 export function playPowerUpSound() {
-  playTone({
-    frequency: 330,
-    endFrequency: 990,
-    duration: 0.28,
-    type: "sine",
-    gain: 0.24
+  const context = initializeAudioContext();
+  if (!context || muted || !masterGain) return;
+  const now = context.currentTime;
+
+  // Rising triple-chord power-up jingle
+  const notes = [330, 415, 523, 659, 830];
+  notes.forEach((freq, i) => {
+    const o = context.createOscillator();
+    const e = context.createGain();
+    o.type = "triangle";
+    o.frequency.setValueAtTime(freq, now + i * 0.065);
+    e.gain.setValueAtTime(0.001, now + i * 0.065);
+    e.gain.exponentialRampToValueAtTime(0.2, now + i * 0.065 + 0.025);
+    e.gain.exponentialRampToValueAtTime(0.001, now + i * 0.065 + 0.14);
+    o.connect(e);
+    e.connect(masterGain);
+    o.start(now + i * 0.065);
+    o.stop(now + i * 0.065 + 0.16);
+    o.onended = () => { o.disconnect(); e.disconnect(); };
   });
 }
 
 export function playCrashSound() {
-  playTone({
-    frequency: 150,
-    endFrequency: 45,
-    duration: 0.32,
-    type: "sawtooth",
-    gain: 0.25
-  });
+  const context = initializeAudioContext();
+  if (!context || muted || !masterGain) return;
+  const now = context.currentTime;
+
+  // 1. Sub-bass impact thud
+  const sub = context.createOscillator();
+  const subEnv = context.createGain();
+  sub.type = "sine";
+  sub.frequency.setValueAtTime(90, now);
+  sub.frequency.exponentialRampToValueAtTime(28, now + 0.28);
+  subEnv.gain.setValueAtTime(0.001, now);
+  subEnv.gain.exponentialRampToValueAtTime(0.45, now + 0.01);
+  subEnv.gain.exponentialRampToValueAtTime(0.001, now + 0.32);
+  sub.connect(subEnv); subEnv.connect(masterGain);
+  sub.start(now); sub.stop(now + 0.34);
+  sub.onended = () => { sub.disconnect(); subEnv.disconnect(); };
+
+  // 2. Metal crunch — sawtooth burst
+  const crunch = context.createOscillator();
+  const crunchEnv = context.createGain();
+  crunch.type = "sawtooth";
+  crunch.frequency.setValueAtTime(220, now);
+  crunch.frequency.exponentialRampToValueAtTime(55, now + 0.18);
+  crunchEnv.gain.setValueAtTime(0.001, now);
+  crunchEnv.gain.exponentialRampToValueAtTime(0.3, now + 0.008);
+  crunchEnv.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+  crunch.connect(crunchEnv); crunchEnv.connect(masterGain);
+  crunch.start(now); crunch.stop(now + 0.24);
+  crunch.onended = () => { crunch.disconnect(); crunchEnv.disconnect(); };
+
+  // 3. White-noise glass shatter
+  const bufferSize = context.sampleRate * 0.18;
+  const noiseBuffer = context.createBuffer(1, bufferSize, context.sampleRate);
+  const noiseData = noiseBuffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) noiseData[i] = Math.random() * 2 - 1;
+  const noise = context.createBufferSource();
+  noise.buffer = noiseBuffer;
+  const noiseFilter = context.createBiquadFilter();
+  noiseFilter.type = "highpass";
+  noiseFilter.frequency.value = 2800;
+  const noiseEnv = context.createGain();
+  noiseEnv.gain.setValueAtTime(0.001, now + 0.02);
+  noiseEnv.gain.exponentialRampToValueAtTime(0.18, now + 0.035);
+  noiseEnv.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+  noise.connect(noiseFilter);
+  noiseFilter.connect(noiseEnv);
+  noiseEnv.connect(masterGain);
+  noise.start(now + 0.02);
+  noise.onended = () => { noise.disconnect(); noiseFilter.disconnect(); noiseEnv.disconnect(); };
+}
+
+export function playDriftSound() {
+  const context = initializeAudioContext();
+  if (!context || muted || !masterGain) return;
+  const now = context.currentTime;
+
+  // Tire screech: narrow-band noise pitched around 2.4kHz with wobble
+  const bufferSize = Math.floor(context.sampleRate * 0.22);
+  const noiseBuffer = context.createBuffer(1, bufferSize, context.sampleRate);
+  const nd = noiseBuffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) nd[i] = (Math.random() * 2 - 1) * 0.7;
+  const noiseSrc = context.createBufferSource();
+  noiseSrc.buffer = noiseBuffer;
+
+  const bandpass = context.createBiquadFilter();
+  bandpass.type = "bandpass";
+  bandpass.frequency.setValueAtTime(2400, now);
+  bandpass.frequency.exponentialRampToValueAtTime(1800, now + 0.22);
+  bandpass.Q.value = 2.5;
+
+  const driftEnv = context.createGain();
+  driftEnv.gain.setValueAtTime(0.001, now);
+  driftEnv.gain.exponentialRampToValueAtTime(0.14, now + 0.03);
+  driftEnv.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+
+  noiseSrc.connect(bandpass);
+  bandpass.connect(driftEnv);
+  driftEnv.connect(masterGain);
+  noiseSrc.start(now);
+  noiseSrc.onended = () => { noiseSrc.disconnect(); bandpass.disconnect(); driftEnv.disconnect(); };
+}
+
+export function playTurboBlowOffSound() {
+  const context = initializeAudioContext();
+  if (!context || muted || !masterGain) return;
+  const now = context.currentTime;
+
+  // Pneumatic PSSH — filtered noise spike dropping rapidly
+  const bufSize = Math.floor(context.sampleRate * 0.18);
+  const buf = context.createBuffer(1, bufSize, context.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
+  const src = context.createBufferSource();
+  src.buffer = buf;
+
+  const hpf = context.createBiquadFilter();
+  hpf.type = "highpass";
+  hpf.frequency.value = 1200;
+
+  const env = context.createGain();
+  env.gain.setValueAtTime(0.001, now);
+  env.gain.exponentialRampToValueAtTime(0.2, now + 0.02);
+  env.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+
+  src.connect(hpf); hpf.connect(env); env.connect(masterGain);
+  src.start(now);
+  src.onended = () => { src.disconnect(); hpf.disconnect(); env.disconnect(); };
+}
+
+export function playNitroBoostSound() {
+  const context = initializeAudioContext();
+  if (!context || muted || !masterGain) return;
+  const now = context.currentTime;
+
+  // High-pitch afterburner rocket ignition
+  const osc = context.createOscillator();
+  const env = context.createGain();
+  osc.type = "sawtooth";
+  osc.frequency.setValueAtTime(140, now);
+  osc.frequency.exponentialRampToValueAtTime(520, now + 0.22);
+  env.gain.setValueAtTime(0.001, now);
+  env.gain.exponentialRampToValueAtTime(0.25, now + 0.03);
+  env.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+  osc.connect(env); env.connect(masterGain);
+  osc.start(now); osc.stop(now + 0.36);
+  osc.onended = () => { osc.disconnect(); env.disconnect(); };
+}
+
+
+export function playNearMissSound() {
+  const context = initializeAudioContext();
+  if (!context || muted || !masterGain) return;
+  const now = context.currentTime;
+
+  // Doppler whoosh — frequency sweep down from 900 to 200
+  const osc = context.createOscillator();
+  const env = context.createGain();
+  osc.type = "sawtooth";
+  osc.frequency.setValueAtTime(900, now);
+  osc.frequency.exponentialRampToValueAtTime(200, now + 0.14);
+  env.gain.setValueAtTime(0.001, now);
+  env.gain.exponentialRampToValueAtTime(0.18, now + 0.015);
+  env.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+  osc.connect(env); env.connect(masterGain);
+  osc.start(now); osc.stop(now + 0.16);
+  osc.onended = () => { osc.disconnect(); env.disconnect(); };
 }
 
 export function playRaceCompleteSound() {
@@ -595,9 +914,10 @@ export function startEngineSound() {
   engineOscillator = context.createOscillator();
   engineGain = context.createGain();
 
+  // Multi-layered engine: low roar + mid-tone harmonic
   engineOscillator.type = "sawtooth";
-  engineOscillator.frequency.value = 65;
-  engineGain.gain.value = 0.025;
+  engineOscillator.frequency.value = 55;
+  engineGain.gain.value = 0.022;
 
   engineOscillator.connect(engineGain);
   engineGain.connect(masterGain);

@@ -22,12 +22,12 @@ let activeArchway = null;
 let nextCheckpointDist = CHECKPOINT_INTERVAL;
 let lastPassedCheckpoint = null;
 
-// Dynamic difficulty tiers definition
+// Dynamic difficulty tiers definition — optimized for bustling 5-lane highway
 export const DIFFICULTY_TIERS = [
-  { tier: 1, name: "CRUISING",    minDist: 0,   speedBoost: 0, minGap: 24, interval: [1.8, 2.3], maxTraffic: 0 },
-  { tier: 2, name: "HIGHWAY",     minDist: 150, speedBoost: 2, minGap: 20, interval: [1.4, 1.8], maxTraffic: 1 },
-  { tier: 3, name: "SPEEDWAY",    minDist: 400, speedBoost: 4, minGap: 17, interval: [1.1, 1.4], maxTraffic: 2 },
-  { tier: 4, name: "HYPERDRIVE",  minDist: 800, speedBoost: 7, minGap: 14, interval: [0.9, 1.2], maxTraffic: 3 }
+  { tier: 1, name: "CRUISING",    minDist: 0,   speedBoost: 0, minGap: 16, interval: [1.2, 1.6], maxTraffic: 2 },
+  { tier: 2, name: "HIGHWAY",     minDist: 150, speedBoost: 2, minGap: 13, interval: [0.95, 1.3], maxTraffic: 4 },
+  { tier: 3, name: "SPEEDWAY",    minDist: 400, speedBoost: 4, minGap: 10, interval: [0.75, 1.05], maxTraffic: 6 },
+  { tier: 4, name: "HYPERDRIVE",  minDist: 800, speedBoost: 7, minGap: 8, interval: [0.55, 0.85], maxTraffic: 8 }
 ];
 
 export function getCurrentDifficulty() {
@@ -66,24 +66,24 @@ function createArchwayMesh(distanceMark) {
     roughness: 0.2
   });
 
-  // Left & Right Pillars (spanning across 3 lanes: road is 10.8m wide)
+  // Left & Right Pillars (spanning across 5 lanes: road is 18.0m wide)
   const pillarGeo = new THREE.BoxGeometry(0.7, 5.2, 0.7);
   const leftPillar = new THREE.Mesh(pillarGeo, pillarMat);
-  leftPillar.position.set(-6.2, 2.6, 0);
+  leftPillar.position.set(-9.8, 2.6, 0);
 
   const rightPillar = new THREE.Mesh(pillarGeo, pillarMat);
-  rightPillar.position.set(6.2, 2.6, 0);
+  rightPillar.position.set(9.8, 2.6, 0);
 
   // Neon glowing strips along pillars
   const stripGeo = new THREE.BoxGeometry(0.15, 5.0, 0.72);
   const leftStrip = new THREE.Mesh(stripGeo, neonMat);
-  leftStrip.position.set(-5.85, 2.6, 0);
+  leftStrip.position.set(-9.45, 2.6, 0);
 
   const rightStrip = new THREE.Mesh(stripGeo, neonMat);
-  rightStrip.position.set(5.85, 2.6, 0);
+  rightStrip.position.set(9.45, 2.6, 0);
 
   // Overhead Crossbar Beam
-  const beamGeo = new THREE.BoxGeometry(13.2, 0.85, 0.8);
+  const beamGeo = new THREE.BoxGeometry(20.4, 0.85, 0.8);
   const crossbeam = new THREE.Mesh(beamGeo, pillarMat);
   crossbeam.position.set(0, 4.8, 0);
 
