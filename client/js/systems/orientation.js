@@ -58,8 +58,10 @@ export function checkAutoLandscape() {
   const isMobile = window.innerWidth <= 1024 || isTouchDevice();
   const portrait = isPortrait();
 
-  // On upright mobile devices, automatically rotate the game into landscape by default
-  if (isMobile && portrait) {
+  // ONLY auto-rotate into forced landscape when actually actively driving/playing in-game!
+  // In the menus, garage, and stage selection screens, render naturally upright/responsive
+  // so the player can select cars and stages without a 90-degree sideways rotated screen.
+  if (isMobile && portrait && isGameActive) {
     document.body.classList.add("auto-landscape");
   } else {
     document.body.classList.remove("auto-landscape");

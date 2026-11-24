@@ -470,579 +470,434 @@ function getStageDioramaSnapshot(stageId) {
   const painter = painters[stageId] || paintCityStage;
   painter(ctx, canvas.width, canvas.height);
 
-  const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
+  const dataUrl = canvas.toDataURL("image/jpeg", 0.95);
   _stageSnapshotCache.set(stageId, dataUrl);
   return dataUrl;
 }
 
-// â”€â”€ Shared drawing helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-function drawRoadPerspective(ctx, W, H, roadColor, lineColor) {
-  // Vanishing-point road from bottom to horizon
-  const vpX = W / 2, vpY = H * 0.52;
-  const roadW = W * 0.72;
+// ── Realistic 3D Stage Drawing Engine (Cinematic Racing Cover Art) ──────────────────────────
+function drawCinematicHighway(ctx, W, H, roadHex, curbA, curbB, lineHex) {
+  const vpX = W * 0.5, vpY = H * 0.44;
+  const bottomRoadW = W * 0.92;
+  const topRoadW = 32;
+
+  // Road tarmac with texture gradient
+  const roadGrad = ctx.createLinearGradient(0, vpY, 0, H);
+  roadGrad.addColorStop(0, "#111827");
+  roadGrad.addColorStop(0.4, roadHex);
+  roadGrad.addColorStop(1, "#030712");
+
   ctx.beginPath();
-  ctx.moveTo(W / 2 - roadW / 2, H);
-  ctx.lineTo(W / 2 + roadW / 2, H);
-  ctx.lineTo(vpX + 6,  vpY);
-  ctx.lineTo(vpX - 6,  vpY);
+  ctx.moveTo(vpX - bottomRoadW / 2, H);
+  ctx.lineTo(vpX + bottomRoadW / 2, H);
+  ctx.lineTo(vpX + topRoadW / 2, vpY);
+  ctx.lineTo(vpX - topRoadW / 2, vpY);
   ctx.closePath();
-  ctx.fillStyle = roadColor;
+  ctx.fillStyle = roadGrad;
   ctx.fill();
 
-  // Dashed centre line
-  ctx.strokeStyle = lineColor;
-  ctx.lineWidth = 2;
-  ctx.setLineDash([18, 14]);
-  ctx.beginPath();
-  ctx.moveTo(vpX, vpY + 2);
-  ctx.lineTo(W / 2, H);
-  ctx.stroke();
-  ctx.setLineDash([]);
+  // Curbs on left and right
+  const curbW = 32;
+  const topCurbW = 4;
 
-  // Road edge lines
-  ctx.strokeStyle = lineColor;
-  ctx.lineWidth = 2.5;
-  ctx.globalAlpha = 0.55;
+  // Left Curb
   ctx.beginPath();
-  ctx.moveTo(vpX - 5, vpY + 2);
-  ctx.lineTo(W / 2 - roadW / 2 + 14, H);
-  ctx.stroke();
+  ctx.moveTo(vpX - bottomRoadW / 2 - curbW, H);
+  ctx.lineTo(vpX - bottomRoadW / 2, H);
+  ctx.lineTo(vpX - topRoadW / 2, vpY);
+  ctx.lineTo(vpX - topRoadW / 2 - topCurbW, vpY);
+  ctx.closePath();
+  const leftCurbGrad = ctx.createLinearGradient(0, vpY, 0, H);
+  leftCurbGrad.addColorStop(0, curbB);
+  leftCurbGrad.addColorStop(0.5, curbA);
+  leftCurbGrad.addColorStop(1, curbB);
+  ctx.fillStyle = leftCurbGrad;
+  ctx.fill();
+
+  // Right Curb
   ctx.beginPath();
-  ctx.moveTo(vpX + 5, vpY + 2);
-  ctx.lineTo(W / 2 + roadW / 2 - 14, H);
-  ctx.stroke();
-  ctx.globalAlpha = 1;
+  ctx.moveTo(vpX + bottomRoadW / 2, H);
+  ctx.lineTo(vpX + bottomRoadW / 2 + curbW, H);
+  ctx.lineTo(vpX + topRoadW / 2 + topCurbW, vpY);
+  ctx.lineTo(vpX + topRoadW / 2, vpY);
+  ctx.closePath();
+  ctx.fillStyle = leftCurbGrad;
+  ctx.fill();
+
+  // 3D Guard Rail Posts along highway
+  for (let s = 0; s < 14; s++) {
+    const t = Math.pow(s / 14, 2.2);
+    const y = vpY + (H - vpY) * t;
+    const halfW = (topRoadW / 2 + (bottomRoadW / 2 - topRoadW / 2) * t) + (topCurbW + (curbW - topCurbW) * t);
+    const postH = 6 + 32 * t;
+
+    ctx.fillStyle = "#94a3b8";
+    ctx.fillRect(vpX - halfW - 3 * t, y - postH, 4 * t + 1, postH);
+    ctx.fillRect(vpX + halfW, y - postH, 4 * t + 1, postH);
+  }
+
+  // 5 Lane Dash Lines with high-speed perspective
+  const laneFractions = [-0.32, -0.16, 0, 0.16, 0.32];
+  for (const frac of laneFractions) {
+    ctx.save();
+    ctx.strokeStyle = lineHex || "#f8fafc";
+    ctx.lineWidth = frac === 0 ? 3 : 2;
+    ctx.setLineDash([22, 18]);
+    ctx.beginPath();
+    ctx.moveTo(vpX + topRoadW * frac * 0.8, vpY + 2);
+    ctx.lineTo(vpX + bottomRoadW * frac, H);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // Wet road reflections / headlamp gloss
+  const wetReflect = ctx.createLinearGradient(vpX - 80, 0, vpX + 80, 0);
+  wetReflect.addColorStop(0, "rgba(255,255,255,0)");
+  wetReflect.addColorStop(0.5, "rgba(255,255,255,0.18)");
+  wetReflect.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = wetReflect;
+  ctx.beginPath();
+  ctx.moveTo(vpX - 100, H);
+  ctx.lineTo(vpX + 100, H);
+  ctx.lineTo(vpX + 15, vpY);
+  ctx.lineTo(vpX - 15, vpY);
+  ctx.closePath();
+  ctx.fill();
 }
 
-function drawSkyGradient(ctx, W, H, top, mid, bot, midStop = 0.55) {
-  const g = ctx.createLinearGradient(0, 0, 0, H);
-  g.addColorStop(0, top);
-  g.addColorStop(midStop, mid);
-  g.addColorStop(1, bot);
+function drawSpeedLines(ctx, W, H, color) {
+  ctx.save();
+  ctx.strokeStyle = color || "rgba(255, 255, 255, 0.25)";
+  ctx.lineWidth = 1.5;
+  const count = 16;
+  for (let i = 0; i < count; i++) {
+    const startX = Math.random() * W;
+    const startY = H * 0.45 + Math.random() * (H * 0.55);
+    const len = 30 + Math.random() * 80;
+    ctx.beginPath();
+    ctx.moveTo(startX, startY);
+    ctx.lineTo(startX + (startX - W / 2) * 0.25, startY + len);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawVignette(ctx, W, H) {
+  const g = ctx.createRadialGradient(W / 2, H / 2, H * 0.35, W / 2, H / 2, W * 0.7);
+  g.addColorStop(0, "rgba(0,0,0,0)");
+  g.addColorStop(1, "rgba(0,0,0,0.72)");
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, W, H);
 }
 
-function drawGround(ctx, W, H, groundColor, horizonY) {
-  const g = ctx.createLinearGradient(0, horizonY, 0, H);
-  g.addColorStop(0, groundColor);
-  g.addColorStop(1, shadeColor(groundColor, -40));
-  ctx.fillStyle = g;
-  ctx.fillRect(0, horizonY, W, H - horizonY);
-}
-
-function shadeColor(hex, amt) {
-  let c = hex.replace("#", "");
-  if (c.length === 3) c = c[0]+c[0]+c[1]+c[1]+c[2]+c[2];
-  const num = parseInt(c, 16);
-  const r = Math.max(0, Math.min(255, (num >> 16) + amt));
-  const g = Math.max(0, Math.min(255, ((num >> 8) & 0xff) + amt));
-  const b = Math.max(0, Math.min(255, (num & 0xff) + amt));
-  return `rgb(${r},${g},${b})`;
-}
-
-// â”€â”€ CITY: Neon Metropolis at Night â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// 1. CITY: Ultra-Realistic 3D Cyber Neon Highway
 function paintCityStage(ctx, W, H) {
-  drawSkyGradient(ctx, W, H, "#000814", "#001530", "#0a1a2e", 0.6);
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, H * 0.46);
+  skyGrad.addColorStop(0, "#020617");
+  skyGrad.addColorStop(0.6, "#0f172a");
+  skyGrad.addColorStop(1, "#1e1b4b");
+  ctx.fillStyle = skyGrad;
+  ctx.fillRect(0, 0, W, H * 0.46);
 
-  const hY = H * 0.52;
+  const skylineLayers = [
+    { count: 18, minH: 80, maxH: 190, color: "#1e1b4b" },
+    { count: 14, minH: 100, maxH: 240, color: "#090d16" }
+  ];
 
-  // Stars
-  ctx.fillStyle = "rgba(255,255,255,0.7)";
-  for (let i = 0; i < 80; i++) {
-    ctx.fillRect(Math.random()*W, Math.random()*hY*0.8, 1, 1);
+  for (const layer of skylineLayers) {
+    const colW = W / layer.count;
+    for (let i = 0; i < layer.count; i++) {
+      const bh = layer.minH + Math.sin(i * 1.7) * (layer.maxH - layer.minH) * 0.5 + Math.random() * 30;
+      const bx = i * colW - 10;
+      const by = H * 0.45 - bh;
+
+      ctx.fillStyle = layer.color;
+      ctx.fillRect(bx, by, colW + 4, bh);
+
+      ctx.fillStyle = Math.random() > 0.4 ? "rgba(0,239,255,0.8)" : "rgba(255,215,0,0.7)";
+      for (let wy = by + 10; wy < H * 0.44; wy += 12) {
+        if (Math.random() > 0.45) ctx.fillRect(bx + 4, wy, 4, 6);
+        if (Math.random() > 0.45) ctx.fillRect(bx + colW - 8, wy, 4, 6);
+      }
+    }
   }
 
-  // Distant city glow
-  const glowG = ctx.createRadialGradient(W/2, hY, 5, W/2, hY, W*0.6);
-  glowG.addColorStop(0, "rgba(0,120,255,0.22)");
-  glowG.addColorStop(1, "rgba(0,0,0,0)");
-  ctx.fillStyle = glowG;
-  ctx.fillRect(0, 0, W, hY + 10);
+  const horizonGlow = ctx.createRadialGradient(W / 2, H * 0.44, 10, W / 2, H * 0.44, W * 0.6);
+  horizonGlow.addColorStop(0, "rgba(0,239,255,0.65)");
+  horizonGlow.addColorStop(0.4, "rgba(168,85,247,0.35)");
+  horizonGlow.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = horizonGlow;
+  ctx.fillRect(0, H * 0.25, W, H * 0.22);
 
-  // Back-row skyscrapers (dark silhouettes with glowing windows)
-  const backBuildings = [
-    {x:0.02,w:0.07,h:0.36}, {x:0.10,w:0.05,h:0.28}, {x:0.15,w:0.08,h:0.44},
-    {x:0.24,w:0.06,h:0.32}, {x:0.31,w:0.04,h:0.25}, {x:0.36,w:0.07,h:0.38},
-    {x:0.44,w:0.05,h:0.20}, {x:0.50,w:0.06,h:0.30}, {x:0.57,w:0.08,h:0.42},
-    {x:0.66,w:0.05,h:0.26}, {x:0.72,w:0.07,h:0.36}, {x:0.80,w:0.06,h:0.31},
-    {x:0.87,w:0.08,h:0.44}, {x:0.96,w:0.05,h:0.28},
-  ];
-  backBuildings.forEach(b => {
-    const bx = b.x * W, bw = b.w * W;
-    const bh = b.h * H;
-    const by = hY - bh;
-    ctx.fillStyle = "#0a1020";
-    ctx.fillRect(bx, by, bw, bh);
-    // Glowing windows
-    const cols = Math.max(2, Math.floor(bw / 8));
-    const rows = Math.max(2, Math.floor(bh / 10));
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols; c++) {
-        if (Math.random() > 0.38) {
-          const winColors = ["#00d4ff","#4488ff","#ffdd88","#ff8800","#ffffff"];
-          ctx.fillStyle = winColors[Math.floor(Math.random()*winColors.length)];
-          ctx.globalAlpha = 0.6 + Math.random()*0.4;
-          ctx.fillRect(bx + 2 + c*(bw/cols), by + 3 + r*(bh/rows), bw/cols - 2, bh/rows - 2);
-          ctx.globalAlpha = 1;
-        }
-      }
-    }
-  });
+  const groundGrad = ctx.createLinearGradient(0, H * 0.44, 0, H);
+  groundGrad.addColorStop(0, "#090d16");
+  groundGrad.addColorStop(1, "#020617");
+  ctx.fillStyle = groundGrad;
+  ctx.fillRect(0, H * 0.44, W, H * 0.56);
 
-  // Front-row mid-rise buildings
-  const frontBuildings = [
-    {x:0.0,w:0.09,h:0.22,col:"#06102a"},{x:0.10,w:0.07,h:0.18,col:"#081428"},
-    {x:0.18,w:0.10,h:0.26,col:"#040e22"},{x:0.29,w:0.06,h:0.16,col:"#071228"},
-    {x:0.60,w:0.07,h:0.16,col:"#071228"},{x:0.68,w:0.10,h:0.25,col:"#040e22"},
-    {x:0.79,w:0.07,h:0.19,col:"#081428"},{x:0.87,w:0.09,h:0.22,col:"#06102a"},
-    {x:0.97,w:0.06,h:0.17,col:"#071228"},
-  ];
-  frontBuildings.forEach(b => {
-    const bx = b.x * W, bw = b.w * W, bh = b.h * H, by = hY - bh;
-    ctx.fillStyle = b.col;
-    ctx.fillRect(bx, by, bw, bh);
-    const cols2 = Math.max(2, Math.floor(bw / 10));
-    const rows2 = Math.max(1, Math.floor(bh / 12));
-    for (let r = 0; r < rows2; r++) {
-      for (let c = 0; c < cols2; c++) {
-        if (Math.random() > 0.5) {
-          ctx.fillStyle = Math.random() > 0.6 ? "#00efff" : "#ffe566";
-          ctx.globalAlpha = 0.5 + Math.random() * 0.4;
-          ctx.fillRect(bx + 3 + c*(bw/cols2), by + 3 + r*(bh/rows2), bw/cols2 - 3, bh/rows2 - 3);
-          ctx.globalAlpha = 1;
-        }
-      }
-    }
-  });
-
-  // Ground
-  drawGround(ctx, W, H, "#0d1a25", hY);
-  drawRoadPerspective(ctx, W, H, "#0a1520", "#00efff");
-
-  // Neon edge strips
-  const vpX = W/2, vpY = hY;
-  ctx.shadowColor = "#00efff";
-  ctx.shadowBlur = 12;
-  ctx.strokeStyle = "#00efff";
-  ctx.lineWidth = 2;
-  ctx.globalAlpha = 0.9;
-  ctx.beginPath(); ctx.moveTo(vpX-4, vpY+1); ctx.lineTo(W*0.12, H); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(vpX+4, vpY+1); ctx.lineTo(W*0.88, H); ctx.stroke();
-  ctx.globalAlpha = 1;
-  ctx.shadowBlur = 0;
-
-  // Street lamps
-  [[0.28,hY,0.5],[0.72,hY,0.5],[0.18,hY+H*0.05,0.75],[0.82,hY+H*0.05,0.75]].forEach(([lx,ly,s]) => {
-    const px = lx*W, ph = H*0.15*s;
-    ctx.strokeStyle="#334155"; ctx.lineWidth=2;
-    ctx.beginPath(); ctx.moveTo(px, ly+ph); ctx.lineTo(px, ly); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(px, ly); ctx.lineTo(px+8*s, ly-5*s); ctx.stroke();
-    ctx.fillStyle="rgba(255,240,140,0.9)";
-    ctx.beginPath(); ctx.arc(px+8*s, ly-5*s, 3*s, 0, Math.PI*2); ctx.fill();
-    ctx.shadowColor="#ffe566"; ctx.shadowBlur=8;
-    ctx.fillStyle="rgba(255,230,100,0.3)";
-    ctx.beginPath(); ctx.arc(px+8*s, ly-5*s, 10*s, 0, Math.PI*2); ctx.fill();
-    ctx.shadowBlur=0;
-  });
-
-  // Atmospheric fog overlay
-  const fogG = ctx.createLinearGradient(0, hY-20, 0, H);
-  fogG.addColorStop(0, "rgba(0,30,60,0.55)");
-  fogG.addColorStop(0.4, "rgba(0,20,40,0.10)");
-  fogG.addColorStop(1, "rgba(0,10,20,0)");
-  ctx.fillStyle = fogG;
-  ctx.fillRect(0, hY-20, W, H-(hY-20));
+  drawCinematicHighway(ctx, W, H, "#0f172a", "#00efff", "#ff007f", "#38bdf8");
+  drawSpeedLines(ctx, W, H, "rgba(0,239,255,0.4)");
+  drawVignette(ctx, W, H);
 }
 
-// â”€â”€ SAVANNAH: African Golden Sunset â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// 2. SAVANNAH: Realistic 3D African Sunset Safari Expressway
 function paintSavannahStage(ctx, W, H) {
-  drawSkyGradient(ctx, W, H, "#7c2a0a", "#f59e0b", "#fde68a", 0.5);
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, H * 0.46);
+  skyGrad.addColorStop(0, "#451a03");
+  skyGrad.addColorStop(0.35, "#b45309");
+  skyGrad.addColorStop(0.7, "#f59e0b");
+  skyGrad.addColorStop(1, "#fef08a");
+  ctx.fillStyle = skyGrad;
+  ctx.fillRect(0, 0, W, H * 0.46);
 
-  const hY = H * 0.52;
-
-  // Sun disc
+  const sunGrad = ctx.createRadialGradient(W * 0.5, H * 0.36, 10, W * 0.5, H * 0.36, 120);
+  sunGrad.addColorStop(0, "#ffffff");
+  sunGrad.addColorStop(0.25, "#fef08a");
+  sunGrad.addColorStop(0.6, "rgba(245,158,11,0.5)");
+  sunGrad.addColorStop(1, "rgba(245,158,11,0)");
+  ctx.fillStyle = sunGrad;
   ctx.beginPath();
-  ctx.arc(W * 0.75, hY - H*0.18, 38, 0, Math.PI * 2);
-  const sunG = ctx.createRadialGradient(W*0.75, hY-H*0.18, 0, W*0.75, hY-H*0.18, 38);
-  sunG.addColorStop(0, "#fff7d6");
-  sunG.addColorStop(0.4, "#ffb703");
-  sunG.addColorStop(1, "rgba(251,146,60,0.3)");
-  ctx.fillStyle = sunG;
+  ctx.arc(W * 0.5, H * 0.36, 120, 0, Math.PI * 2);
   ctx.fill();
-  // Sun glow halo
-  const haloG = ctx.createRadialGradient(W*0.75, hY-H*0.18, 20, W*0.75, hY-H*0.18, 90);
-  haloG.addColorStop(0, "rgba(251,191,36,0.35)");
-  haloG.addColorStop(1, "rgba(251,191,36,0)");
-  ctx.fillStyle = haloG;
-  ctx.fillRect(W*0.75-90, hY-H*0.18-90, 180, 180);
 
-  // Horizon heat haze shimmer
-  const hazeG = ctx.createLinearGradient(0, hY-18, 0, hY+18);
-  hazeG.addColorStop(0, "rgba(253,230,138,0)");
-  hazeG.addColorStop(0.5, "rgba(253,230,138,0.30)");
-  hazeG.addColorStop(1, "rgba(253,230,138,0)");
-  ctx.fillStyle = hazeG;
-  ctx.fillRect(0, hY-18, W, 36);
-
-  // Ground
-  drawGround(ctx, W, H, "#a16207", hY);
-  drawRoadPerspective(ctx, W, H, "#44403c", "#fefce8");
-
-  // Acacia tree silhouettes
-  const acacia = [
-    {x:0.08,y:hY-5,s:0.9},{x:0.18,y:hY,s:0.75},{x:0.74,y:hY-8,s:1.05},{x:0.86,y:hY-2,s:0.8},{x:0.92,y:hY+4,s:0.65},
-  ];
-  acacia.forEach(a => {
-    const ax = a.x*W, ay = a.y, as = a.s;
-    // Trunk
-    ctx.strokeStyle = "#3d2010"; ctx.lineWidth = 3*as;
-    ctx.beginPath();
-    ctx.moveTo(ax, ay); ctx.lineTo(ax + 2*as, ay - 36*as);
-    ctx.stroke();
-    // Branches spread
-    [[-18,-12],[-6,-16],[8,-10],[18,-8]].forEach(([bx,by]) => {
-      ctx.beginPath();
-      ctx.moveTo(ax + 2*as, ay - 33*as); ctx.lineTo(ax + bx*as, ay + by*10*as - 26*as);
-      ctx.stroke();
-    });
-    // Flat canopy
-    const cpG = ctx.createEllipse ? null : null;
-    ctx.fillStyle = "rgba(68,30,10,0.85)";
-    ctx.beginPath();
-    ctx.ellipse(ax + 2*as, ay - 44*as, 22*as, 7*as, 0, 0, Math.PI*2);
-    ctx.fill();
-  });
-
-  // Dust overlay at road level
-  const dustG = ctx.createLinearGradient(0, hY+20, 0, H);
-  dustG.addColorStop(0, "rgba(161,98,7,0.35)");
-  dustG.addColorStop(1, "rgba(120,53,15,0.1)");
-  ctx.fillStyle = dustG;
-  ctx.fillRect(0, hY+20, W, H-(hY+20));
-}
-
-// â”€â”€ DESERT: Red Rock Canyon â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-function paintDesertStage(ctx, W, H) {
-  drawSkyGradient(ctx, W, H, "#7c1d0a", "#f97316", "#fde68a", 0.45);
-
-  const hY = H * 0.50;
-
-  // Heat shimmer horizon
-  const shimG = ctx.createLinearGradient(0, hY-10, 0, hY+14);
-  shimG.addColorStop(0, "rgba(253,186,116,0)");
-  shimG.addColorStop(0.5, "rgba(253,186,116,0.25)");
-  shimG.addColorStop(1, "rgba(253,186,116,0)");
-  ctx.fillStyle = shimG;
-  ctx.fillRect(0, hY-10, W, 24);
-
-  // Far canyon mesa silhouettes
-  const mesas = [
-    {x:0.02,w:0.14,h:0.28},{x:0.16,w:0.10,h:0.20},{x:0.27,w:0.16,h:0.35},
-    {x:0.58,w:0.15,h:0.32},{x:0.74,w:0.11,h:0.22},{x:0.86,w:0.14,h:0.28},
-  ];
-  mesas.forEach(m => {
-    const mx = m.x*W, mw = m.w*W, mh = m.h*H, my = hY - mh;
-    const mG = ctx.createLinearGradient(mx, my, mx+mw, my);
-    mG.addColorStop(0, "#9a3412");
-    mG.addColorStop(0.5, "#c2410c");
-    mG.addColorStop(1, "#7c2d12");
-    ctx.fillStyle = mG;
-    // Mesa with flat top
-    ctx.beginPath();
-    ctx.moveTo(mx, hY);
-    ctx.lineTo(mx + mw*0.12, my + mh*0.2);
-    ctx.lineTo(mx + mw*0.18, my);
-    ctx.lineTo(mx + mw*0.82, my);
-    ctx.lineTo(mx + mw*0.88, my + mh*0.2);
-    ctx.lineTo(mx + mw, hY);
-    ctx.closePath();
-    ctx.fill();
-    // Mesa shadow face
-    ctx.fillStyle = "rgba(0,0,0,0.25)";
-    ctx.fillRect(mx + mw*0.72, my, mw*0.28, mh);
-  });
-
-  // Ground
-  drawGround(ctx, W, H, "#d97706", hY);
-  drawRoadPerspective(ctx, W, H, "#292524", "#fef3c7");
-
-  // Sand/dirt edge verge
-  const sandG = ctx.createLinearGradient(0, hY, 0, H);
-  sandG.addColorStop(0, "rgba(217,119,6,0.7)");
-  sandG.addColorStop(1, "rgba(180,83,9,0.3)");
-  ctx.fillStyle = sandG;
-  ctx.fillRect(0, hY, W*0.23, H-hY);
-  ctx.fillRect(W*0.77, hY, W*0.23, H-hY);
-
-  // Desert rocks
-  [[0.14,hY+14,22,14],[0.18,hY+20,14,9],[0.78,hY+16,20,12],[0.84,hY+10,12,8]].forEach(([rx,ry,rw,rh]) => {
-    ctx.fillStyle = "#9a3412";
-    ctx.beginPath();
-    ctx.ellipse(rx*W, ry, rw, rh, 0, 0, Math.PI*2);
-    ctx.fill();
-  });
-}
-
-// â”€â”€ JUNGLE: Tropical Rainforest â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-function paintJungleStage(ctx, W, H) {
-  drawSkyGradient(ctx, W, H, "#064e3b", "#10b981", "#6ee7b7", 0.45);
-
-  const hY = H * 0.50;
-
-  // Misty jungle atmosphere
-  const mistG = ctx.createRadialGradient(W/2, hY, 10, W/2, hY*0.5, W*0.7);
-  mistG.addColorStop(0, "rgba(187,247,208,0.3)");
-  mistG.addColorStop(1, "rgba(187,247,208,0)");
-  ctx.fillStyle = mistG;
-  ctx.fillRect(0, 0, W, H);
-
-  // Far canopy silhouette layer (dark deep green)
-  ctx.fillStyle = "#022c22";
+  ctx.fillStyle = "#78350f";
   ctx.beginPath();
-  ctx.moveTo(0, hY);
-  for (let x = 0; x <= W; x += 18) {
-    const y = hY - 25 - Math.sin(x*0.04)*28 - Math.cos(x*0.07)*18;
-    ctx.lineTo(x, y);
-  }
-  ctx.lineTo(W, hY);
+  ctx.moveTo(0, H * 0.45);
+  ctx.lineTo(W * 0.25, H * 0.42);
+  ctx.lineTo(W * 0.45, H * 0.44);
+  ctx.lineTo(W * 0.75, H * 0.41);
+  ctx.lineTo(W, H * 0.45);
+  ctx.lineTo(W, H * 0.46);
+  ctx.lineTo(0, H * 0.46);
   ctx.closePath();
   ctx.fill();
 
-  // Mid canopy (lighter green)
-  ctx.fillStyle = "#065f46";
-  ctx.beginPath();
-  ctx.moveTo(0, hY+4);
-  for (let x = 0; x <= W; x += 14) {
-    const y = hY - 10 - Math.cos(x*0.055)*22 - Math.sin(x*0.09)*12;
-    ctx.lineTo(x, y);
-  }
-  ctx.lineTo(W, hY+4);
-  ctx.closePath();
-  ctx.fill();
+  const grassGrad = ctx.createLinearGradient(0, H * 0.44, 0, H);
+  grassGrad.addColorStop(0, "#b45309");
+  grassGrad.addColorStop(0.4, "#78350f");
+  grassGrad.addColorStop(1, "#451a03");
+  ctx.fillStyle = grassGrad;
+  ctx.fillRect(0, H * 0.44, W, H * 0.56);
 
-  // Ground
-  drawGround(ctx, W, H, "#15803d", hY);
-  drawRoadPerspective(ctx, W, H, "#1c1917", "#fef08a");
-
-  // Large jungle trees on sides
   const trees = [
-    {x:0.05,h:0.45,w:0.08},{x:0.14,h:0.35,w:0.07},{x:0.22,h:0.42,w:0.06},
-    {x:0.72,h:0.40,w:0.07},{x:0.80,h:0.38,w:0.08},{x:0.89,h:0.44,w:0.06},
+    { x: W * 0.12, y: H * 0.44, s: 1.1 },
+    { x: W * 0.22, y: H * 0.445, s: 0.7 },
+    { x: W * 0.82, y: H * 0.44, s: 1.2 },
+    { x: W * 0.92, y: H * 0.445, s: 0.8 }
   ];
-  trees.forEach(t => {
-    const tx = t.x*W, th = t.h*H, tw = t.w*W;
-    const ty = hY - th;
-    // Trunk
-    const trkG = ctx.createLinearGradient(tx+tw*0.4, ty, tx+tw*0.6, ty);
-    trkG.addColorStop(0, "#1e3a1e"); trkG.addColorStop(1, "#0d2010");
-    ctx.fillStyle = trkG;
-    ctx.fillRect(tx + tw*0.4, ty + th*0.5, tw*0.2, th*0.5);
-    // Foliage
-    ctx.fillStyle = "#047857";
+  for (const t of trees) {
+    ctx.fillStyle = "#291305";
     ctx.beginPath();
-    ctx.ellipse(tx + tw*0.5, ty + th*0.35, tw*0.55, th*0.38, 0, 0, Math.PI*2);
+    ctx.ellipse(t.x, t.y - 42 * t.s, 44 * t.s, 14 * t.s, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = "#059669";
-    ctx.beginPath();
-    ctx.ellipse(tx + tw*0.5, ty + th*0.28, tw*0.4, th*0.28, 0, 0, Math.PI*2);
-    ctx.fill();
-  });
-
-  // Drizzle rain effect
-  ctx.strokeStyle = "rgba(187,247,208,0.22)";
-  ctx.lineWidth = 0.8;
-  for (let r = 0; r < 60; r++) {
-    const rx = Math.random()*W, ry = Math.random()*H;
-    ctx.beginPath(); ctx.moveTo(rx, ry); ctx.lineTo(rx+2, ry+12); ctx.stroke();
+    ctx.fillRect(t.x - 3 * t.s, t.y - 42 * t.s, 6 * t.s, 42 * t.s);
   }
+
+  drawCinematicHighway(ctx, W, H, "#292524", "#d97706", "#ffffff", "#fef08a");
+  drawSpeedLines(ctx, W, H, "rgba(254,240,138,0.3)");
+  drawVignette(ctx, W, H);
 }
 
-// â”€â”€ BEACH: Sunset Coastal Highway â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// 3. BEACH: Realistic 3D Coastal Ocean Boulevard
 function paintBeachStage(ctx, W, H) {
-  drawSkyGradient(ctx, W, H, "#7c1d6f", "#f97316", "#fde68a", 0.48);
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, H * 0.46);
+  skyGrad.addColorStop(0, "#0369a1");
+  skyGrad.addColorStop(0.45, "#38bdf8");
+  skyGrad.addColorStop(0.85, "#fb923c");
+  skyGrad.addColorStop(1, "#fef08a");
+  ctx.fillStyle = skyGrad;
+  ctx.fillRect(0, 0, W, H * 0.46);
 
-  const hY = H * 0.50;
+  const sunX = W * 0.28, sunY = H * 0.42;
+  const sunGrad = ctx.createRadialGradient(sunX, sunY, 5, sunX, sunY, 80);
+  sunGrad.addColorStop(0, "#ffffff");
+  sunGrad.addColorStop(0.3, "#fde047");
+  sunGrad.addColorStop(1, "rgba(253,224,71,0)");
+  ctx.fillStyle = sunGrad;
+  ctx.beginPath();
+  ctx.arc(sunX, sunY, 80, 0, Math.PI * 2);
+  ctx.fill();
 
-  // Sun/sunset disc on horizon
-  const sunG2 = ctx.createRadialGradient(W*0.15, hY+2, 0, W*0.15, hY+2, 50);
-  sunG2.addColorStop(0, "rgba(255,255,200,0.95)");
-  sunG2.addColorStop(0.4, "rgba(255,150,50,0.85)");
-  sunG2.addColorStop(1, "rgba(255,100,0,0)");
-  ctx.fillStyle = sunG2;
-  ctx.beginPath(); ctx.arc(W*0.15, hY+2, 50, 0, Math.PI*2); ctx.fill();
+  const oceanGrad = ctx.createLinearGradient(0, H * 0.44, 0, H);
+  oceanGrad.addColorStop(0, "#0284c7");
+  oceanGrad.addColorStop(0.5, "#0369a1");
+  oceanGrad.addColorStop(1, "#075985");
+  ctx.fillStyle = oceanGrad;
+  ctx.fillRect(0, H * 0.44, W * 0.4, H * 0.56);
 
-  // Ocean/sea on left side
-  const oceanG = ctx.createLinearGradient(0, hY, 0, H);
-  oceanG.addColorStop(0, "#0284c7");
-  oceanG.addColorStop(0.5, "#0369a1");
-  oceanG.addColorStop(1, "#075985");
-  ctx.fillStyle = oceanG;
-  ctx.fillRect(0, hY, W*0.32, H-hY);
+  const sandGrad = ctx.createLinearGradient(0, H * 0.44, 0, H);
+  sandGrad.addColorStop(0, "#fde047");
+  sandGrad.addColorStop(1, "#d97706");
+  ctx.fillStyle = sandGrad;
+  ctx.fillRect(W * 0.4, H * 0.44, W * 0.6, H * 0.56);
 
-  // Shimmering ocean reflections
-  ctx.strokeStyle = "rgba(255,220,100,0.35)";
-  ctx.lineWidth = 1;
-  for (let wy = hY+8; wy < H; wy += 7) {
+  const palms = [
+    { x: W * 0.78, y: H * 0.44, s: 1.3 },
+    { x: W * 0.88, y: H * 0.445, s: 1.0 },
+    { x: W * 0.96, y: H * 0.45, s: 0.8 }
+  ];
+  for (const p of palms) {
+    ctx.strokeStyle = "#451a03";
+    ctx.lineWidth = 5 * p.s;
     ctx.beginPath();
-    ctx.moveTo(0, wy);
-    for (let wx = 0; wx < W*0.32; wx += 16) {
-      ctx.lineTo(wx, wy + Math.sin(wx*0.15)*2);
-    }
+    ctx.moveTo(p.x, p.y);
+    ctx.quadraticCurveTo(p.x - 10 * p.s, p.y - 30 * p.s, p.x + 8 * p.s, p.y - 70 * p.s);
     ctx.stroke();
+
+    ctx.fillStyle = "#14532d";
+    for (let f = 0; f < 6; f++) {
+      const angle = (f / 6) * Math.PI * 2;
+      ctx.beginPath();
+      ctx.ellipse(p.x + 8 * p.s + Math.cos(angle) * 20 * p.s, p.y - 70 * p.s + Math.sin(angle) * 8 * p.s, 22 * p.s, 6 * p.s, angle, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
 
-  // Sandy beach
-  const sandG2 = ctx.createLinearGradient(0, hY, 0, H);
-  sandG2.addColorStop(0, "#fde047");
-  sandG2.addColorStop(1, "#d97706");
-  ctx.fillStyle = sandG2;
-  ctx.fillRect(W*0.32, hY, W*0.68, H-hY);
-
-  drawRoadPerspective(ctx, W, H, "#334155", "#ffffff");
-
-  // Palm trees on right side
-  const palms = [
-    {x:0.64,y:hY-5,s:1.1},{x:0.75,y:hY+2,s:0.85},{x:0.86,y:hY-4,s:0.95},{x:0.95,y:hY+6,s:0.7},
-  ];
-  palms.forEach(p => {
-    const px = p.x*W, py = p.y, ps = p.s;
-    // Curved trunk
-    ctx.strokeStyle = "#78350f"; ctx.lineWidth = 5*ps;
-    ctx.beginPath();
-    ctx.moveTo(px, py + 5);
-    ctx.bezierCurveTo(px-4*ps, py-20*ps, px+8*ps, py-40*ps, px+4*ps, py-55*ps*ps*0.9);
-    ctx.stroke();
-    // Fronds
-    const frondColors = ["#15803d","#16a34a","#166534"];
-    for (let f = 0; f < 6; f++) {
-      const angle = (f/6)*Math.PI*2;
-      ctx.strokeStyle = frondColors[f % 3]; ctx.lineWidth = 2*ps;
-      ctx.beginPath();
-      const topX = px + 4*ps, topY = py - 55*ps*ps*0.9;
-      ctx.moveTo(topX, topY);
-      ctx.lineTo(topX + Math.cos(angle)*22*ps, topY + Math.sin(angle)*10*ps);
-      ctx.stroke();
-    }
-  });
-
-  // Ocean mist overlay
-  const mistO = ctx.createLinearGradient(0, hY-10, W*0.38, hY-10);
-  mistO.addColorStop(0, "rgba(186,230,253,0.3)");
-  mistO.addColorStop(1, "rgba(186,230,253,0)");
-  ctx.fillStyle = mistO;
-  ctx.fillRect(0, hY-30, W*0.38, 60);
+  drawCinematicHighway(ctx, W, H, "#1e293b", "#38bdf8", "#ffffff", "#ffffff");
+  drawSpeedLines(ctx, W, H, "rgba(56,189,248,0.35)");
+  drawVignette(ctx, W, H);
 }
 
-// â”€â”€ VILLAGE: Alpine Mountain Resort â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// 4. DESERT: Realistic 3D Red Rock Canyon Gorge
+function paintDesertStage(ctx, W, H) {
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, H * 0.46);
+  skyGrad.addColorStop(0, "#7c2d12");
+  skyGrad.addColorStop(0.4, "#ea580c");
+  skyGrad.addColorStop(0.8, "#fb923c");
+  skyGrad.addColorStop(1, "#fed7aa");
+  ctx.fillStyle = skyGrad;
+  ctx.fillRect(0, 0, W, H * 0.46);
+
+  const canyonLeft = ctx.createLinearGradient(0, 0, W * 0.35, 0);
+  canyonLeft.addColorStop(0, "#431407");
+  canyonLeft.addColorStop(0.7, "#9a3412");
+  canyonLeft.addColorStop(1, "#c2410c");
+
+  ctx.fillStyle = canyonLeft;
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(W * 0.32, 0);
+  ctx.lineTo(W * 0.28, H * 0.25);
+  ctx.lineTo(W * 0.20, H * 0.44);
+  ctx.lineTo(0, H * 0.44);
+  ctx.closePath();
+  ctx.fill();
+
+  const canyonRight = ctx.createLinearGradient(W, 0, W * 0.65, 0);
+  canyonRight.addColorStop(0, "#431407");
+  canyonRight.addColorStop(0.7, "#9a3412");
+  canyonRight.addColorStop(1, "#c2410c");
+
+  ctx.fillStyle = canyonRight;
+  ctx.beginPath();
+  ctx.moveTo(W, 0);
+  ctx.lineTo(W * 0.68, 0);
+  ctx.lineTo(W * 0.72, H * 0.25);
+  ctx.lineTo(W * 0.80, H * 0.44);
+  ctx.lineTo(W, H * 0.44);
+  ctx.closePath();
+  ctx.fill();
+
+  const sandGrad = ctx.createLinearGradient(0, H * 0.44, 0, H);
+  sandGrad.addColorStop(0, "#c2410c");
+  sandGrad.addColorStop(0.4, "#9a3412");
+  sandGrad.addColorStop(1, "#431407");
+  ctx.fillStyle = sandGrad;
+  ctx.fillRect(0, H * 0.44, W, H * 0.56);
+
+  drawCinematicHighway(ctx, W, H, "#1c1917", "#ea580c", "#ffffff", "#fed7aa");
+  drawSpeedLines(ctx, W, H, "rgba(234,88,12,0.4)");
+  drawVignette(ctx, W, H);
+}
+
+// 5. JUNGLE: Realistic 3D Tropical Rainforest Highway
+function paintJungleStage(ctx, W, H) {
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, H * 0.46);
+  skyGrad.addColorStop(0, "#064e3b");
+  skyGrad.addColorStop(0.5, "#047857");
+  skyGrad.addColorStop(0.85, "#34d399");
+  skyGrad.addColorStop(1, "#a7f3d0");
+  ctx.fillStyle = skyGrad;
+  ctx.fillRect(0, 0, W, H * 0.46);
+
+  const mistGrad = ctx.createRadialGradient(W / 2, H * 0.44, 20, W / 2, H * 0.44, W * 0.55);
+  mistGrad.addColorStop(0, "rgba(167,243,208,0.6)");
+  mistGrad.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = mistGrad;
+  ctx.fillRect(0, H * 0.2, W, H * 0.3);
+
+  ctx.fillStyle = "#064e3b";
+  ctx.beginPath();
+  ctx.moveTo(0, H * 0.44);
+  ctx.lineTo(W * 0.2, H * 0.18);
+  ctx.lineTo(W * 0.5, H * 0.32);
+  ctx.lineTo(W * 0.8, H * 0.15);
+  ctx.lineTo(W, H * 0.44);
+  ctx.closePath();
+  ctx.fill();
+
+  const jungleFloor = ctx.createLinearGradient(0, H * 0.44, 0, H);
+  jungleFloor.addColorStop(0, "#047857");
+  jungleFloor.addColorStop(0.5, "#064e3b");
+  jungleFloor.addColorStop(1, "#022c22");
+  ctx.fillStyle = jungleFloor;
+  ctx.fillRect(0, H * 0.44, W, H * 0.56);
+
+  drawCinematicHighway(ctx, W, H, "#0f172a", "#10b981", "#ffffff", "#6ee7b7");
+  drawSpeedLines(ctx, W, H, "rgba(52,211,153,0.35)");
+  drawVignette(ctx, W, H);
+}
+
+// 6. VILLAGE: Realistic 3D Snow-Dusted Alpine Peaks
 function paintVillageStage(ctx, W, H) {
-  drawSkyGradient(ctx, W, H, "#1e40af", "#93c5fd", "#bfdbfe", 0.55);
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, H * 0.46);
+  skyGrad.addColorStop(0, "#1e3a8a");
+  skyGrad.addColorStop(0.45, "#3b82f6");
+  skyGrad.addColorStop(0.85, "#93c5fd");
+  skyGrad.addColorStop(1, "#e0f2fe");
+  ctx.fillStyle = skyGrad;
+  ctx.fillRect(0, 0, W, H * 0.46);
 
-  const hY = H * 0.52;
-
-  // Distant snow-capped mountain peaks
   const peaks = [
-    {x:0.10,w:0.25,h:0.38},{x:0.30,w:0.20,h:0.30},{x:0.46,w:0.18,h:0.35},
-    {x:0.62,w:0.22,h:0.28},{x:0.78,w:0.26,h:0.40},
+    { x: W * 0.15, h: 180, w: 160 },
+    { x: W * 0.40, h: 220, w: 200 },
+    { x: W * 0.65, h: 240, w: 210 },
+    { x: W * 0.88, h: 190, w: 180 }
   ];
-  peaks.forEach(p => {
-    const px = p.x*W, pw = p.w*W, ph = p.h*H;
-    const py = hY - ph;
-    // Mountain body
-    const mtnG = ctx.createLinearGradient(px+pw/2, py, px+pw, py+ph);
-    mtnG.addColorStop(0, "#cbd5e1"); mtnG.addColorStop(0.4, "#64748b"); mtnG.addColorStop(1, "#334155");
-    ctx.fillStyle = mtnG;
+
+  for (const p of peaks) {
+    ctx.fillStyle = "#1e293b";
     ctx.beginPath();
-    ctx.moveTo(px, hY);
-    ctx.lineTo(px + pw*0.5, py);
-    ctx.lineTo(px + pw, hY);
+    ctx.moveTo(p.x - p.w / 2, H * 0.44);
+    ctx.lineTo(p.x, H * 0.44 - p.h);
+    ctx.lineTo(p.x + p.w / 2, H * 0.44);
     ctx.closePath();
     ctx.fill();
-    // Snow cap
-    ctx.fillStyle = "rgba(255,255,255,0.92)";
+
+    ctx.fillStyle = "#f8fafc";
     ctx.beginPath();
-    ctx.moveTo(px + pw*0.5, py);
-    ctx.lineTo(px + pw*0.35, py + ph*0.22);
-    ctx.lineTo(px + pw*0.65, py + ph*0.22);
+    ctx.moveTo(p.x - p.w * 0.22, H * 0.44 - p.h * 0.55);
+    ctx.lineTo(p.x, H * 0.44 - p.h);
+    ctx.lineTo(p.x + p.w * 0.22, H * 0.44 - p.h * 0.55);
+    ctx.lineTo(p.x + p.w * 0.08, H * 0.44 - p.h * 0.45);
+    ctx.lineTo(p.x, H * 0.44 - p.h * 0.5);
+    ctx.lineTo(p.x - p.w * 0.08, H * 0.44 - p.h * 0.45);
     ctx.closePath();
     ctx.fill();
-  });
+  }
 
-  // Ground
-  drawGround(ctx, W, H, "#16a34a", hY);
-  drawRoadPerspective(ctx, W, H, "#334155", "#f8fafc");
+  const alpineGround = ctx.createLinearGradient(0, H * 0.44, 0, H);
+  alpineGround.addColorStop(0, "#1e293b");
+  alpineGround.addColorStop(0.5, "#0f172a");
+  alpineGround.addColorStop(1, "#020617");
+  ctx.fillStyle = alpineGround;
+  ctx.fillRect(0, H * 0.44, W, H * 0.56);
 
-  // Dense pine trees on both sides
-  const pines = [
-    {x:0.03,s:1.1},{x:0.09,s:0.9},{x:0.14,s:1.2},{x:0.20,s:0.85},{x:0.26,s:1.0},
-    {x:0.68,s:1.0},{x:0.74,s:1.2},{x:0.80,s:0.9},{x:0.86,s:1.1},{x:0.92,s:0.85},{x:0.97,s:1.0},
-  ];
-  pines.forEach(p => {
-    const px = p.x*W, ps = p.s;
-    drawPineTree(ctx, px, hY + 5, ps);
-  });
-
-  // Alpine chalets
-  [[0.06, hY+2, 0.55], [0.88, hY+2, 0.55]].forEach(([cx, cy, cs]) => {
-    const cw = 34*cs, ch = 20*cs;
-    ctx.fillStyle = "#92400e";
-    ctx.fillRect(cx*W - cw/2, cy, cw, ch);
-    // Gable roof
-    ctx.fillStyle = "#7c3010";
-    ctx.beginPath();
-    ctx.moveTo(cx*W - cw/2 - 4, cy);
-    ctx.lineTo(cx*W, cy - ch*0.7);
-    ctx.lineTo(cx*W + cw/2 + 4, cy);
-    ctx.closePath();
-    ctx.fill();
-    // Snow on roof
-    ctx.fillStyle = "rgba(255,255,255,0.85)";
-    ctx.beginPath();
-    ctx.moveTo(cx*W - cw/2, cy);
-    ctx.lineTo(cx*W, cy - ch*0.7);
-    ctx.lineTo(cx*W + cw/2, cy);
-    ctx.closePath();
-    ctx.globalAlpha = 0.4;
-    ctx.fill();
-    ctx.globalAlpha = 1;
-    // Windows
-    ctx.fillStyle = "#fef08a";
-    ctx.fillRect(cx*W - 8*cs, cy + 4*cs, 7*cs, 7*cs);
-    ctx.fillRect(cx*W + 2*cs, cy + 4*cs, 7*cs, 7*cs);
-  });
-
-  // Crisp mountain air mist
-  const airG = ctx.createLinearGradient(0, hY-20, 0, hY+30);
-  airG.addColorStop(0, "rgba(191,219,254,0.25)");
-  airG.addColorStop(1, "rgba(191,219,254,0)");
-  ctx.fillStyle = airG;
-  ctx.fillRect(0, hY-20, W, 50);
+  drawCinematicHighway(ctx, W, H, "#1e293b", "#38bdf8", "#ffffff", "#ffffff");
+  drawSpeedLines(ctx, W, H, "rgba(255,255,255,0.45)");
+  drawVignette(ctx, W, H);
 }
 
-function drawPineTree(ctx, x, baseY, scale) {
-  const s = scale;
-  // Trunk
-  ctx.fillStyle = "#5a3418";
-  ctx.fillRect(x - 3*s, baseY - 18*s, 6*s, 18*s);
-  // Three-tiered cones
-  const foliageColor = ["#064e3b","#065f46","#047857"];
-  [[0, 0, 14*s, 18*s],[0, -12*s, 11*s, 15*s],[0, -22*s, 8*s, 13*s]].forEach(([ox, oy, r, h], i) => {
-    const tG = ctx.createLinearGradient(x+ox-r, baseY+oy-h, x+ox+r, baseY+oy-h);
-    tG.addColorStop(0, foliageColor[i]);
-    tG.addColorStop(0.5, "#10b981");
-    tG.addColorStop(1, foliageColor[i]);
-    ctx.fillStyle = tG;
-    ctx.beginPath();
-    ctx.moveTo(x+ox-r, baseY+oy);
-    ctx.lineTo(x+ox, baseY+oy-h);
-    ctx.lineTo(x+ox+r, baseY+oy);
-    ctx.closePath();
-    ctx.fill();
-  });
-}
-
-
-// â”€â”€ Render Track / Environment Selection Grid â”€â”€â”€â”€â”€â”€â”€â”€
 export function renderTrackSelectionScreen() {
   const container = byId("trackCardsGrid");
   if (!container) return;
