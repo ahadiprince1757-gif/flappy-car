@@ -62,6 +62,7 @@ import {
 } from "./systems/checkpoints.js";
 
 import { initializeUI, updateUI } from "./ui/ui.js";
+import { PerformanceMonitor } from "./core/perfMonitor.js";
 
 function loadSavedSelections() {
   const data = loadData();
@@ -111,6 +112,7 @@ function updateGame(deltaTime) {
 
   updateEffects(deltaTime);
   updateUI();
+  PerformanceMonitor.update();
 }
 
 function start() {

@@ -4,85 +4,134 @@ import { loadData, saveData } from "../core/storage.js";
 import { createBurst } from "./effects.js";
 import { playCoinSound } from "./audio.js";
 import { getRoadPoint } from "../stages/stageRenderer.js";
+import { ObjectPool, ObjectManager } from "../core/objectPool.js";
 
 const COIN_SPAWN_Z = -85;
-const COIN_SPAWN_INTERVAL = 2.6;
 const COIN_VALUE = 1;
 const COIN_SCORE = 5;
+const MAX_COINS = 30; // Bounded pool ceiling
 
-let spawnTimer = 1.5;
+// Distance-based procedural spawning (meters)
+const COIN_DISTANCE_INTERVAL_MIN = 45;
+const COIN_DISTANCE_INTERVAL_MAX = 75;
+let coinDistanceAccumulator = 0;
+let nextCoinDistanceTarget = 30;
 
-function createCoin(lane, z) {
-  const group = new THREE.Group();
+// Shared reusable geometries and materials for all pooled coins
+let sharedCylinderGeo = null;
+let sharedTorusGeo = null;
+let sharedCoinMat = null;
+let sharedRingMat = null;
 
-  const coin = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.38, 0.38, 0.12, 20),
-    new THREE.MeshStandardMaterial({
+function getSharedCoinAssets() {
+  if (!sharedCylinderGeo) {
+    sharedCylinderGeo = new THREE.CylinderGeometry(0.38, 0.38, 0.12, 16);
+    sharedTorusGeo = new THREE.TorusGeometry(0.43, 0.045, 6, 16);
+    sharedCoinMat = new THREE.MeshStandardMaterial({
       color: 0xffd54a,
       metalness: 0.75,
       roughness: 0.22,
       emissive: 0x805000,
       emissiveIntensity: 0.45
-    })
-  );
+    });
+    sharedRingMat = new THREE.MeshBasicMaterial({ color: 0xffef9a });
+  }
+  return { sharedCylinderGeo, sharedTorusGeo, sharedCoinMat, sharedRingMat };
+}
 
-  coin.rotation.x = Math.PI / 2;
-  group.add(coin);
+/* ── Coin Pool Definition ────────────────────────────────────────── */
+export const coinPool = new ObjectPool({
+  name: "CoinPool",
+  maxSize: MAX_COINS,
+  createFactory: () => {
+    const { sharedCylinderGeo, sharedTorusGeo, sharedCoinMat, sharedRingMat } = getSharedCoinAssets();
+    const group = new THREE.Group();
 
-  const ring = new THREE.Mesh(
-    new THREE.TorusGeometry(0.43, 0.045, 6, 20),
-    new THREE.MeshBasicMaterial({ color: 0xffef9a })
-  );
-  group.add(ring);
+    const coin = new THREE.Mesh(sharedCylinderGeo, sharedCoinMat);
+    coin.rotation.x = Math.PI / 2;
+    group.add(coin);
+
+    const ring = new THREE.Mesh(sharedTorusGeo, sharedRingMat);
+    group.add(ring);
+
+    group.visible = false;
+    if (gameState.scene) {
+      gameState.scene.add(group);
+    }
+
+    return {
+      type: "coin",
+      lane: 2,
+      laneOffset: 0,
+      group,
+      roadZ: COIN_SPAWN_Z,
+      active: false,
+      phase: 0
+    };
+  },
+  resetFn: (collectible) => {
+    collectible.active = false;
+    if (collectible.group) {
+      collectible.group.visible = false;
+    }
+  }
+});
+
+ObjectManager.registerPool("coins", coinPool);
+
+export function spawnCoin(lane, z) {
+  if (!gameState.scene) return null;
+
+  const collectible = coinPool.get();
+  if (!collectible) return null;
+
+  if (collectible.group.parent !== gameState.scene) {
+    gameState.scene.add(collectible.group);
+  }
 
   const laneOffset = gameState.lanePositions[lane] || 0;
   const pt = getRoadPoint(z, laneOffset);
 
-  group.position.set(
-    pt.x,
-    pt.y + 1.25,
-    pt.z
-  );
+  collectible.lane = lane;
+  collectible.laneOffset = laneOffset;
+  collectible.roadZ = z;
+  collectible.phase = Math.random() * Math.PI * 2;
+  collectible.active = true;
 
-  gameState.scene.add(group);
+  collectible.group.position.set(pt.x, pt.y + 1.25, pt.z);
+  collectible.group.visible = true;
 
-  const collectible = {
-    type: "coin",
-    lane,
-    laneOffset,
-    group,
-    roadZ: z,
-    active: true,
-    phase: Math.random() * Math.PI * 2
-  };
+  if (!gameState.collectibles.includes(collectible)) {
+    gameState.collectibles.push(collectible);
+  }
 
-  gameState.collectibles.push(collectible);
   return collectible;
 }
 
-function spawnCoinRow() {
-  const lane = Math.floor(Math.random() * gameState.lanePositions.length);
-  const count = 3 + Math.floor(Math.random() * 3);
-
-  for (let i = 0; i < count; i += 1) {
-    createCoin(lane, COIN_SPAWN_Z - i * 2.8);
+export function spawnCoinRow(lane = null, count = 4, spacing = 2.8) {
+  const chosenLane = lane !== null ? lane : Math.floor(Math.random() * gameState.lanePositions.length);
+  for (let i = 0; i < count; i++) {
+    spawnCoin(chosenLane, COIN_SPAWN_Z - i * spacing);
   }
 }
 
 function collectCoin(collectible) {
   if (!collectible.active) return;
 
-  collectible.active = false;
   const position = collectible.group.position.clone();
+  coinPool.release(collectible);
 
-  gameState.scene.remove(collectible.group);
+  const idx = gameState.collectibles.indexOf(collectible);
+  if (idx !== -1) {
+    gameState.collectibles.splice(idx, 1);
+  }
+
   gameState.score += COIN_SCORE;
   gameState.runCoins = (gameState.runCoins || 0) + 1;
 
   const data = loadData();
   data.coins = Math.max(0, Number(data.coins) || 0) + COIN_VALUE;
   saveData(data);
-
   gameState.coins = data.coins;
 
   playCoinSound();
@@ -91,32 +140,38 @@ function collectCoin(collectible) {
 
 function removeCoin(collectible) {
   if (!collectible.active) return;
+  coinPool.release(collectible);
 
-  collectible.active = false;
-  gameState.scene?.remove(collectible.group);
+  const idx = gameState.collectibles.indexOf(collectible);
+  if (idx !== -1) {
+    gameState.collectibles.splice(idx, 1);
+  }
 }
 
 export function updateCoins(deltaTime) {
   if (!gameState.scene || !gameState.player) return;
 
-  spawnTimer -= deltaTime;
-  if (spawnTimer <= 0) {
-    spawnCoinRow();
-    spawnTimer = COIN_SPAWN_INTERVAL + Math.random() * 1.5;
+  const playerPosition = gameState.player.group.position;
+  const speed = Math.max(0, gameState.speed);
+
+  // Distance-driven spawner: spawn coin rows consistently based on highway distance
+  if (gameState.status === "playing") {
+    coinDistanceAccumulator += speed * deltaTime;
+    if (coinDistanceAccumulator >= nextCoinDistanceTarget) {
+      coinDistanceAccumulator = 0;
+      nextCoinDistanceTarget = COIN_DISTANCE_INTERVAL_MIN + Math.random() * (COIN_DISTANCE_INTERVAL_MAX - COIN_DISTANCE_INTERVAL_MIN);
+      spawnCoinRow();
+    }
   }
 
-  const playerPosition = gameState.player.group.position;
-
-  for (const collectible of [...gameState.collectibles]) {
+  for (let i = gameState.collectibles.length - 1; i >= 0; i--) {
+    const collectible = gameState.collectibles[i];
     if (!collectible.active) {
-      const inactiveIndex = gameState.collectibles.indexOf(collectible);
-      if (inactiveIndex !== -1) {
-        gameState.collectibles.splice(inactiveIndex, 1);
-      }
+      gameState.collectibles.splice(i, 1);
       continue;
     }
 
-    collectible.roadZ = (collectible.roadZ ?? collectible.group.position.z) + gameState.speed * deltaTime;
+    collectible.roadZ += speed * deltaTime;
     const pt = getRoadPoint(collectible.roadZ, collectible.laneOffset);
 
     collectible.phase += deltaTime * 4;
@@ -137,23 +192,18 @@ export function updateCoins(deltaTime) {
       continue;
     }
 
+    // Off-screen boundary cleanup
     if (collectible.roadZ > playerPosition.z + 10) {
       removeCoin(collectible);
     }
   }
-
-  gameState.collectibles = gameState.collectibles.filter(
-    (item) => item.active
-  );
 }
 
 export function resetCoins() {
-  for (const collectible of gameState.collectibles) {
-    gameState.scene?.remove(collectible.group);
-  }
-
-  gameState.collectibles = [];
-  spawnTimer = 1.5;
+  coinPool.releaseAll();
+  gameState.collectibles.length = 0;
+  coinDistanceAccumulator = 0;
+  nextCoinDistanceTarget = 30;
 
   const data = loadData();
   gameState.coins = Math.max(0, Number(data.coins) || 0);

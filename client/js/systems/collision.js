@@ -42,8 +42,10 @@ export function checkCollisions() {
     gameState.lanePositions[player.lane ?? gameState.currentLane] ??
     0;
 
-  for (const obstacle of [...gameState.obstacles]) {
-    if (!obstacle.active) continue;
+  // Iterate backwards directly over bounded active obstacles without spread [...array] allocations
+  for (let i = gameState.obstacles.length - 1; i >= 0; i--) {
+    const obstacle = gameState.obstacles[i];
+    if (!obstacle || !obstacle.active) continue;
 
     const model = obstacle.model || obstacle.group;
     if (!model) continue;

@@ -7,6 +7,7 @@ import {
   ROAD_WIDTH
 } from "../stages/stageRenderer.js";
 import { buildTrafficCar } from "./trafficRenderer.js";
+import { ObjectManager } from "../core/objectPool.js";
 
 /*
  * TRAFFIC CAR MANAGER
@@ -37,6 +38,19 @@ let   _scene = null;
 export function initTraffic(scene) {
   _scene = scene;
   resetTraffic();
+
+  ObjectManager.registerPool("traffic", {
+    get activeCount() {
+      return _pool.filter(e => e.active).length;
+    },
+    get totalCount() {
+      return _pool.length;
+    },
+    maxSize: POOL_SIZE,
+    releaseAll() {
+      resetTraffic();
+    }
+  });
 }
 
 // ── Spawn a car into the pool ─────────────────────────────────────

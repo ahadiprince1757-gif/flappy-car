@@ -5,6 +5,7 @@ import {
   jump,
   slide
 } from "./movement.js";
+import { PerformanceMonitor } from "../core/perfMonitor.js";
 
 let controlsAttached = false;
 
@@ -27,6 +28,12 @@ function handleKeyDown(event) {
 
   if (controlledKeys.includes(key)) {
     event.preventDefault();
+  }
+
+  // F3 or P key toggles the developer performance budget HUD
+  if (event.key === "F3" || key === "p") {
+    PerformanceMonitor.toggle();
+    return;
   }
 
   if (gameState.status === "gameOver") {
