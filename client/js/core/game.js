@@ -38,9 +38,11 @@ export function initializeGame(canvas) {
     powerPreference: "high-performance",
   });
 
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-  renderer.shadowMap.enabled  = true;
-  renderer.shadowMap.type     = THREE.PCFSoftShadowMap;
+  const isMobile = (window.innerWidth <= 1024 || (window.matchMedia && window.matchMedia("(pointer: coarse)").matches));
+
+  renderer.setPixelRatio(isMobile ? 1 : Math.min(window.devicePixelRatio || 1, 1.5));
+  renderer.shadowMap.enabled  = !isMobile;
+  renderer.shadowMap.type     = THREE.PCFShadowMap;
   renderer.outputColorSpace   = THREE.SRGBColorSpace;
   // Use Neutral or Linear tone mapping to preserve bright vibrant colors without crushing shadows
   renderer.toneMapping        = (THREE.NeutralToneMapping !== undefined)
@@ -59,8 +61,8 @@ export function initializeGame(canvas) {
   /* ── Primary sun (shining from front-above to light hoods and front/sides) ── */
   const sun = new THREE.DirectionalLight("#fffbeb", 3.2);
   sun.position.set(22, 38, -15);
-  sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048);
+  sun.castShadow = !isMobile;
+  sun.shadow.mapSize.set(1024, 1024);
   sun.shadow.camera.left   = -45;
   sun.shadow.camera.right  =  45;
   sun.shadow.camera.top    =  45;

@@ -11,7 +11,7 @@ class PerformanceMonitorClass {
     this.frameCount = 0;
     this.lastFpsUpdate = performance.now();
     this.fps = 60;
-    this.enabled = true; // Visible in development / performance check
+    this.enabled = false; // Disabled by default so no overlay shows on top
   }
 
   init() {

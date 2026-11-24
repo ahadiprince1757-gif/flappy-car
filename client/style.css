@@ -2517,24 +2517,10 @@ button {
 
 /* =====================================================
    AUTO-LANDSCAPE ROTATION FOR UPRIGHT (PORTRAIT) PHONES
-   Rotates the game 90 degrees by default so it displays in full
-   widescreen landscape even when held upright!
+   Disabled forced transform rotation to ensure native mobile resolution and zero rendering lag
 ===================================================== */
 @media screen and (orientation: portrait) {
   body.auto-landscape {
-    overflow: hidden !important;
-    width: 100vw !important;
-    height: 100vh !important;
-  }
-
-  body.auto-landscape #gameContainer {
-    position: fixed !important;
-    top: 50% !important;
-    left: 50% !important;
-    width: 100vh !important;
-    height: 100vw !important;
-    transform: translate(-50%, -50%) rotate(90deg) !important;
-    transform-origin: center center !important;
     overflow: hidden !important;
   }
 }
