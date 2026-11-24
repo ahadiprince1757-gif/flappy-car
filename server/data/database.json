@@ -47,12 +47,20 @@
       "distance": 548,
       "carId": "cyber",
       "date": "2026-10-22"
+    },
+    {
+      "id": "1793984568518",
+      "playerName": "Player",
+      "score": 0,
+      "distance": 119,
+      "carId": "neon",
+      "date": "2026-11-06"
     }
   ],
   "garage": {
-    "coins": 1854,
-    "selectedCar": "neon",
-    "selectedStage": "jungle",
+    "coins": 1855,
+    "selectedCar": "phantom",
+    "selectedStage": "city",
     "unlockedCars": [
       "cyber",
       "inferno",
