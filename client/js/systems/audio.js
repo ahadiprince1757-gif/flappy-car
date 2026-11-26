@@ -908,41 +908,13 @@ export function playRaceFailedSound() {
 }
 
 export function startEngineSound() {
-  const context = initializeAudioContext();
-  if (!context || muted || engineOscillator) return;
-
-  engineOscillator = context.createOscillator();
-  engineGain = context.createGain();
-
-  // Multi-layered engine: low roar + mid-tone harmonic
-  engineOscillator.type = "sawtooth";
-  engineOscillator.frequency.value = 55;
-  engineGain.gain.value = 0.022;
-
-  engineOscillator.connect(engineGain);
-  engineGain.connect(masterGain);
-  engineOscillator.start();
+  // Continuous engine hum/motion sound disabled per user preference
+  return;
 }
 
 export function updateEngineSound(speed, baseSpeed = 18) {
-  if (!audioContext || !engineOscillator || !engineGain) return;
-
-  const normalizedSpeed = Math.max(
-    0,
-    Math.min(2, speed / Math.max(1, baseSpeed))
-  );
-
-  engineOscillator.frequency.setTargetAtTime(
-    55 + normalizedSpeed * 50,
-    audioContext.currentTime,
-    0.12
-  );
-
-  engineGain.gain.setTargetAtTime(
-    muted ? 0 : 0.012 + normalizedSpeed * 0.018,
-    audioContext.currentTime,
-    0.12
-  );
+  // Continuous engine hum/motion sound disabled per user preference
+  return;
 }
 
 export function stopEngineSound() {
