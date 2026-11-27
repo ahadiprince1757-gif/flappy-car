@@ -42,51 +42,53 @@ export function checkCollisions() {
     gameState.lanePositions[player.lane ?? gameState.currentLane] ??
     0;
 
-  // Iterate backwards directly over bounded active obstacles without spread [...array] allocations
-  for (let i = gameState.obstacles.length - 1; i >= 0; i--) {
-    const obstacle = gameState.obstacles[i];
-    if (!obstacle || !obstacle.active) continue;
+  // Feature-gated obstacle collisions (preserves subsystem architecture without per-frame overhead when disabled)
+  if (gameState.config?.obstaclesEnabled && gameState.obstacles.length > 0) {
+    for (let i = gameState.obstacles.length - 1; i >= 0; i--) {
+      const obstacle = gameState.obstacles[i];
+      if (!obstacle || !obstacle.active) continue;
 
-    const model = obstacle.model || obstacle.group;
-    if (!model) continue;
+      const model = obstacle.model || obstacle.group;
+      if (!model) continue;
 
-    const obstacleZ = obstacle.roadZ ?? model.position.z;
-    const forwardDistance = Math.abs(obstacleZ - playerZ);
+      const obstacleZ = obstacle.roadZ ?? model.position.z;
+      const forwardDistance = Math.abs(obstacleZ - playerZ);
 
-    if (forwardDistance >= COLLISION_FORWARD_DISTANCE) continue;
+      if (forwardDistance >= COLLISION_FORWARD_DISTANCE) continue;
 
-    const obstacleLaneOffset =
-      obstacle.laneOffset ??
-      gameState.lanePositions[obstacle.lane] ??
-      0;
+      const obstacleLaneOffset =
+        obstacle.laneOffset ??
+        gameState.lanePositions[obstacle.lane] ??
+        0;
 
-    const lateralDistance = Math.abs(obstacleLaneOffset - playerLaneOffset);
+      const lateralDistance = Math.abs(obstacleLaneOffset - playerLaneOffset);
 
-    if (lateralDistance >= COLLISION_LANE_DISTANCE) continue;
+      if (lateralDistance >= COLLISION_LANE_DISTANCE) continue;
 
-    const canJump = obstacle.config?.canJump ?? true;
-    const requiresSlide = obstacle.config?.requiresSlide ?? false;
+      const canJump = obstacle.config?.canJump ?? true;
+      const requiresSlide = obstacle.config?.requiresSlide ?? false;
 
-    const jumpingOver =
-      canJump &&
-      player.isJumping &&
-      (player.jumpHeight || 0) > JUMP_CLEARANCE;
+      const jumpingOver =
+        canJump &&
+        player.isJumping &&
+        (player.jumpHeight || 0) > JUMP_CLEARANCE;
 
-    const slidingUnder =
-      requiresSlide &&
-      player.isSliding;
+      const slidingUnder =
+        requiresSlide &&
+        player.isSliding;
 
-    if (jumpingOver || slidingUnder) continue;
+      if (jumpingOver || slidingUnder) continue;
 
-    if (gameState.shieldActive) {
-      gameState.shieldActive = false;
+      if (gameState.shieldActive) {
+        gameState.shieldActive = false;
+        removeObstacle(obstacle);
+        continue;
+      }
+
       removeObstacle(obstacle);
-      continue;
+      handleRaceCollision({ type: obstacle.type });
+      return true;
     }
-
-    removeObstacle(obstacle);
-    handleRaceCollision({ type: obstacle.type });
-    return true;
   }
 
   // ── Traffic car collisions & near-miss detection ────────────────────

@@ -87,8 +87,10 @@ function updateGame(deltaTime) {
     updatePlayerMovement(deltaTime);
     updateStage(deltaTime);
 
-    updateObstacleSpawner(deltaTime);
-    updateObstacles(deltaTime);
+    if (gameState.config?.obstaclesEnabled) {
+      updateObstacleSpawner(deltaTime);
+      updateObstacles(deltaTime);
+    }
 
     updateCoins(deltaTime);
     updatePowerUps(deltaTime);

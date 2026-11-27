@@ -62,17 +62,23 @@ export function getRoadHeading(z) {
   return Math.atan2(-dx, 2 * step);
 }
 
-export function getRoadPoint(z, lateralOffset = 0) {
+export function getRoadPoint(z, lateralOffset = 0, out = null) {
   const heading = getRoadHeading(z);
   const slope = getRoadSlope(z);
+  const x = getRoadX(z) + lateralOffset * Math.cos(heading);
+  const y = getRoadHeight(z);
+  const zOut = z - lateralOffset * Math.sin(heading);
 
-  return {
-    x: getRoadX(z) + lateralOffset * Math.cos(heading),
-    y: getRoadHeight(z),
-    z: z - lateralOffset * Math.sin(heading),
-    heading,
-    slope
-  };
+  if (out) {
+    out.x = x;
+    out.y = y;
+    out.z = zOut;
+    out.heading = heading;
+    out.slope = slope;
+    return out;
+  }
+
+  return { x, y, z: zOut, heading, slope };
 }
 
 /* ── Procedural Canvas Textures for Highway Surfaces ─────────── */
@@ -477,6 +483,15 @@ export function createStage(stageId = "city") {
   return gameState.road;
 }
 
+const _stageRoadPt = { x: 0, y: 0, z: 0, heading: 0, slope: 0 };
+const _currSkyColor = new THREE.Color();
+const _nextSkyColor = new THREE.Color();
+const _currFogColor = new THREE.Color();
+const _nextFogColor = new THREE.Color();
+const _targetSkyColor = new THREE.Color();
+const _targetFogColor = new THREE.Color();
+let _cachedStageColorIdx = -1;
+
 /* ── Update Stage per Frame ───────────────────────────────────── */
 export function updateStage(deltaTime) {
   const road = gameState.road;
@@ -497,7 +512,7 @@ export function updateStage(deltaTime) {
       dash.userData.roadZ -= TRACK_LENGTH;
     }
 
-    const pt = getRoadPoint(dash.userData.roadZ, dash.userData.laneOffset);
+    const pt = getRoadPoint(dash.userData.roadZ, dash.userData.laneOffset, _stageRoadPt);
     dash.position.set(pt.x, pt.y + 0.055, pt.z);
     dash.rotation.set(-Math.PI / 2 - Math.atan(pt.slope), 0, pt.heading);
   }
@@ -510,7 +525,7 @@ export function updateStage(deltaTime) {
       post.userData.roadZ -= TRACK_LENGTH;
     }
 
-    const pt = getRoadPoint(post.userData.roadZ, post.userData.lateralOffset);
+    const pt = getRoadPoint(post.userData.roadZ, post.userData.lateralOffset, _stageRoadPt);
     post.position.set(pt.x, pt.y + 0.08, pt.z);
     post.rotation.y = pt.heading;
   }
@@ -543,26 +558,28 @@ function updateDynamicStageProgression(road, deltaTime) {
     }
   }
 
-  // Smooth environmental interpolation
-  const stageConfig = getStageConfig(currentStageDef.id);
-  const nextConfig = getStageConfig(nextStageDef.id);
+  // Only parse hex stage colors when the stage index changes (zero per-frame allocations)
+  if (stageIdx !== _cachedStageColorIdx) {
+    _cachedStageColorIdx = stageIdx;
+    const stageConfig = getStageConfig(currentStageDef.id);
+    const nextConfig = getStageConfig(nextStageDef.id);
+    _currSkyColor.set(stageConfig.skyColor || "#7dd3fc");
+    _currFogColor.set(stageConfig.fogColor || "#bae6fd");
+    _nextSkyColor.set(nextConfig.skyColor || stageConfig.skyColor || "#7dd3fc");
+    _nextFogColor.set(nextConfig.fogColor || stageConfig.fogColor || "#bae6fd");
+  }
 
   const stageProgress = (loopDist % 1000) / 1000;
   const blendT = stageProgress > 0.7 ? (stageProgress - 0.7) / 0.3 : 0;
 
-  const currentSky = new THREE.Color(stageConfig.skyColor || "#7dd3fc");
-  const currentFog = new THREE.Color(stageConfig.fogColor || "#bae6fd");
-  const nextSky = new THREE.Color(nextConfig.skyColor || stageConfig.skyColor || "#7dd3fc");
-  const nextFog = new THREE.Color(nextConfig.fogColor || stageConfig.fogColor || "#bae6fd");
-
-  const targetSky = currentSky.clone().lerp(nextSky, blendT);
-  const targetFog = currentFog.clone().lerp(nextFog, blendT);
+  _targetSkyColor.copy(_currSkyColor).lerp(_nextSkyColor, blendT);
+  _targetFogColor.copy(_currFogColor).lerp(_nextFogColor, blendT);
 
   if (gameState.scene.background instanceof THREE.Color) {
-    gameState.scene.background.lerp(targetSky, deltaTime * 2.0);
+    gameState.scene.background.lerp(_targetSkyColor, deltaTime * 2.0);
   }
   if (gameState.scene.fog) {
-    gameState.scene.fog.color.lerp(targetFog, deltaTime * 2.0);
+    gameState.scene.fog.color.lerp(_targetFogColor, deltaTime * 2.0);
   }
 }
 

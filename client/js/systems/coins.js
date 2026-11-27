@@ -147,6 +147,8 @@ function removeCoin(collectible) {
   }
 }
 
+const _coinRoadPt = { x: 0, y: 0, z: 0, heading: 0, slope: 0 };
+
 export function updateCoins(deltaTime) {
   if (!gameState.scene || !gameState.player) return;
 
@@ -171,7 +173,7 @@ export function updateCoins(deltaTime) {
     }
 
     collectible.roadZ += speed * deltaTime;
-    const pt = getRoadPoint(collectible.roadZ, collectible.laneOffset);
+    const pt = getRoadPoint(collectible.roadZ, collectible.laneOffset, _coinRoadPt);
 
     collectible.phase += deltaTime * 4;
     collectible.group.rotation.y += deltaTime * 2.5;

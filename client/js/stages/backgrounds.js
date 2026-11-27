@@ -694,6 +694,8 @@ export function createBackground(stageId = "city") {
   return group;
 }
 
+const _bgRoadPt = { x: 0, y: 0, z: 0, heading: 0, slope: 0 };
+
 /* ================================================================
    updateBackground
 =============================================================== */
@@ -713,7 +715,7 @@ export function updateBackground(background, deltaTime, speed) {
       entry.roadZ -= worldLength;
     }
 
-    const pt = getRoadPoint(entry.roadZ, entry.lateralDist);
+    const pt = getRoadPoint(entry.roadZ, entry.lateralDist, _bgRoadPt);
     obj.position.set(pt.x, pt.y + (entry.yOffset || 0), pt.z);
     obj.rotation.y = pt.heading + entry.rotationOffset;
 

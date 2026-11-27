@@ -154,6 +154,8 @@ export function checkCheckpointSpawn() {
   }
 }
 
+const _checkpointRoadPt = { x: 0, y: 0, z: 0, heading: 0, slope: 0 };
+
 /**
  * Updates checkpoint archway position and crossing detection
  */
@@ -169,7 +171,7 @@ export function updateCheckpoints(deltaTime) {
   const currentZ = activeArchway.userData.roadZ;
 
   // Align to road curvature
-  const pt = getRoadPoint(currentZ, 0);
+  const pt = getRoadPoint(currentZ, 0, _checkpointRoadPt);
   activeArchway.position.set(pt.x, pt.y, pt.z);
   activeArchway.rotation.y = pt.heading;
 

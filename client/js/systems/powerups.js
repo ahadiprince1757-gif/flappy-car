@@ -175,6 +175,8 @@ function collectPowerUp(powerUp) {
   }
 }
 
+const _powerUpRoadPt = { x: 0, y: 0, z: 0, heading: 0, slope: 0 };
+
 export function updatePowerUps(deltaTime) {
   if (!gameState.scene || !gameState.player) return;
 
@@ -216,7 +218,7 @@ export function updatePowerUps(deltaTime) {
     }
 
     powerUp.roadZ += speed * deltaTime;
-    const pt = getRoadPoint(powerUp.roadZ, powerUp.laneOffset);
+    const pt = getRoadPoint(powerUp.roadZ, powerUp.laneOffset, _powerUpRoadPt);
 
     powerUp.phase += deltaTime * 3;
     powerUp.group.rotation.y += deltaTime * 1.8;

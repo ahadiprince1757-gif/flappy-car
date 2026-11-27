@@ -5,12 +5,20 @@ let hudRoot = null;
 let lastHudUpdate = 0;
 let _nearMissTimeout = null;
 
+// Cached DOM element references (eliminates per-tick querySelector calls)
+let _elNitroBar = null;
+let _elNitroPct = null;
+let _elNearMiss = null;
+let _elNearMissCombo = null;
+let _elNearMissBonus = null;
+let _elMessage = null;
+
+// Dirty-check state to skip redundant DOM style/text writes
+let _lastNitroPercent = -1;
+let _lastNitroDraining = null;
+
 function formatNumber(value) {
   return Math.max(0, Math.floor(Number(value) || 0)).toLocaleString();
-}
-
-function getElement(id) {
-  return hudRoot?.querySelector(`#${id}`) ?? null;
 }
 
 export function initializeHUD() {
@@ -43,6 +51,16 @@ export function initializeHUD() {
     <div id="hudMessage" class="hud-message" role="status" aria-live="polite" hidden></div>
   `;
 
+  // Cache live HUD DOM references once
+  _elNitroBar = hudRoot.querySelector("#hudNitroBar");
+  _elNitroPct = hudRoot.querySelector("#hudNitroPct");
+  _elNearMiss = hudRoot.querySelector("#hudNearMiss");
+  _elNearMissCombo = hudRoot.querySelector("#hudNearMissCombo");
+  _elNearMissBonus = hudRoot.querySelector("#hudNearMissBonus");
+  _elMessage = hudRoot.querySelector("#hudMessage");
+  _lastNitroPercent = -1;
+  _lastNitroDraining = null;
+
   window.addEventListener("flappycar:near-miss", handleNearMissEvent);
 
   lastHudUpdate = 0;
@@ -50,15 +68,13 @@ export function initializeHUD() {
 }
 
 function handleNearMissEvent(event) {
-  const popup = getElement("hudNearMiss");
+  const popup = _elNearMiss;
   if (!popup) return;
 
-  const { combo, bonus, multiplier } = event.detail || {};
-  const comboEl = getElement("hudNearMissCombo");
-  const bonusEl = getElement("hudNearMissBonus");
+  const { bonus, multiplier } = event.detail || {};
 
-  if (comboEl) comboEl.textContent = multiplier > 1 ? `x${multiplier}` : `STUNT!`;
-  if (bonusEl) bonusEl.textContent = `+${bonus || 75}`;
+  if (_elNearMissCombo) _elNearMissCombo.textContent = multiplier > 1 ? `x${multiplier}` : `STUNT!`;
+  if (_elNearMissBonus) _elNearMissBonus.textContent = `+${bonus || 75}`;
 
   popup.hidden = false;
   popup.classList.remove("pop-anim");
@@ -81,63 +97,48 @@ export function updateHUD(force = false) {
 
   lastHudUpdate = now;
 
-  const score = getElement("hudScore");
-  const speed = getElement("hudSpeed");
-  const tierName = getElement("hudTierName");
-  const coins = getElement("hudCoins");
-  const nitroBar = getElement("hudNitroBar");
-  const nitroPct = getElement("hudNitroPct");
-
-  if (score) score.textContent = formatNumber(gameState.score);
-  if (speed) speed.textContent = `${formatNumber(gameState.speed * 2.237)} MPH`; // m/s to mph
-
-  const diff = getCurrentDifficulty();
-  if (tierName) tierName.textContent = diff.name;
-
-  if (coins) {
-    const runCoins = gameState.runCoins || 0;
-    coins.innerHTML = `<span class="hud-coin-icon">$</span> ${formatNumber(runCoins)}`;
-  }
-
-  // Nitro bar update (0 to 1)
+  // Nitro bar update (0 to 1) — skip DOM writes when unchanged
   const nitroRatio = Math.max(0, Math.min(1, gameState.nitro ?? 1));
   const nitroPercent = Math.round(nitroRatio * 100);
-  if (nitroBar) {
-    nitroBar.style.width = `${nitroPercent}%`;
-    nitroBar.classList.toggle("nitro-draining", Boolean(gameState.nitroDraining));
+  const isDraining = Boolean(gameState.nitroDraining);
+
+  if (force || nitroPercent !== _lastNitroPercent) {
+    _lastNitroPercent = nitroPercent;
+    if (_elNitroBar) _elNitroBar.style.width = `${nitroPercent}%`;
+    if (_elNitroPct) _elNitroPct.textContent = `${nitroPercent}%`;
   }
-  if (nitroPct) {
-    nitroPct.textContent = `${nitroPercent}%`;
+
+  if (force || isDraining !== _lastNitroDraining) {
+    _lastNitroDraining = isDraining;
+    if (_elNitroBar) _elNitroBar.classList.toggle("nitro-draining", isDraining);
   }
 }
 
 let _msgTimer = null;
 
 export function showHUDMessage(message) {
-  if (!hudRoot) return;
-
-  const messageElement = getElement("hudMessage");
-  if (!messageElement) return;
+  if (!_elMessage) return;
 
   if (_msgTimer) { clearTimeout(_msgTimer); _msgTimer = null; }
 
-  messageElement.textContent = String(message);
-  messageElement.hidden = false;
+  _elMessage.textContent = String(message);
+  _elMessage.hidden = false;
 
   // Auto-hide after 1.5 seconds
   _msgTimer = setTimeout(() => {
-    messageElement.hidden = true;
-    messageElement.textContent = "";
+    if (_elMessage) {
+      _elMessage.hidden = true;
+      _elMessage.textContent = "";
+    }
     _msgTimer = null;
   }, 1500);
 }
 
 export function hideHUDMessage() {
   if (_msgTimer) { clearTimeout(_msgTimer); _msgTimer = null; }
-  const messageElement = getElement("hudMessage");
-  if (messageElement) {
-    messageElement.hidden = true;
-    messageElement.textContent = "";
+  if (_elMessage) {
+    _elMessage.hidden = true;
+    _elMessage.textContent = "";
   }
 }
 
@@ -145,6 +146,14 @@ export function destroyHUD() {
   window.removeEventListener("flappycar:near-miss", handleNearMissEvent);
   if (hudRoot) hudRoot.replaceChildren();
   hudRoot = null;
+  _elNitroBar = null;
+  _elNitroPct = null;
+  _elNearMiss = null;
+  _elNearMissCombo = null;
+  _elNearMissBonus = null;
+  _elMessage = null;
+  _lastNitroPercent = -1;
+  _lastNitroDraining = null;
   lastHudUpdate = 0;
 }
 

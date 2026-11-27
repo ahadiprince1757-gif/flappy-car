@@ -13,6 +13,14 @@ const SLIDE_DURATION = 0.7;
 const SLIDE_SCALE_Y = 0.58;
 const ROAD_LOOK_AHEAD = 22;
 
+// Persistent scratch objects reused every frame (zero per-frame GC allocations)
+const _lookTarget = new THREE.Vector3();
+const _rearPosL = new THREE.Vector3();
+const _rearPosR = new THREE.Vector3();
+const _moveRoadPt = { x: 0, y: 0, z: 0, heading: 0, slope: 0 };
+const _camRoadPt = { x: 0, y: 0, z: 0, heading: 0, slope: 0 };
+const _lookRoadPt = { x: 0, y: 0, z: 0, heading: 0, slope: 0 };
+
 const NITRO_CHARGE_RATE = 0.08;   // per second from drafting / drifting
 const NITRO_DRAIN_RATE = 0.22;    // per second when active
 const NITRO_BOOST_SPEED = 1.55;   // multiplier over base speed
@@ -111,7 +119,7 @@ function updateLaneMovement(player, deltaTime) {
   }
 
   const baseZ = player.baseZ ?? (player.baseZ = player.group.position.z || 4);
-  const pt = getRoadPoint(baseZ, player.currentLaneOffset);
+  const pt = getRoadPoint(baseZ, player.currentLaneOffset, _moveRoadPt);
 
   player.group.position.x = pt.x;
   player.group.position.z = pt.z;
@@ -126,10 +134,10 @@ function updateLaneMovement(player, deltaTime) {
 
   // Spawn rear tire smoke when drifting or hard braking
   if ((shouldDrift || (isBraking && isHighSpeed)) && Math.random() < 0.45) {
-    const rearPosL = new THREE.Vector3(pt.x - 0.55, pt.y + 0.15, pt.z + 1.2);
-    const rearPosR = new THREE.Vector3(pt.x + 0.55, pt.y + 0.15, pt.z + 1.2);
-    createTireSmoke(rearPosL, shouldDrift ? 1.3 : 0.9);
-    createTireSmoke(rearPosR, shouldDrift ? 1.3 : 0.9);
+    _rearPosL.set(pt.x - 0.55, pt.y + 0.15, pt.z + 1.2);
+    _rearPosR.set(pt.x + 0.55, pt.y + 0.15, pt.z + 1.2);
+    createTireSmoke(_rearPosL, shouldDrift ? 1.3 : 0.9);
+    createTireSmoke(_rearPosR, shouldDrift ? 1.3 : 0.9);
     // Drift tire screech audio (throttled to avoid audio spam)
     if (Math.random() < 0.08) playDriftSound();
     // Charge nitro from drifting
@@ -264,7 +272,7 @@ function updateCamera(player, deltaTime) {
   const accelOffsetZ = gameState.input.accelerate ? 0.9 : gameState.input.brake ? -0.5 : 0;
   const camDistZ = CAMERA_BASE_OFFSET.z + speedRatio * 0.8 + accelOffsetZ;
 
-  const camPt = getRoadPoint(playerZ + camDistZ, (player.currentLaneOffset || 0) * 0.45);
+  const camPt = getRoadPoint(playerZ + camDistZ, (player.currentLaneOffset || 0) * 0.45, _camRoadPt);
 
   const desiredCamX = camPt.x;
   const desiredCamY = camPt.y + CAMERA_BASE_OFFSET.y;
@@ -282,9 +290,9 @@ function updateCamera(player, deltaTime) {
   }
 
   // Look ahead dynamically along the road curvature
-  const lookPt = getRoadPoint(playerZ - ROAD_LOOK_AHEAD, (player.currentLaneOffset || 0) * 0.15);
-  const lookTarget = new THREE.Vector3(lookPt.x, lookPt.y + 1.25, lookPt.z);
-  camera.lookAt(lookTarget);
+  const lookPt = getRoadPoint(playerZ - ROAD_LOOK_AHEAD, (player.currentLaneOffset || 0) * 0.15, _lookRoadPt);
+  _lookTarget.set(lookPt.x, lookPt.y + 1.25, lookPt.z);
+  camera.lookAt(_lookTarget);
 }
 
 /* ── 6. REALISTIC ACCELERATION & BRAKING CURVES ───────────────────── */
@@ -311,18 +319,28 @@ function updatePlayerSpeed(deltaTime) {
 
   gameState.speed = THREE.MathUtils.damp(gameState.speed, targetSpeed, rate, deltaTime);
 
-  // Dynamic visual brake feedback on car's rear LED bar
+  // Dynamic visual brake feedback on car's rear LED bar (cached — zero per-frame tree traversal)
   const player = gameState.player;
   if (player?.group) {
     const isBraking = Boolean(gameState.input.brake);
-    const tailLed = player.group.getObjectByName("tail-led-bar");
-    if (tailLed?.material) {
-      tailLed.material.emissiveIntensity = isBraking ? 6.5 : 2.5;
-    }
-    for (const sx of [-1, 1]) {
-      const tl = player.group.getObjectByName(`taillight-${sx}`);
-      if (tl?.material) {
-        tl.material.emissiveIntensity = isBraking ? 5.2 : 1.8;
+    if (player._lastBrakingState !== isBraking) {
+      player._lastBrakingState = isBraking;
+      if (!player.group.userData._cachedBrakeLights) {
+        player.group.userData._cachedBrakeLights = {
+          tailLed: player.group.getObjectByName("tail-led-bar") || null,
+          left: player.group.getObjectByName("taillight--1") || null,
+          right: player.group.getObjectByName("taillight-1") || null
+        };
+      }
+      const lights = player.group.userData._cachedBrakeLights;
+      if (lights.tailLed?.material) {
+        lights.tailLed.material.emissiveIntensity = isBraking ? 6.5 : 2.5;
+      }
+      if (lights.left?.material) {
+        lights.left.material.emissiveIntensity = isBraking ? 5.2 : 1.8;
+      }
+      if (lights.right?.material) {
+        lights.right.material.emissiveIntensity = isBraking ? 5.2 : 1.8;
       }
     }
   }

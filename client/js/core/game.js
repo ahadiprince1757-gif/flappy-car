@@ -139,15 +139,16 @@ export function resizeRenderer() {
   renderer.setSize(w, h, true);
 }
 
+const _worldPosition = new THREE.Vector3();
+
 export function renderGame() {
   const { scene, camera, renderer, player } = gameState;
   if (!scene || !camera || !renderer) return;
 
   /* Keep underglow point-light attached to player car group */
   if (gameState.underglowLight && player?.group) {
-    const wp = new THREE.Vector3();
-    player.group.getWorldPosition(wp);
-    gameState.underglowLight.position.set(wp.x, 0.25, wp.z);
+    player.group.getWorldPosition(_worldPosition);
+    gameState.underglowLight.position.set(_worldPosition.x, 0.25, _worldPosition.z);
   }
 
   try {

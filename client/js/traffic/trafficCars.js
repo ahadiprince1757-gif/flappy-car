@@ -76,6 +76,7 @@ function spawnCar(playerZ) {
         speed: SAME_DIR_SPEED,
         dir: 1,        // +1 = same as player, -1 = oncoming
         laneOffset: 0,
+        underglowLight: group.children.find(c => c.isPointLight) || null,
       };
       _pool.push(entry);
     } else {
@@ -144,11 +145,14 @@ const SPAWN_INTERVAL_MAX = 1.35;
 let   _spawnTimer = 0;
 let   _nextSpawn  = 1.0;
 
+const _trafficRoadPt = { x: 0, y: 0, z: 0, heading: 0, slope: 0 };
+
 export function updateTraffic(deltaTime) {
   if (!gameState.scene || gameState.status !== "playing") return;
 
   const playerZ  = gameState.player?.group?.position?.z ?? 4;
   const gameSpeed = Math.max(0, gameState.speed);
+  const pulseTime = Date.now() * 0.003;
 
   // ── Spawner ────────────────────────────────────────────────────
   _spawnTimer += deltaTime;
@@ -189,8 +193,8 @@ export function updateTraffic(deltaTime) {
     }
 
     // Update 3D position along the curved road
-    const pt = getRoadPoint(entry.roadZ, entry.laneOffset);
-    const slope = getRoadSlope(entry.roadZ);
+    const pt = getRoadPoint(entry.roadZ, entry.laneOffset, _trafficRoadPt);
+    const slope = pt.slope;
 
     entry.group.position.set(pt.x, pt.y, pt.z);
     entry.group.rotation.y = pt.heading + (entry.dir === -1 ? Math.PI : 0);
@@ -212,10 +216,10 @@ export function updateTraffic(deltaTime) {
       }
     }
 
-    // Pulse neon underglow subtly
-    const light = entry.group.children.find(c => c.isPointLight);
+    // Pulse neon underglow subtly (cached reference — zero per-frame closure/scan)
+    const light = entry.underglowLight;
     if (light) {
-      light.intensity = 0.7 + Math.sin(Date.now() * 0.003 + entry.roadZ) * 0.25;
+      light.intensity = 0.7 + Math.sin(pulseTime + entry.roadZ) * 0.25;
     }
   }
 }

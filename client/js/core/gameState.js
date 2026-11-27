@@ -1,6 +1,10 @@
 export const gameState = {
   status: "loading", // loading, menu, playing, paused, gameOver
 
+  config: {
+    obstaclesEnabled: false
+  },
+
   score: 0,
   coins: 0,
   runCoins: 0,
