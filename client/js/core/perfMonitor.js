@@ -10,8 +10,11 @@ class PerformanceMonitorClass {
 
     this.frameCount = 0;
     this.lastFpsUpdate = performance.now();
+    this.lastFrameTime = performance.now();
     this.fps = 60;
-    this.enabled = false; // Disabled by default so no overlay shows on top
+    this.frameTimeMs = 16.6;
+    this.maxFrameTimeMs = 0;
+    this.enabled = false; // Disabled by default, press F3 or P to toggle
   }
 
   init() {
@@ -64,6 +67,14 @@ class PerformanceMonitorClass {
   }
 
   update() {
+    const frameNow = performance.now();
+    const frameDelta = frameNow - this.lastFrameTime;
+    this.lastFrameTime = frameNow;
+    this.frameTimeMs = frameDelta;
+    if (frameDelta > this.maxFrameTimeMs && this.frameCount > 10) {
+      this.maxFrameTimeMs = Math.round(frameDelta * 10) / 10;
+    }
+
     if (!this.enabled) return;
 
     this.frameCount++;
@@ -79,20 +90,41 @@ class PerformanceMonitorClass {
         this.init();
       }
 
-      const stats = ObjectManager.getStats();
       const obstacles = gameState.obstacles?.length || 0;
       const coins = gameState.collectibles?.length || 0;
       const effects = gameState.effects?.length || 0;
       const traffic = gameState.opponents?.length || 0;
-
       const activeTotal = obstacles + coins + effects + traffic;
+
+      // Three.js renderer stats
+      const renderInfo = gameState.renderer?.info?.render;
+      const drawCalls = renderInfo?.calls ?? 0;
+      const triangles = renderInfo?.triangles ?? 0;
+
+      // JS Heap if supported by browser
+      const memory = performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576) : null;
+      const memText = memory !== null ? ` | Heap: ${memory}MB` : "";
 
       // Color code FPS
       const fpsColor = this.fps >= 55 ? "#4ade80" : this.fps >= 35 ? "#facc15" : "#f87171";
-      this.fpsText.innerHTML = `FPS: <span style="color:${fpsColor}">${this.fps}</span> (Target: 60)`;
-      this.objText.innerHTML = `Active Entities: <b>${activeTotal}</b>`;
-      this.detailText.innerHTML = `Obs: ${obstacles} | Coins: ${coins}<br>FX: ${effects} | Traffic: ${traffic}`;
+      this.fpsText.innerHTML = `FPS: <span style="color:${fpsColor}">${this.fps}</span> (${this.frameTimeMs.toFixed(1)}ms | Peak: ${this.maxFrameTimeMs}ms)`;
+      this.objText.innerHTML = `Calls: <b>${drawCalls}</b> | Tris: <b>${triangles}</b>${memText}`;
+      this.detailText.innerHTML = `Traffic: ${traffic} | Entities: ${activeTotal}`;
     }
+  }
+
+  getBaselineSnapshot() {
+    const renderInfo = gameState.renderer?.info?.render;
+    const memory = performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576) : null;
+    return {
+      fps: this.fps,
+      frameTimeMs: this.frameTimeMs,
+      maxFrameTimeMs: this.maxFrameTimeMs,
+      drawCalls: renderInfo?.calls ?? 0,
+      triangles: renderInfo?.triangles ?? 0,
+      heapMB: memory,
+      activeEntities: (gameState.obstacles?.length || 0) + (gameState.collectibles?.length || 0) + (gameState.effects?.length || 0) + (gameState.opponents?.length || 0)
+    };
   }
 }
 
