@@ -22,8 +22,8 @@ const _moveRoadPt = { x: 0, y: 0, z: 0, heading: 0, slope: 0 };
 const _camRoadPt = { x: 0, y: 0, z: 0, heading: 0, slope: 0 };
 const _lookRoadPt = { x: 0, y: 0, z: 0, heading: 0, slope: 0 };
 
-const NITRO_CHARGE_RATE = 0.08;   // per second from drafting / drifting
-const NITRO_DRAIN_RATE = 0.22;    // per second when active
+const NITRO_CHARGE_RATE = 0.095;  // smooth continuous auto-calibration fill rate (~10.5s 0->100%)
+const NITRO_DRAIN_RATE = 0.24;    // per second when active
 const NITRO_BOOST_SPEED = 1.55;   // multiplier over base speed
 const NEAR_MISS_WINDOW = 2.5;     // seconds before combo resets
 
@@ -382,9 +382,9 @@ function updateNitro(deltaTime) {
       }
     }
     gameState.nitroDraining = false;
-    // Passive nitro regeneration from speed (driving fast charges nitro slowly)
-    const passiveCharge = Math.max(0, (gameState.speed - gameState.baseSpeed * 0.9) / gameState.baseSpeed) * 0.015;
-    gameState.nitro = Math.min(1, gameState.nitro + passiveCharge * deltaTime);
+    // Continuous auto-calibrating self-fill (charges steadily while driving, faster at high speed)
+    const speedBonus = Math.max(0, (gameState.speed - gameState.baseSpeed * 0.8) / (gameState.baseSpeed || 18)) * 0.05;
+    gameState.nitro = Math.min(1, (gameState.nitro ?? 0) + (NITRO_CHARGE_RATE + speedBonus) * deltaTime);
   }
 }
 

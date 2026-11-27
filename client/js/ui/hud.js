@@ -1,13 +1,11 @@
 import { gameState } from "../core/gameState.js";
-import { getCurrentDifficulty } from "../systems/checkpoints.js";
 
 let hudRoot = null;
 let lastHudUpdate = 0;
 let _nearMissTimeout = null;
 
 // Cached DOM element references (eliminates per-tick querySelector calls)
-let _elNitroBar = null;
-let _elNitroPct = null;
+let _elNitroBtn = null;
 let _elNearMiss = null;
 let _elNearMissCombo = null;
 let _elNearMissBonus = null;
@@ -17,10 +15,6 @@ let _elMessage = null;
 let _lastNitroPercent = -1;
 let _lastNitroDraining = null;
 
-function formatNumber(value) {
-  return Math.max(0, Math.floor(Number(value) || 0)).toLocaleString();
-}
-
 export function initializeHUD() {
   hudRoot = document.getElementById("ui");
   if (!hudRoot) {
@@ -28,18 +22,8 @@ export function initializeHUD() {
     return;
   }
 
+  // Ultra-clean unobstructed viewport HUD — no top stats bar & no nitro percentage bar
   hudRoot.innerHTML = `
-    <!-- Dynamic Nitro Boost Gauge -->
-    <div class="hud-nitro-container" id="hudNitroContainer">
-      <div class="hud-nitro-labels">
-        <span class="hud-nitro-title">NITRO BOOST</span>
-        <span class="hud-nitro-pct" id="hudNitroPct">100%</span>
-      </div>
-      <div class="hud-nitro-track">
-        <div class="hud-nitro-bar" id="hudNitroBar" style="width: 100%;"></div>
-      </div>
-    </div>
-
     <!-- Near Miss Stunt Combo Popup -->
     <div id="hudNearMiss" class="hud-near-miss-card" hidden>
       <span class="near-miss-glow">⚡</span>
@@ -51,9 +35,8 @@ export function initializeHUD() {
     <div id="hudMessage" class="hud-message" role="status" aria-live="polite" hidden></div>
   `;
 
-  // Cache live HUD DOM references once
-  _elNitroBar = hudRoot.querySelector("#hudNitroBar");
-  _elNitroPct = hudRoot.querySelector("#hudNitroPct");
+  // Cache live DOM references once (including the self-filling cockpit NITRO button)
+  _elNitroBtn = document.getElementById("nitroBtn");
   _elNearMiss = hudRoot.querySelector("#hudNearMiss");
   _elNearMissCombo = hudRoot.querySelector("#hudNearMissCombo");
   _elNearMissBonus = hudRoot.querySelector("#hudNearMissBonus");
@@ -93,24 +76,31 @@ export function updateHUD(force = false) {
   if (!hudRoot || !hudRoot.isConnected) return;
 
   const now = performance.now();
-  if (!force && now - lastHudUpdate < 60) return;
+  if (!force && now - lastHudUpdate < 50) return;
 
   lastHudUpdate = now;
 
-  // Nitro bar update (0 to 1) — skip DOM writes when unchanged
-  const nitroRatio = Math.max(0, Math.min(1, gameState.nitro ?? 1));
-  const nitroPercent = Math.round(nitroRatio * 100);
-  const isDraining = Boolean(gameState.nitroDraining);
-
-  if (force || nitroPercent !== _lastNitroPercent) {
-    _lastNitroPercent = nitroPercent;
-    if (_elNitroBar) _elNitroBar.style.width = `${nitroPercent}%`;
-    if (_elNitroPct) _elNitroPct.textContent = `${nitroPercent}%`;
+  // Auto-calibrating self-filling gauge directly inside the NITRO button
+  if (!_elNitroBtn) {
+    _elNitroBtn = document.getElementById("nitroBtn");
   }
 
-  if (force || isDraining !== _lastNitroDraining) {
-    _lastNitroDraining = isDraining;
-    if (_elNitroBar) _elNitroBar.classList.toggle("nitro-draining", isDraining);
+  if (_elNitroBtn) {
+    const nitroRatio = Math.max(0, Math.min(1, gameState.nitro ?? 1));
+    const nitroPercent = Math.round(nitroRatio * 100);
+    const isDraining = Boolean(gameState.nitroDraining);
+
+    if (force || nitroPercent !== _lastNitroPercent) {
+      _lastNitroPercent = nitroPercent;
+      _elNitroBtn.style.setProperty("--nitro-fill", `${nitroPercent}%`);
+      _elNitroBtn.classList.toggle("nitro-ready", nitroPercent >= 98 && !isDraining);
+      _elNitroBtn.classList.toggle("nitro-empty", nitroPercent <= 2);
+    }
+
+    if (force || isDraining !== _lastNitroDraining) {
+      _lastNitroDraining = isDraining;
+      _elNitroBtn.classList.toggle("nitro-draining", isDraining);
+    }
   }
 }
 
@@ -146,8 +136,7 @@ export function destroyHUD() {
   window.removeEventListener("flappycar:near-miss", handleNearMissEvent);
   if (hudRoot) hudRoot.replaceChildren();
   hudRoot = null;
-  _elNitroBar = null;
-  _elNitroPct = null;
+  _elNitroBtn = null;
   _elNearMiss = null;
   _elNearMissCombo = null;
   _elNearMissBonus = null;
@@ -156,4 +145,3 @@ export function destroyHUD() {
   _lastNitroDraining = null;
   lastHudUpdate = 0;
 }
-

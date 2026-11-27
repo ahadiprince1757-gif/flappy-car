@@ -25,9 +25,13 @@ export const gameState = {
   shieldActive: false,
   boostActive: false,
 
-  // ── Nitro & Boost Gauge ─────────────────────────────────────────
-  nitro: 0,              // 0.0 to 1.0
+  // ── Nitro & Boost Gauge (Auto-Calibrating) ──────────────────────
+  nitro: 1,              // 0.0 to 1.0 (starts charged, auto-fills inside NITRO button)
   nitroDraining: false,  // true when nitro boost is active
+
+  // ── Internal Checkpoint Counter (Memory Only) ───────────────────
+  checkpointsPassed: 0,
+  lastCheckpoint: null,
 
   // ── Flappy Mid-Air Double-Hop ───────────────────────────────
   airHopsRemaining: 1,   // double-hop charges available while airborne
@@ -88,8 +92,10 @@ export function resetGameState() {
   gameState.lanePositions = [-7.2, -3.6, 0, 3.6, 7.2];
   gameState.shieldActive = false;
   gameState.boostActive = false;
-  gameState.nitro = 0;
+  gameState.nitro = 1;
   gameState.nitroDraining = false;
+  gameState.checkpointsPassed = 0;
+  gameState.lastCheckpoint = null;
   gameState.airHopsRemaining = 1;
   gameState.nearMissCombo = 0;
   gameState.nearMissTimer = 0;

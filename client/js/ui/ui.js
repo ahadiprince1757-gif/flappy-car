@@ -88,6 +88,8 @@ function resetRunSystems() {
 
   gameState.shieldActive = false;
   gameState.boostActive = false;
+  gameState.nitro = 1;
+  gameState.nitroDraining = false;
   gameState.isJumping = false;
   gameState.isSliding = false;
 
@@ -97,10 +99,12 @@ function resetRunSystems() {
     jump: false,
     slide: false,
     accelerate: false,
-    brake: false
+    brake: false,
+    nitro: false
   };
 
   if (gameState.player) {
+    const player = gameState.player;
     const centerLane = Math.floor(gameState.lanePositions.length / 2);
     player.lane = centerLane;
     player.targetLaneOffset = gameState.lanePositions[centerLane];

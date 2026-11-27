@@ -3243,19 +3243,9 @@ button {
   font-weight: 900;
 }
 
-/* Nitro Boost Meter */
+/* Nitro Boost Meter permanently hidden for clean unobstructed viewport */
 .hud-nitro-container {
-  margin-top: 10px;
-  width: min(280px, 80vw);
-  background: rgba(2, 12, 24, 0.7);
-  backdrop-filter: none;
-  border: 1px solid rgba(0, 239, 255, 0.3);
-  border-radius: 8px;
-  padding: 5px 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  display: none !important;
 }
 
 .hud-nitro-labels {
@@ -3348,18 +3338,58 @@ button {
   text-shadow: 0 0 8px rgba(0, 239, 255, 0.8);
 }
 
-/* Cockpit Nitro Button */
+/* Cockpit Nitro Button — Self-Filling Auto-Calibrating Energy Gauge */
 .cockpit-btn.nitro-btn {
-  background: linear-gradient(135deg, rgba(0, 239, 255, 0.25), rgba(0, 136, 255, 0.35));
-  border-color: #00efff;
-  box-shadow: 0 0 16px rgba(0, 239, 255, 0.35);
-  color: #00efff;
+  position: relative;
+  overflow: hidden;
+  background: rgba(2, 12, 24, 0.55);
+  border-color: rgba(0, 239, 255, 0.75);
+  box-shadow: 0 0 14px rgba(0, 239, 255, 0.25);
+  color: #e0f2fe;
+  --nitro-fill: 100%;
 }
 
-.cockpit-btn.nitro-btn:active {
-  background: linear-gradient(135deg, rgba(0, 239, 255, 0.6), rgba(0, 136, 255, 0.8));
+.cockpit-btn.nitro-btn::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--nitro-fill, 100%);
+  background: linear-gradient(180deg, rgba(0, 239, 255, 0.62) 0%, rgba(0, 136, 255, 0.78) 100%);
+  box-shadow: 0 -2px 10px rgba(0, 239, 255, 0.85);
+  transition: height 0.08s linear;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.cockpit-btn.nitro-btn > * {
+  position: relative;
+  z-index: 1;
+}
+
+.cockpit-btn.nitro-btn.nitro-ready {
+  border-color: #00efff;
+  box-shadow: 0 0 20px rgba(0, 239, 255, 0.65);
   color: #ffffff;
-  box-shadow: 0 0 26px rgba(0, 239, 255, 0.8);
+}
+
+.cockpit-btn.nitro-btn.nitro-empty {
+  border-color: rgba(148, 163, 184, 0.45);
+  color: rgba(226, 232, 240, 0.55);
+  box-shadow: none;
+}
+
+.cockpit-btn.nitro-btn.nitro-draining::before {
+  background: linear-gradient(180deg, rgba(255, 136, 0, 0.85) 0%, rgba(255, 0, 85, 0.9) 100%);
+  box-shadow: 0 -2px 14px rgba(255, 100, 0, 0.95);
+}
+
+.cockpit-btn.nitro-btn.nitro-draining,
+.cockpit-btn.nitro-btn:active {
+  border-color: #ff6800;
+  color: #ffffff;
+  box-shadow: 0 0 26px rgba(255, 100, 0, 0.85);
   transform: scale(0.95);
 }
 
