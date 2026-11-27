@@ -93,8 +93,13 @@ export function checkCollisions() {
 
   // ── Traffic car collisions & near-miss detection ────────────────────
   const trafficPool = getTrafficPool();
+  const playerLayer = player.currentRoadLayer ?? 0;
   for (const entry of trafficPool) {
     if (!entry.active) continue;
+
+    // Layer-aware collision: ignore traffic on independent road elevation layers
+    const entryLayer = entry.roadLayer ?? 0;
+    if (entryLayer !== playerLayer) continue;
 
     const forwardDist = Math.abs(entry.roadZ - playerZ);
     const lateralDist = Math.abs(entry.laneOffset - playerLaneOffset);

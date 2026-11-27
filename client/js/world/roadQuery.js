@@ -79,11 +79,32 @@ export function queryRoadPoint(z, lateralOffset = 0, out = null, preferredLayer 
     target.heading = 0;
     target.slope = 0;
     target.layer = RoadLayer.GROUND;
+    target.inTunnel = false;
     target.segmentType = "straight";
     return target;
   }
 
+  target.inTunnel = false;
   return seg.navigation.sampleWorld(z, lateralOffset, target);
+}
+
+/**
+ * Returns true if local Z coordinate overlaps a cross-avenue, off-ramp, roundabout plaza,
+ * flyover underpass, or tunnel portal — used by backgrounds.js so skyscrapers/trees never
+ * clip into intersecting city roads!
+ */
+export function isCrossStreetZone(z) {
+  const len = _activeSegments.length;
+  for (let i = 0; i < len; i++) {
+    const seg = _activeSegments[i];
+    if (!seg.hasCrossStreet) continue;
+    const zClearStart = seg.zStart + (seg.crossStreetLocalStart ?? 0);
+    const zClearEnd = seg.zStart + (seg.crossStreetLocalEnd ?? -seg.length);
+    if (z <= zClearStart && z >= zClearEnd) {
+      return true;
+    }
+  }
+  return false;
 }
 
 export function queryRoadHeight(z, preferredLayer = null) {

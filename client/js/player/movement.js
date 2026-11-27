@@ -7,6 +7,7 @@ import {
 } from "../stages/stageRenderer.js";
 import { playJumpSound, playDriftSound, playTurboBlowOffSound, playNitroBoostSound, playCarRevSound } from "../systems/audio.js";
 import { createTireSmoke, triggerCameraShake } from "../systems/effects.js";
+import { updateTunnelCulling } from "../world/tunnelCuller.js";
 
 const CAMERA_BASE_OFFSET = new THREE.Vector3(0, 4.6, 8.8);
 const SLIDE_DURATION = 0.7;
@@ -123,6 +124,9 @@ function updateLaneMovement(player, deltaTime) {
 
   player.group.position.x = pt.x;
   player.group.position.z = pt.z;
+  player.currentRoadLayer = pt.layer ?? 0;
+  player.inTunnel = Boolean(pt.inTunnel);
+  updateTunnelCulling(player.inTunnel);
 
   // Lateral drift slip angle & centrifugal body roll
   const driftSlip = shouldDrift ? Math.sign(difference) * -0.22 : 0;
@@ -275,7 +279,9 @@ function updateCamera(player, deltaTime) {
   const camPt = getRoadPoint(playerZ + camDistZ, (player.currentLaneOffset || 0) * 0.45, _camRoadPt);
 
   const desiredCamX = camPt.x;
-  const desiredCamY = camPt.y + CAMERA_BASE_OFFSET.y;
+  // Slightly lower chase camera inside tunnels for sleek headroom below the ceiling
+  const camHeightOffset = player.inTunnel ? 3.55 : CAMERA_BASE_OFFSET.y;
+  const desiredCamY = camPt.y + camHeightOffset;
   const desiredCamZ = camPt.z;
 
   camera.position.x = THREE.MathUtils.damp(camera.position.x, desiredCamX, 5.5, deltaTime);

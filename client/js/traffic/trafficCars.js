@@ -195,6 +195,7 @@ export function updateTraffic(deltaTime) {
     // Update 3D position along the curved road
     const pt = getRoadPoint(entry.roadZ, entry.laneOffset, _trafficRoadPt);
     const slope = pt.slope;
+    entry.roadLayer = pt.layer ?? 0;
 
     entry.group.position.set(pt.x, pt.y, pt.z);
     entry.group.rotation.y = pt.heading + (entry.dir === -1 ? Math.PI : 0);

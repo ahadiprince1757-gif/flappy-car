@@ -2,6 +2,7 @@ import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.m
 import { FBXLoader } from "../core/FBXLoader.js";
 import { getStageConfig } from "./stages.js";
 import { getRoadPoint } from "./stageRenderer.js";
+import { isCrossStreetZone } from "../world/roadQuery.js";
 
 /* ================================================================
    3D FBX CITY BUILDINGS & HIGHWAY SCENERY
@@ -624,8 +625,9 @@ export function createBackground(stageId = "city") {
     const pt = getRoadPoint(zPos, lateralDist);
     const rotOffset = side > 0 ? -Math.PI / 2 : Math.PI / 2;
 
-    bldgObj.position.set(pt.x, pt.y, pt.z);
+    bldgObj.position.set(pt.x, pt.y > 0.4 ? 0 : pt.y, pt.z);
     bldgObj.rotation.y = pt.heading + rotOffset;
+    bldgObj.visible = !isCrossStreetZone(zPos);
     group.add(bldgObj);
 
     items.push({
@@ -656,7 +658,8 @@ export function createBackground(stageId = "city") {
     }
 
     const treePt = getRoadPoint(zPos, treeDist);
-    treeObj.position.set(treePt.x, treePt.y, treePt.z);
+    treeObj.position.set(treePt.x, treePt.y > 0.4 ? 0 : treePt.y, treePt.z);
+    treeObj.visible = !isCrossStreetZone(zPos);
     group.add(treeObj);
 
     items.push({
@@ -716,8 +719,16 @@ export function updateBackground(background, deltaTime, speed) {
     }
 
     const pt = getRoadPoint(entry.roadZ, entry.lateralDist, _bgRoadPt);
-    obj.position.set(pt.x, pt.y + (entry.yOffset || 0), pt.z);
-    obj.rotation.y = pt.heading + entry.rotationOffset;
+
+    // Clear skyscrapers, trees, and lamps overlapping intersecting cross-avenues, roundabouts, off-ramps, & tunnels
+    const isClearZone = isCrossStreetZone(entry.roadZ);
+    obj.visible = !isClearZone;
+    if (!isClearZone) {
+      // Keep buildings/trees anchored on ground (y = 0) even when highway rises onto flyovers
+      const baseGroundY = pt.y > 0.4 ? 0 : pt.y;
+      obj.position.set(pt.x, baseGroundY + (entry.yOffset || 0), pt.z);
+      obj.rotation.y = pt.heading + entry.rotationOffset;
+    }
 
     // Hot-swap fallback → real FBX building when ready
     if (entry.isBuilding && !entry.isFBX && _buildingsReady) {

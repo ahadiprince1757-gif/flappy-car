@@ -9,20 +9,21 @@ import {
   LANE_CENTERS,
   MARKING_OFFSETS,
   STREAM_BEHIND_Z,
-  STREAM_AHEAD_Z,
-  MAX_ROAD_LATERAL_DRIFT,
-  CURVE_DELTA_X
+  STREAM_AHEAD_Z
 } from "../world/roadConstants.js";
 import { getRoadMaterials } from "../world/roadMaterials.js";
 import { placeSegmentAt } from "../world/roadSegment.js";
 import { initRoadPool, acquireSegment, releaseSegment, releaseAllSegments } from "../world/roadPool.js";
+import { resetRoadGraph, getNextRoadSegmentType } from "../world/roadGraph.js";
+import { resetTunnelCulling } from "../world/tunnelCuller.js";
 import {
   setActiveRoadSegments,
   queryRoadPoint,
   queryRoadHeight,
   queryRoadSlope,
   queryRoadX,
-  queryRoadHeading
+  queryRoadHeading,
+  isCrossStreetZone
 } from "../world/roadQuery.js";
 
 // Re-export road dimension constants for backwards compatibility across all subsystems
@@ -65,22 +66,9 @@ export function getRoadPoint(z, lateralOffset = 0, out = null) {
   return queryRoadPoint(z, lateralOffset, out);
 }
 
-/* ── Simple Segment Pattern Selector (replaced by RoadGraph in M2) ── */
-let _segmentCounter = 0;
-
+/* ── Road Network Graph Sequencer (Chunk-based city connections) ── */
 function pickNextSegmentType(currentX) {
-  _segmentCounter++;
-  // Guarantee straight starting runway on the first 3 segments
-  if (_segmentCounter <= 3) return "straight";
-
-  // Smooth rhythmic flow: Straight -> Straight -> Sweeping Curve
-  if (_segmentCounter % 3 !== 0) return "straight";
-
-  // Keep lateral highway drift smoothly bounded inside [-MAX_ROAD_LATERAL_DRIFT, +MAX_ROAD_LATERAL_DRIFT]
-  if (currentX + CURVE_DELTA_X > MAX_ROAD_LATERAL_DRIFT) return "curveLeft";
-  if (currentX - CURVE_DELTA_X < -MAX_ROAD_LATERAL_DRIFT) return "curveRight";
-
-  return (_segmentCounter % 6 === 0) ? "curveLeft" : "curveRight";
+  return getNextRoadSegmentType(currentX);
 }
 
 /* ── Roadside Reflector Posts along Sidewalk Edges ────────────── */
@@ -162,7 +150,8 @@ export function createStage(stageId = "city") {
   initRoadPool(roadSegmentsGroup, materials);
 
   const activeSegments = [];
-  _segmentCounter = 0;
+  resetRoadGraph();
+  resetTunnelCulling();
 
   // Populate initial sliding window from +36m behind player out to -300m ahead
   let cursorX = 0;
@@ -271,7 +260,7 @@ export function updateStage(deltaTime) {
     }
   }
 
-  // 4. Scroll Roadside Posts along modular road curve
+  // 4. Scroll Roadside Posts along modular road curve (hide inside cross-streets & plazas)
   for (let i = 0; i < road.posts.length; i++) {
     const post = road.posts[i];
     post.userData.roadZ += movement;
@@ -280,9 +269,13 @@ export function updateStage(deltaTime) {
       post.userData.roadZ -= TRACK_LENGTH;
     }
 
-    const pt = getRoadPoint(post.userData.roadZ, post.userData.lateralOffset, _stageRoadPt);
-    post.position.set(pt.x, pt.y + 0.08, pt.z);
-    post.rotation.y = pt.heading;
+    const inCross = isCrossStreetZone(post.userData.roadZ);
+    post.visible = !inCross;
+    if (!inCross) {
+      const pt = getRoadPoint(post.userData.roadZ, post.userData.lateralOffset, _stageRoadPt);
+      post.position.set(pt.x, pt.y + 0.08, pt.z);
+      post.rotation.y = pt.heading;
+    }
   }
 
   // 5. Scroll Scenery along modular road curve
