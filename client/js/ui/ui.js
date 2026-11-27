@@ -251,7 +251,6 @@ function startAdventure() {
   // IMMEDIATELY hide all menu screens — button must feel instant/responsive
   setHidden("homeScreen", true);
   setHidden("carSelectScreen", true);
-  setHidden("trackSelectScreen", true);
   setHidden("levelSelectScreen", true);
   hidePauseMenu();
 
@@ -310,7 +309,6 @@ function startSelectedRace(levelId) {
   setHidden("garageScreen", true);
   setHidden("levelSelectScreen", true);
   setHidden("carSelectScreen", true);
-  setHidden("trackSelectScreen", true);
   hidePauseMenu();
 
   if (!gameState.player?.group) {

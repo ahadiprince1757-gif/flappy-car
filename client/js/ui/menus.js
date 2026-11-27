@@ -1,10 +1,7 @@
 import { getAllRacingLevels } from "../racing/racingLevels.js";
 import { getUnlockedRacingLevels } from "../racing/racing.js";
 import {
-  renderCarSelectionScreen,
-  renderTrackSelectionScreen,
-  initCarSelectViewer,
-  stopCarSelectViewer
+  renderCarSelectionScreen
 } from "../cars/garage.js";
 import { toggleMute, isMuted, updateMusicUI } from "../systems/audio.js";
 import { showHUDMessage } from "./hud.js";
@@ -66,7 +63,6 @@ function transitionToScreen(targetScreenId, prepareFn) {
   const screens = [
     byId("homeScreen"),
     byId("carSelectScreen"),
-    byId("trackSelectScreen"),
     byId("leaderboardScreen"),
     byId("levelSelectScreen")
   ].filter(Boolean);
@@ -109,17 +105,6 @@ export function showHomeScreen() {
 export function showCarSelectScreen() {
   transitionToScreen("carSelectScreen", () => {
     renderCarSelectionScreen();
-    // Small delay to allow element dimensions to settle before initializing Three.js canvas
-    requestAnimationFrame(() => {
-      initCarSelectViewer();
-    });
-  });
-}
-
-export function showTrackSelectScreen() {
-  stopCarSelectViewer();
-  transitionToScreen("trackSelectScreen", () => {
-    renderTrackSelectionScreen();
   });
 }
 
@@ -201,19 +186,8 @@ export function initializeMenus(options = {}) {
     showHomeScreen();
   });
 
-  // Step 1: Car Select Screen -> Confirm & Proceed to Track Select (Step 2)
+  // Step 1: Car Select Screen -> Confirm & Start Race directly!
   bindClick("confirmCarBtn", () => {
-    showTrackSelectScreen();
-  });
-
-  // Step 2: Track Select Screen -> Back to Car Select
-  bindClick("backFromTrackSelectBtn", () => {
-    showCarSelectScreen();
-  });
-
-  // Step 2: Track Select Screen -> Start Race with chosen car & track!
-  bindClick("startRaceWithTrackBtn", () => {
-    stopCarSelectViewer();
     callbacks.onStartAdventure?.();
   });
 

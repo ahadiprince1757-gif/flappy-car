@@ -2,6 +2,19 @@ import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.m
 import { gameState } from "../core/gameState.js";
 import { getStageConfig } from "./stages.js";
 import { createBackground, updateBackground } from "./backgrounds.js";
+import { showHUDMessage } from "../ui/hud.js";
+
+// Continuous dynamic environment progression (every 1000m)
+export const STAGE_PROGRESSION = [
+  { id: "city",     name: "Metropolis City",   startDist: 0 },
+  { id: "beach",    name: "Sunset Coast",      startDist: 1000 },
+  { id: "desert",   name: "Dune Canyon",       startDist: 2000 },
+  { id: "jungle",   name: "Rainforest Trail",  startDist: 3000 },
+  { id: "savannah", name: "African Savannah",  startDist: 4000 },
+  { id: "village",  name: "Alpine Resort",     startDist: 5000 }
+];
+
+let lastAnnouncedStageIdx = -1;
 
 /*
  * CONTINUOUS HIGHWAY ROAD RENDERER
@@ -508,42 +521,46 @@ export function updateStage(deltaTime) {
   // 5. Update odometer
   gameState.distance += movement;
 
-  // 6. Dynamic Day / Cyber-Dusk / Midnight Atmosphere Transition
-  updateAtmosphereLighting(road, deltaTime);
+  // 6. Dynamic In-Game Stage & Environment Progression
+  updateDynamicStageProgression(road, deltaTime);
 }
 
-function updateAtmosphereLighting(road, deltaTime) {
-  if (!gameState.scene || !gameState.scene.fog || !road.config) return;
+function updateDynamicStageProgression(road, deltaTime) {
+  if (!gameState.scene || !gameState.scene.fog) return;
 
   const dist = gameState.distance || 0;
-  const cycleDistance = dist % 4500;
-  let targetSky, targetFog;
+  const loopDist = dist % 6000;
+  const stageIdx = Math.min(STAGE_PROGRESSION.length - 1, Math.floor(loopDist / 1000));
+  const currentStageDef = STAGE_PROGRESSION[stageIdx];
+  const nextStageDef = STAGE_PROGRESSION[(stageIdx + 1) % STAGE_PROGRESSION.length];
 
-  if (cycleDistance < 1500) {
-    // Stage 1: Golden sunset / bright daytime (0 - 1500m)
-    targetSky = new THREE.Color(road.config.skyColor);
-    targetFog = new THREE.Color(road.config.fogColor);
-  } else if (cycleDistance < 3000) {
-    // Stage 2: Cyber Dusk & Purple Horizon (1500 - 3000m)
-    const t = (cycleDistance - 1500) / 1500;
-    const duskSky = new THREE.Color(0x3b0764); // deep violet
-    const duskFog = new THREE.Color(0x701a75); // fuchsia mist
-    targetSky = new THREE.Color(road.config.skyColor).lerp(duskSky, t);
-    targetFog = new THREE.Color(road.config.fogColor).lerp(duskFog, t);
-  } else {
-    // Stage 3: High-contrast Neon Midnight (3000m - 4500m)
-    const t = (cycleDistance - 3000) / 1500;
-    const midnightSky = new THREE.Color(0x020617); // midnight navy
-    const midnightFog = new THREE.Color(0x0f172a); // dark mist
-    targetSky = new THREE.Color(0x3b0764).lerp(midnightSky, t);
-    targetFog = new THREE.Color(0x701a75).lerp(midnightFog, t);
+  // Announce newly reached environment via arcade HUD message
+  if (stageIdx !== lastAnnouncedStageIdx) {
+    lastAnnouncedStageIdx = stageIdx;
+    gameState.selectedStage = currentStageDef.id;
+    if (dist > 50) {
+      showHUDMessage(`🏁 ENTERING ${currentStageDef.name.toUpperCase()}!`);
+    }
   }
+
+  // Smooth environmental interpolation
+  const stageConfig = getStageConfig(currentStageDef.id);
+  const nextConfig = getStageConfig(nextStageDef.id);
+
+  const stageProgress = (loopDist % 1000) / 1000;
+  const blendT = stageProgress > 0.7 ? (stageProgress - 0.7) / 0.3 : 0;
+
+  const currentSky = new THREE.Color(stageConfig.skyColor);
+  const currentFog = new THREE.Color(stageConfig.fogColor);
+
+  const targetSky = currentSky.lerp(new THREE.Color(nextConfig.skyColor), blendT);
+  const targetFog = currentFog.lerp(new THREE.Color(nextConfig.fogColor), blendT);
 
   if (gameState.scene.background instanceof THREE.Color) {
-    gameState.scene.background.lerp(targetSky, deltaTime * 1.5);
+    gameState.scene.background.lerp(targetSky, deltaTime * 2.0);
   }
   if (gameState.scene.fog) {
-    gameState.scene.fog.color.lerp(targetFog, deltaTime * 1.5);
+    gameState.scene.fog.color.lerp(targetFog, deltaTime * 2.0);
   }
 }
 

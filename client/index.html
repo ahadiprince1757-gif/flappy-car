@@ -102,20 +102,19 @@
         </div>
       </section>
 
-      <!-- Page 1: Dedicated Car Selection Screen -->
+      <!-- Simplified Lightweight Vehicle Selection Screen -->
       <section id="carSelectScreen" class="menu-screen selection-screen" aria-label="Vehicle selection" hidden>
         <div class="selection-top-bar">
           <div class="selection-title-group">
-            <span class="step-indicator">STEP 1 OF 2 · VEHICLE SELECTION</span>
             <h2>CHOOSE YOUR MACHINE</h2>
-            <p class="section-desc">Select vehicle · Real 3D FBX Models</p>
+            <p class="section-desc">Select vehicle · Direct to race</p>
           </div>
           <div class="top-bar-actions">
             <button class="mini-btn mini-btn-ghost" id="backFromCarSelectBtn" type="button">
               ← MENU
             </button>
             <button class="mini-btn mini-btn-primary" id="confirmCarBtn" type="button">
-              CHOOSE TRACK ➔
+              START RACE 🏁
             </button>
           </div>
         </div>
@@ -126,134 +125,11 @@
           <button class="cat-pill" data-category="sport" type="button">SUPER SPORT</button>
           <button class="cat-pill" data-category="muscle" type="button">V8 MUSCLE</button>
           <button class="cat-pill" data-category="tuner" type="button">TUNER</button>
-          <button class="cat-pill" data-category="utility" type="button">UTILITY & PATROL</button>
+          <button class="cat-pill" data-category="utility" type="button">UTILITY</button>
         </div>
 
-        <!-- Car Selection Main Workspace (Grid + Inspector) -->
-        <div class="selection-workspace">
-          <!-- Left: Grid of Car Cards with Real Images -->
-          <div class="cars-grid-container" id="carCardsGrid"></div>
-
-          <!-- Right: Inspector & 3D Showcase Panel -->
-          <div class="car-inspector-card" id="carInspectorCard">
-            <!-- 3D Turntable & Hero Preview -->
-            <div class="inspector-preview-box">
-              <canvas id="carSelectShowcaseCanvas"></canvas>
-              <img id="inspectorFallbackImg" class="inspector-hero-img" src="./assets/images/cars/cyber.jpg" alt="Selected Car" />
-              <div class="turntable-rot-hint">⟲ Drag to inspect 3D model</div>
-              <div class="active-badge-tag" id="inspectorCategoryTag">SUPER SPORT</div>
-            </div>
-
-            <!-- Vehicle Specs & Information -->
-            <div class="inspector-details">
-              <div class="inspector-header">
-                <h3 id="inspectorCarName" class="inspector-car-title">Cyber GT</h3>
-                <p id="inspectorCarTagline" class="inspector-car-tagline">Twin-turbo aerodynamic low-slung cyber coupe</p>
-              </div>
-
-              <!-- Key Specs Badges -->
-              <div class="specs-chips-row">
-                <div class="spec-chip">
-                  <span class="spec-chip-label">HORSEPOWER</span>
-                  <strong class="spec-chip-val" id="specHp">680 HP</strong>
-                </div>
-                <div class="spec-chip">
-                  <span class="spec-chip-label">TOP SPEED</span>
-                  <strong class="spec-chip-val" id="specTopSpeed">205 MPH</strong>
-                </div>
-                <div class="spec-chip">
-                  <span class="spec-chip-label">CURB WEIGHT</span>
-                  <strong class="spec-chip-val" id="specWeight">1,320 KG</strong>
-                </div>
-              </div>
-
-              <!-- Animated Stats Bars (Reference Style) -->
-              <div class="stats-bars-container">
-                <div class="stat-bar-item">
-                  <div class="stat-bar-labels">
-                    <span>MAX. SPEED</span>
-                    <strong id="statSpeedVal">9.4</strong>
-                  </div>
-                  <div class="stat-bar-track">
-                    <div class="stat-bar-fill" id="statSpeedFill" style="width: 94%;"></div>
-                  </div>
-                </div>
-
-                <div class="stat-bar-item">
-                  <div class="stat-bar-labels">
-                    <span>ACCELERATION</span>
-                    <strong id="statAccelVal">9.2</strong>
-                  </div>
-                  <div class="stat-bar-track">
-                    <div class="stat-bar-fill" id="statAccelFill" style="width: 92%;"></div>
-                  </div>
-                </div>
-
-                <div class="stat-bar-item">
-                  <div class="stat-bar-labels">
-                    <span>HANDLING & CORNERING</span>
-                    <strong id="statHandlingVal">9.0</strong>
-                  </div>
-                  <div class="stat-bar-track">
-                    <div class="stat-bar-fill" id="statHandlingFill" style="width: 90%;"></div>
-                  </div>
-                </div>
-
-                <div class="stat-bar-item">
-                  <div class="stat-bar-labels">
-                    <span>BRAKING</span>
-                    <strong id="statBrakingVal">8.8</strong>
-                  </div>
-                  <div class="stat-bar-track">
-                    <div class="stat-bar-fill" id="statBrakingFill" style="width: 88%;"></div>
-                  </div>
-                </div>
-
-                <div class="stat-bar-item">
-                  <div class="stat-bar-labels">
-                    <span>STABILITY</span>
-                    <strong id="statStabilityVal">8.9</strong>
-                  </div>
-                  <div class="stat-bar-track">
-                    <div class="stat-bar-fill" id="statStabilityFill" style="width: 89%;"></div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Purchase or Equip Action in Inspector -->
-              <div class="inspector-action-row" id="inspectorActionRow" style="margin-top: 14px;">
-                <button class="btn-action btn-primary" id="inspectorBuyEquipBtn" type="button" style="width: 100%; height: 44px; font-weight: 900; letter-spacing: 0.08em;">
-                  EQUIPPED ✓
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Page 2: Dedicated Environment / Track Selection Screen -->
-      <section id="trackSelectScreen" class="menu-screen selection-screen" aria-label="Track and environment selection" hidden>
-        <div class="selection-top-bar">
-          <div class="selection-title-group">
-            <span class="step-indicator">STEP 2 OF 2 · ENVIRONMENT SELECTION</span>
-            <h2>CHOOSE DRIVING ENVIRONMENT</h2>
-            <p class="section-desc">Select stage · Real FBX Environments</p>
-          </div>
-          <div class="top-bar-actions">
-            <div class="selected-car-badge-pill" id="trackActiveCarBadge">
-              🚗 <strong id="trackActiveCarName">Cyber GT</strong>
-            </div>
-            <button class="mini-btn mini-btn-ghost" id="backFromTrackSelectBtn" type="button">
-              ← CARS
-            </button>
-            <button class="mini-btn mini-btn-primary" id="startRaceWithTrackBtn" type="button">
-              START RACE 🏁
-            </button>
-          </div>
-        </div>
-
-        <!-- Track Grid -->
-        <div class="tracks-grid-container" id="trackCardsGrid"></div>
+        <!-- Clean Grid of Car Cards (Direct Tap to Select & Equip) -->
+        <div class="cars-grid-container" id="carCardsGrid"></div>
       </section>
 
       <!-- Racing Levels Screen -->

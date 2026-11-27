@@ -666,10 +666,12 @@ button {
 /* ── Left: Cars Grid ──────────────────────────────── */
 .cars-grid-container {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(clamp(140px, 28vw, 210px), 1fr));
-  gap: clamp(8px, 1.5vw, 14px);
+  grid-template-columns: repeat(auto-fill, minmax(clamp(150px, 24vw, 220px), 1fr));
+  gap: clamp(10px, 1.8vw, 16px);
+  width: 100%;
+  max-width: 1240px;
   overflow-y: auto;
-  max-height: clamp(300px, 62vh, 700px);
+  max-height: clamp(320px, 68vh, 720px);
   padding-right: 4px;
   scrollbar-width: thin;
   scrollbar-color: var(--cyan) transparent;
