@@ -384,6 +384,9 @@ export function setMuted(value) {
   if (realRevAudio) {
     realRevAudio.volume = muted ? 0 : Math.min(1, sfxVolume * 0.95);
   }
+  if (realIdleAudio) {
+    realIdleAudio.volume = muted ? 0 : Math.min(1, sfxVolume * 0.85);
+  }
 
   if (musicPlayer) {
     musicPlayer.volume = muted ? 0 : musicVolume;
@@ -394,6 +397,9 @@ export function setMuted(value) {
   }
   if (realRevAudio) {
     realRevAudio.volume = muted ? 0 : Math.min(1, sfxVolume * 0.95);
+  }
+  if (realIdleAudio) {
+    realIdleAudio.volume = muted ? 0 : Math.min(1, sfxVolume * 0.85);
   }
 
   updateMusicUI();
@@ -431,6 +437,9 @@ export function setSfxVolume(value) {
   if (realRevAudio) {
     realRevAudio.volume = muted ? 0 : Math.min(1, sfxVolume * 0.95);
   }
+  if (realIdleAudio) {
+    realIdleAudio.volume = muted ? 0 : Math.min(1, sfxVolume * 0.85);
+  }
 
   updateMusicUI();
   return sfxVolume;
@@ -458,6 +467,9 @@ export function setMusicVolume(value) {
   }
   if (realRevAudio) {
     realRevAudio.volume = muted ? 0 : Math.min(1, sfxVolume * 0.95);
+  }
+  if (realIdleAudio) {
+    realIdleAudio.volume = muted ? 0 : Math.min(1, sfxVolume * 0.85);
   }
 
   updateMusicUI();
@@ -843,6 +855,7 @@ export function playRaceFailedSound() {
 
 let realEngineAudio = null;
 let realRevAudio = null;
+let realIdleAudio = null;
 
 function getRealEngineAudio() {
   if (!realEngineAudio && typeof Audio !== "undefined") {
@@ -862,6 +875,15 @@ function getRealRevAudio() {
   return realRevAudio;
 }
 
+function getRealIdleAudio() {
+  if (!realIdleAudio && typeof Audio !== "undefined") {
+    realIdleAudio = new Audio("./assets/audio/car_idle.mp3");
+    realIdleAudio.loop = true;
+    realIdleAudio.volume = muted ? 0 : Math.min(1, sfxVolume * 0.85);
+  }
+  return realIdleAudio;
+}
+
 export function startEngineSound() {
   if (muted) return;
   const audio = getRealEngineAudio();
@@ -873,11 +895,43 @@ export function startEngineSound() {
   }
 }
 
-export function updateEngineSound(speed, baseSpeed = 18) {
+export function startIdleSound() {
+  if (muted) return;
+  const idle = getRealIdleAudio();
+  if (idle) {
+    idle.loop = true;
+    idle.volume = muted ? 0 : Math.min(1, sfxVolume * 0.85);
+    if (idle.paused) {
+      idle.play().catch(() => {});
+    }
+  }
+}
+
+export function stopIdleSound() {
+  if (realIdleAudio && !realIdleAudio.paused) {
+    try {
+      realIdleAudio.pause();
+      realIdleAudio.currentTime = 0;
+    } catch {}
+  }
+}
+
+export function updateEngineSound(speed, baseSpeed = 18, isAnyButtonPressed = false) {
   if (muted) {
     if (realEngineAudio && !realEngineAudio.paused) realEngineAudio.pause();
     if (realRevAudio && !realRevAudio.paused) realRevAudio.pause();
+    if (realIdleAudio && !realIdleAudio.paused) realIdleAudio.pause();
     return;
+  }
+
+  // Idle sound: loops continuously when the car is idle and player is not pressing any button
+  if (!isAnyButtonPressed) {
+    if (realRevAudio && !realRevAudio.paused) {
+      stopCarRevSound();
+    }
+    startIdleSound();
+  } else {
+    stopIdleSound();
   }
 
   const ratio = Math.max(0.75, Math.min(1.85, (speed || baseSpeed) / (baseSpeed || 18)));
@@ -890,6 +944,7 @@ export function updateEngineSound(speed, baseSpeed = 18) {
 
 export function playCarRevSound() {
   if (muted) return;
+  stopIdleSound();
   const rev = getRealRevAudio();
   if (rev) {
     try {
@@ -923,6 +978,12 @@ export function stopEngineSound() {
     try {
       realRevAudio.pause();
       realRevAudio.currentTime = 0;
+    } catch {}
+  }
+  if (realIdleAudio) {
+    try {
+      realIdleAudio.pause();
+      realIdleAudio.currentTime = 0;
     } catch {}
   }
 }

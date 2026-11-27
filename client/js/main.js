@@ -99,9 +99,22 @@ function updateGame(deltaTime) {
     updateRacing(deltaTime);
 
     if (gameState.status === "playing") {
+      const isAnyButtonPressed = Boolean(
+        gameState.input && (
+          gameState.input.accelerate ||
+          gameState.input.brake ||
+          gameState.input.nitro ||
+          gameState.input.left ||
+          gameState.input.right ||
+          gameState.input.jump ||
+          gameState.input.slide
+        )
+      );
+
       updateEngineSound(
         gameState.speed,
-        gameState.baseSpeed
+        gameState.baseSpeed,
+        isAnyButtonPressed
       );
     } else {
       stopEngineSound();

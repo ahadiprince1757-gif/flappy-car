@@ -6,7 +6,7 @@ import {
   slide
 } from "./movement.js";
 import { PerformanceMonitor } from "../core/perfMonitor.js";
-import { playCarRevSound, stopCarRevSound } from "../systems/audio.js";
+import { playCarRevSound, stopCarRevSound, startIdleSound, stopIdleSound } from "../systems/audio.js";
 
 let controlsAttached = false;
 
@@ -46,6 +46,8 @@ function handleKeyDown(event) {
   }
 
   if (gameState.status !== "playing") return;
+
+  stopIdleSound();
 
   switch (key) {
     case "arrowleft":
@@ -139,6 +141,22 @@ function handleKeyUp(event) {
       gameState.input.nitro = false;
       break;
   }
+
+  if (!isAnyInputActive() && gameState.status === "playing") {
+    startIdleSound();
+  }
+}
+
+function isAnyInputActive() {
+  return Boolean(
+    gameState.input.left ||
+    gameState.input.right ||
+    gameState.input.accelerate ||
+    gameState.input.brake ||
+    gameState.input.jump ||
+    gameState.input.slide ||
+    gameState.input.nitro
+  );
 }
 
 function handleBlur() {
@@ -150,10 +168,12 @@ function handleBlur() {
   gameState.input.brake = false;
   gameState.input.nitro = false;
   stopCarRevSound();
+  stopIdleSound();
 }
 
 export function startAccelerate() {
   if (gameState.status !== "playing") return;
+  stopIdleSound();
   if (!gameState.input.accelerate) {
     playCarRevSound();
   }
@@ -163,23 +183,34 @@ export function startAccelerate() {
 export function stopAccelerate() {
   gameState.input.accelerate = false;
   stopCarRevSound();
+  if (!isAnyInputActive() && gameState.status === "playing") {
+    startIdleSound();
+  }
 }
 
 export function startBrake() {
+  stopIdleSound();
   gameState.input.brake = true;
 }
 
 export function stopBrake() {
   gameState.input.brake = false;
+  if (!isAnyInputActive() && gameState.status === "playing") {
+    startIdleSound();
+  }
 }
 
 export function startNitro() {
+  stopIdleSound();
   gameState.input.nitro = true;
 }
 
 export function stopNitro() {
   gameState.input.nitro = false;
   stopCarRevSound();
+  if (!isAnyInputActive() && gameState.status === "playing") {
+    startIdleSound();
+  }
 }
 
 export function initializeControls() {
