@@ -1,24 +1,24 @@
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
 import { SEGMENT_LENGTH, ROAD_WIDTH, RoadLayer } from "../roadConstants.js";
-import {
-  createSharedHighwayGeometries,
-  createHighwayVisualGroup,
-  createRoadSegment
-} from "../roadSegment.js";
+import { buildSegmentStripGeometry, createRoadSegment } from "../roadSegment.js";
 
 /* ================================================================
-   CITY JUNCTION & HIGHWAY INTERCHANGE MODULES
-   1. junction (4-Way City Crossroad):
-      - Perpendicular 4-lane cross-avenue extending ±85m into the city
-      - Crisp zebra crosswalks & intersection markings
-      - 4 corner traffic light gantries with glowing signal heads
-   2. interchange (Highway Off-Ramp / On-Ramp Split):
-      - Angled diverging exit ramps & merging slip-roads branching ±32°
-      - Overhead highway steel gantry with glowing destination signboards
+   SEAMLESS INTERCONNECTED CITY JUNCTIONS & DRIVABLE ROUTE SPLITS
+   - Zero overlapping curbs or sidewalks cutting across cross-streets!
+   - Every asphalt surface shares the EXACT unified tarmac material so
+     connected avenues merge invisibly like a real modern city.
+   1. junction (4-Way City Crossroad, 40m):
+      - Approach & exit curbs stop cleanly at the 4 rounded corners.
+      - Open seamless intersection box with zebra crosswalks on all 4 sides
+        and sleek dark-steel traffic lights on the corners.
+   2. interchange (Drivable Boulevard Split & City Route Selector, 80m):
+      - Road widens smoothly around a landscaped central splitter island
+        with overhead highway gantry ("↖ UPTOWN PLAZA | EXPRESS SKYWAY ↗").
+      - Driving Left or Right around the divider steers the upcoming
+        RoadGraph directly into that city district!
 ================================================================ */
 
-let _sharedBaseGeos = null;
-let _sharedCrossMaterials = null;
+let _sharedJunctionDecals = null;
 
 function sampleFlatProfile(t, out) {
   out.x = 0;
@@ -28,254 +28,247 @@ function sampleFlatProfile(t, out) {
   return out;
 }
 
-function getSharedBaseGeometries() {
-  if (!_sharedBaseGeos) {
-    _sharedBaseGeos = createSharedHighwayGeometries({
-      length: SEGMENT_LENGTH,
-      segmentsZ: 4,
-      profileFn: sampleFlatProfile
-    });
-  }
-  return _sharedBaseGeos;
-}
-
-function createCrossAvenueTexture() {
-  const canvas = document.createElement("canvas");
-  canvas.width = 512;
-  canvas.height = 256;
-  const ctx = canvas.getContext("2d");
-
-  // Asphalt base
-  ctx.fillStyle = "#1e293b";
-  ctx.fillRect(0, 0, 512, 256);
-
-  // Subtle tarmac texture
-  ctx.fillStyle = "rgba(0, 0, 0, 0.12)";
-  ctx.fillRect(0, 42, 512, 28);
-  ctx.fillRect(0, 186, 512, 28);
-
-  // Outer white edge lines
-  ctx.fillStyle = "#f8fafc";
-  ctx.fillRect(0, 8, 512, 6);
-  ctx.fillRect(0, 242, 512, 6);
-
-  // Double amber center line
-  ctx.fillStyle = "#fbbf24";
-  ctx.fillRect(0, 122, 512, 4);
-  ctx.fillRect(0, 130, 512, 4);
-
-  // White dashed lane dividers
-  ctx.fillStyle = "rgba(255, 255, 255, 0.88)";
-  for (let x = 16; x < 512; x += 64) {
-    ctx.fillRect(x, 64, 30, 4);
-    ctx.fillRect(x, 188, 30, 4);
-  }
-
-  const tex = new THREE.CanvasTexture(canvas);
-  tex.wrapS = THREE.RepeatWrapping;
-  tex.wrapT = THREE.ClampToEdgeWrapping;
-  tex.repeat.set(6, 1);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  return tex;
-}
-
 function createCrosswalkTexture() {
   const canvas = document.createElement("canvas");
   canvas.width = 256;
   canvas.height = 64;
   const ctx = canvas.getContext("2d");
-
   ctx.clearRect(0, 0, 256, 64);
-  ctx.fillStyle = "rgba(248, 250, 252, 0.92)";
-  for (let x = 8; x < 248; x += 24) {
+  ctx.fillStyle = "rgba(248, 250, 252, 0.88)";
+  for (let x = 10; x < 246; x += 24) {
     ctx.fillRect(x, 8, 12, 48);
   }
-
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
   return tex;
 }
 
-function createGantrySignTexture(leftText, centerText, rightText) {
+function createGantrySignTexture() {
   const canvas = document.createElement("canvas");
   canvas.width = 512;
   canvas.height = 128;
   const ctx = canvas.getContext("2d");
 
-  // Highway green-teal metallic sign backing
-  ctx.fillStyle = "#065f46";
+  ctx.fillStyle = "#064e3b";
   ctx.fillRect(0, 0, 512, 128);
-
-  // Crisp white reflective border
-  ctx.strokeStyle = "#f8fafc";
+  ctx.strokeStyle = "#e2e8f0";
   ctx.lineWidth = 6;
   ctx.strokeRect(6, 6, 500, 116);
 
-  // Column dividers
+  // Center split divider
   ctx.strokeStyle = "rgba(255,255,255,0.45)";
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(170, 14);
-  ctx.lineTo(170, 114);
-  ctx.moveTo(342, 14);
-  ctx.lineTo(342, 114);
+  ctx.moveTo(256, 16);
+  ctx.lineTo(256, 112);
   ctx.stroke();
 
   ctx.fillStyle = "#ffffff";
   ctx.textAlign = "center";
-  ctx.font = "bold 22px system-ui, sans-serif";
-  ctx.fillText(leftText, 88, 56);
-  ctx.fillText(centerText, 256, 56);
-  ctx.fillText(rightText, 424, 56);
+  ctx.font = "bold 24px system-ui, sans-serif";
+  ctx.fillText("UPTOWN PLAZA", 128, 52);
+  ctx.fillText("EXPRESS SKYWAY", 384, 52);
 
   ctx.fillStyle = "#38bdf8";
   ctx.font = "bold 32px system-ui, sans-serif";
-  ctx.fillText("↖", 88, 100);
-  ctx.fillText("↑", 256, 100);
-  ctx.fillText("↗", 424, 100);
+  ctx.fillText("↖  LEFT LANES", 128, 98);
+  ctx.fillText("RIGHT LANES  ↗", 384, 98);
 
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
   return tex;
 }
 
-function getSharedJunctionMaterials() {
-  if (_sharedCrossMaterials) return _sharedCrossMaterials;
+function getSharedJunctionExtras() {
+  if (_sharedJunctionDecals) return _sharedJunctionDecals;
 
-  const crossTex = createCrossAvenueTexture();
-  const crosswalkTex = createCrosswalkTexture();
-  const signTex = createGantrySignTexture("UPTOWN", "METRO CORE", "HARBOR");
+  const cwTex = createCrosswalkTexture();
+  const signTex = createGantrySignTexture();
 
-  _sharedCrossMaterials = {
-    crossAsphalt: new THREE.MeshStandardMaterial({
-      map: crossTex,
-      roughness: 0.42,
-      metalness: 0.18
-    }),
-    crossSidewalk: new THREE.MeshStandardMaterial({
-      color: "#94a3b8",
-      roughness: 0.85,
-      metalness: 0.05
-    }),
-    crosswalk: new THREE.MeshStandardMaterial({
-      map: crosswalkTex,
+  _sharedJunctionDecals = {
+    crosswalkMat: new THREE.MeshStandardMaterial({
+      map: cwTex,
       transparent: true,
       roughness: 0.5,
       depthWrite: false
     }),
-    pole: new THREE.MeshStandardMaterial({
-      color: "#334155",
-      metalness: 0.8,
-      roughness: 0.3
+    poleMat: new THREE.MeshStandardMaterial({
+      color: "#1e293b",
+      metalness: 0.78,
+      roughness: 0.32
     }),
-    housing: new THREE.MeshStandardMaterial({
+    housingMat: new THREE.MeshStandardMaterial({
       color: "#0f172a",
       metalness: 0.5,
       roughness: 0.5
     }),
-    lightGreen: new THREE.MeshStandardMaterial({
+    greenMat: new THREE.MeshStandardMaterial({
       color: "#22c55e",
       emissive: "#22c55e",
-      emissiveIntensity: 3.5
-    }),
-    lightRed: new THREE.MeshStandardMaterial({
-      color: "#ef4444",
-      emissive: "#ef4444",
       emissiveIntensity: 3.0
     }),
-    lightAmber: new THREE.MeshStandardMaterial({
+    amberMat: new THREE.MeshStandardMaterial({
       color: "#f59e0b",
       emissive: "#f59e0b",
-      emissiveIntensity: 1.2
+      emissiveIntensity: 0.8
     }),
-    signBoard: new THREE.MeshStandardMaterial({
+    redMat: new THREE.MeshStandardMaterial({
+      color: "#ef4444",
+      emissive: "#ef4444",
+      emissiveIntensity: 0.9
+    }),
+    curbStoneMat: new THREE.MeshStandardMaterial({
+      color: "#cbd5e1",
+      roughness: 0.7,
+      metalness: 0.1
+    }),
+    lawnMat: new THREE.MeshStandardMaterial({
+      color: "#15803d",
+      roughness: 0.9,
+      metalness: 0.05
+    }),
+    chevronGlowMat: new THREE.MeshStandardMaterial({
+      color: "#00efff",
+      emissive: "#00efff",
+      emissiveIntensity: 2.2
+    }),
+    signMat: new THREE.MeshStandardMaterial({
       map: signTex,
       emissiveMap: signTex,
       emissive: new THREE.Color("#ffffff"),
-      emissiveIntensity: 0.45,
+      emissiveIntensity: 0.4,
       roughness: 0.35
     })
   };
-
-  return _sharedCrossMaterials;
+  return _sharedJunctionDecals;
 }
 
-function buildTrafficLightCorner(mats, x, z, faceDir) {
+function addTrackedMesh(group, customTargets, geo, mat, matKey, pos, rotX = 0, rotY = 0) {
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.set(pos[0], pos[1], pos[2]);
+  if (rotX) mesh.rotation.x = rotX;
+  if (rotY) mesh.rotation.y = rotY;
+  mesh.receiveShadow = true;
+  group.add(mesh);
+  if (matKey) {
+    customTargets.push({ mesh, matKey });
+  }
+  return mesh;
+}
+
+function buildTrafficLight(extras, x, z, dirX) {
   const g = new THREE.Group();
   g.position.set(x, 0, z);
 
-  // Vertical pole
-  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.16, 6.2, 6), mats.pole);
-  pole.position.y = 3.1;
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.14, 6.0, 8), extras.poleMat);
+  pole.position.y = 3.0;
   g.add(pole);
 
-  // Cantilever arm reaching over the road
-  const arm = new THREE.Mesh(new THREE.BoxGeometry(4.4, 0.16, 0.16), mats.pole);
-  arm.position.set(faceDir * 2.1, 5.9, 0);
+  const arm = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.14, 0.14), extras.poleMat);
+  arm.position.set(dirX * 2.0, 5.75, 0);
   g.add(arm);
 
-  // Signal head box
-  const box = new THREE.Mesh(new THREE.BoxGeometry(0.48, 1.25, 0.34), mats.housing);
-  box.position.set(faceDir * 3.6, 5.4, 0);
-  g.add(box);
+  const head = new THREE.Mesh(new THREE.BoxGeometry(0.42, 1.15, 0.3), extras.housingMat);
+  head.position.set(dirX * 3.5, 5.3, 0);
+  g.add(head);
 
-  // Glowing lenses (green for main highway flow)
-  const lensGeo = new THREE.CircleGeometry(0.13, 8);
-  const red = new THREE.Mesh(lensGeo, mats.lightRed);
-  red.position.set(faceDir * 3.6, 5.75, 0.18);
-  const amber = new THREE.Mesh(lensGeo, mats.lightAmber);
-  amber.position.set(faceDir * 3.6, 5.4, 0.18);
-  const green = new THREE.Mesh(lensGeo, mats.lightGreen);
-  green.position.set(faceDir * 3.6, 5.05, 0.18);
-  g.add(red, amber, green);
+  const lensGeo = new THREE.CircleGeometry(0.11, 8);
+  const r = new THREE.Mesh(lensGeo, extras.redMat);
+  r.position.set(dirX * 3.5, 5.62, 0.16);
+  const a = new THREE.Mesh(lensGeo, extras.amberMat);
+  a.position.set(dirX * 3.5, 5.3, 0.16);
+  const gr = new THREE.Mesh(lensGeo, extras.greenMat);
+  gr.position.set(dirX * 3.5, 4.98, 0.16);
+  g.add(r, a, gr);
 
   return g;
 }
 
 /**
- * 4-Way City Crossroad Junction Segment (40m)
+ * 1. SEAMLESS 4-WAY CITY CROSSROAD (40m)
+ *    Main curbs & sidewalks cleanly stop at z = -11 and resume at z = -29,
+ *    with rounded corner sidewalks merging seamlessly into the left/right city avenues!
  */
 export function createJunctionSegment(materials) {
-  const visual = createHighwayVisualGroup(
-    getSharedBaseGeometries(),
-    materials,
-    "road-seg-junction"
-  );
+  const group = new THREE.Group();
+  group.name = "road-seg-junction";
+  const customTargets = [];
+  const extras = getSharedJunctionExtras();
 
-  const mats = getSharedJunctionMaterials();
+  const halfRoad = ROAD_WIDTH * 0.5; // 9.0m
+  const stubLen = 11.0;              // z: 0..-11 (near) and z: -29..-40 (far)
+  const crossW = 18.0;               // Clean 18m cross-avenue opening (z: -11..-29)
 
-  // 1. Wide perpendicular city cross-avenue spanning ±85m left & right
-  const crossRoadGeo = new THREE.PlaneGeometry(170, 15.6);
-  const crossRoad = new THREE.Mesh(crossRoadGeo, mats.crossAsphalt);
-  crossRoad.rotation.x = -Math.PI / 2;
-  crossRoad.position.set(0, 0.052, -20);
-  crossRoad.receiveShadow = true;
-  visual.add(crossRoad);
+  // A. Near & Far Main Highway Approaches (with baked 5-lane lines)
+  const stubGeo = buildSegmentStripGeometry({
+    length: stubLen, segmentsZ: 2, lateralOffset: 0, width: ROAD_WIDTH,
+    heightOffset: 0.04, uRepeat: 1, vRepeat: stubLen / 16, profileFn: sampleFlatProfile
+  });
+  addTrackedMesh(group, customTargets, stubGeo, materials.asphaltMat, "asphaltMat", [0, 0, 0]);
+  addTrackedMesh(group, customTargets, stubGeo, materials.asphaltMat, "asphaltMat", [0, 0, -29]);
 
-  // 2. Cross-avenue sidewalks on north & south edges of the side street
-  const sideGeo = new THREE.PlaneGeometry(76, 2.8);
+  // B. Seamless Center Intersection Box (exact same y = 0.04, unified plain tarmac — ZERO Z-fighting!)
+  const centerGeo = new THREE.PlaneGeometry(ROAD_WIDTH, crossW);
+  addTrackedMesh(group, customTargets, centerGeo, materials.plainAsphaltMat, "plainAsphaltMat", [0, 0.04, -20], -Math.PI / 2);
+
+  // C. Connecting Left & Right City Avenues (starting cleanly at x = ±9m, exact y = 0.04!)
+  const aveLen = 82;
+  const aveGeo = new THREE.PlaneGeometry(aveLen, crossW);
+  addTrackedMesh(group, customTargets, aveGeo, materials.avenueMat, "avenueMat", [-(halfRoad + aveLen * 0.5), 0.04, -20], -Math.PI / 2);
+  addTrackedMesh(group, customTargets, aveGeo, materials.avenueMat, "avenueMat", [+(halfRoad + aveLen * 0.5), 0.04, -20], -Math.PI / 2);
+
+  // D. Clean Non-Overlapping Corner Sidewalks & Curbs (ONLY outside the cross-street!)
+  const mainSwGeo = new THREE.PlaneGeometry(4.0, stubLen);
+  const mainCurbGeo = new THREE.BoxGeometry(0.45, 0.14, stubLen);
+  const crossSwGeo = new THREE.PlaneGeometry(aveLen, 3.6);
+  const crossCurbGeo = new THREE.BoxGeometry(aveLen, 0.14, 0.45);
+  const cornerFilletGeo = new THREE.CylinderGeometry(1.8, 1.8, 0.14, 12);
+
   for (const sideX of [-1, 1]) {
+    for (const zCenter of [-stubLen * 0.5, -40 + stubLen * 0.5]) {
+      // Main highway curb & sidewalk stubs
+      addTrackedMesh(group, customTargets, mainCurbGeo, materials.curbMat, "curbMat", [sideX * (halfRoad + 0.22), 0.07, zCenter]);
+      addTrackedMesh(group, customTargets, mainSwGeo, materials.sidewalkMat, "sidewalkMat", [sideX * (halfRoad + 2.45), 0.09, zCenter], -Math.PI / 2);
+    }
+
+    // Side-avenue north & south sidewalks & curbs (starting cleanly outside main highway)
     for (const sideZ of [-1, 1]) {
-      const sw = new THREE.Mesh(sideGeo, mats.crossSidewalk);
-      sw.rotation.x = -Math.PI / 2;
-      sw.position.set(sideX * (ROAD_WIDTH * 0.5 + 40), 0.092, -20 + sideZ * 9.2);
-      sw.receiveShadow = true;
-      visual.add(sw);
+      const zEdge = -20 + sideZ * (crossW * 0.5);
+      addTrackedMesh(group, customTargets, crossCurbGeo, materials.curbMat, "curbMat", [sideX * (halfRoad + aveLen * 0.5), 0.07, zEdge + sideZ * 0.22]);
+      addTrackedMesh(group, customTargets, crossSwGeo, materials.sidewalkMat, "sidewalkMat", [sideX * (halfRoad + aveLen * 0.5), 0.09, zEdge + sideZ * 2.05], -Math.PI / 2);
+
+      // Rounded stone corner fillet connecting main sidewalk to side-avenue sidewalk
+      addTrackedMesh(group, customTargets, cornerFilletGeo, materials.curbMat, "curbMat", [sideX * (halfRoad + 1.8), 0.07, zEdge + sideZ * 1.8]);
     }
   }
 
-  // 3. Zebra crosswalks before & after the intersection
-  const cwGeo = new THREE.PlaneGeometry(ROAD_WIDTH - 0.8, 3.0);
-  for (const zOff of [-10.4, -29.6]) {
-    const cw = new THREE.Mesh(cwGeo, mats.crosswalk);
-    cw.rotation.x = -Math.PI / 2;
-    cw.position.set(0, 0.068, zOff);
-    visual.add(cw);
-  }
+  // E. Crisp Zebra Crosswalks on all 4 approaches of the intersection
+  const cwMainGeo = new THREE.PlaneGeometry(ROAD_WIDTH - 1.2, 2.8);
+  const cwSideGeo = new THREE.PlaneGeometry(crossW - 1.2, 2.8);
+  const cwNear = new THREE.Mesh(cwMainGeo, extras.crosswalkMat);
+  cwNear.rotation.x = -Math.PI / 2;
+  cwNear.position.set(0, 0.055, -10.2);
 
-  // 4. Traffic light gantries on far-left and far-right corners
-  visual.add(buildTrafficLightCorner(mats, -10.4, -29.5, 1));
-  visual.add(buildTrafficLightCorner(mats, 10.4, -29.5, -1));
+  const cwFar = new THREE.Mesh(cwMainGeo, extras.crosswalkMat);
+  cwFar.rotation.x = -Math.PI / 2;
+  cwFar.position.set(0, 0.055, -29.8);
+
+  const cwLeft = new THREE.Mesh(cwSideGeo, extras.crosswalkMat);
+  cwLeft.rotation.x = -Math.PI / 2;
+  cwLeft.rotation.z = Math.PI / 2;
+  cwLeft.position.set(-halfRoad - 1.6, 0.055, -20);
+
+  const cwRight = new THREE.Mesh(cwSideGeo, extras.crosswalkMat);
+  cwRight.rotation.x = -Math.PI / 2;
+  cwRight.rotation.z = Math.PI / 2;
+  cwRight.position.set(halfRoad + 1.6, 0.055, -20);
+  group.add(cwNear, cwFar, cwLeft, cwRight);
+
+  // F. Sleek Modern Corner Traffic Signals
+  group.add(buildTrafficLight(extras, -(halfRoad + 1.4), -30.2, 1));
+  group.add(buildTrafficLight(extras, +(halfRoad + 1.4), -30.2, -1));
+
+  group.userData.customMatTargets = customTargets;
 
   const seg = createRoadSegment({
     type: "junction",
@@ -283,86 +276,150 @@ export function createJunctionSegment(materials) {
     layer: RoadLayer.GROUND,
     deltaX: 0,
     deltaY: 0,
-    visual,
+    visual: group,
     sampleLocalProfile: sampleFlatProfile
   });
 
-  // Mark cross-street clearance zone so roadside skyscrapers don't block side avenues
   seg.hasCrossStreet = true;
-  seg.crossStreetLocalStart = -4;
-  seg.crossStreetLocalEnd = -36;
-  seg.exits = [
-    { id: "main", x: 0, y: 0, z: -SEGMENT_LENGTH, yaw: 0, layer: RoadLayer.GROUND },
-    { id: "left", x: -85, y: 0, z: -20, yaw: Math.PI / 2, layer: RoadLayer.GROUND },
-    { id: "right", x: 85, y: 0, z: -20, yaw: -Math.PI / 2, layer: RoadLayer.GROUND }
-  ];
-
+  seg.crossStreetLocalStart = -6;
+  seg.crossStreetLocalEnd = -34;
   return seg;
 }
 
 /**
- * Highway Interchange Segment with Diverging Off-Ramps & Overhead Sign Gantry (40m)
+ * 2. DRIVABLE BOULEVARD SPLIT & INTERACTIVE ROUTE SELECTOR (80m)
+ *    Highway smoothly flares wide into two drivable city carriageways
+ *    passing on either side of a landscaped central median island.
+ *    Steer LEFT for Uptown Plaza / Roundabouts, or RIGHT for Express Skyway / Tunnels!
  */
+const INTERCHANGE_LENGTH = 80;
+
 export function createInterchangeSegment(materials) {
-  const visual = createHighwayVisualGroup(
-    getSharedBaseGeometries(),
-    materials,
-    "road-seg-interchange"
-  );
+  const group = new THREE.Group();
+  group.name = "road-seg-interchange";
+  const customTargets = [];
+  const extras = getSharedJunctionExtras();
 
-  const mats = getSharedJunctionMaterials();
+  // Dynamic width profile: flares seamlessly from 18m -> 25m mid-split -> 18m
+  const segsZ = 16;
+  const positions = [];
+  const uvs = [];
+  const indices = [];
 
-  // 1. Angled diverging slip-ramps branching off left & right at ±32°
-  const rampGeo = new THREE.PlaneGeometry(11.0, 72);
+  for (let zi = 0; zi <= segsZ; zi++) {
+    const t = zi / segsZ;
+    const zLocal = -t * INTERCHANGE_LENGTH;
+    const flare = 3.6 * 0.5 * (1 - Math.cos(Math.PI * 2 * t)); // 0 -> +3.6m each side -> 0
+    const halfW = ROAD_WIDTH * 0.5 + flare;
+
+    positions.push(-halfW, 0.04, zLocal);
+    uvs.push(0, t * (INTERCHANGE_LENGTH / 16));
+    positions.push(+halfW, 0.04, zLocal);
+    uvs.push(1, t * (INTERCHANGE_LENGTH / 16));
+  }
+  for (let zi = 0; zi < segsZ; zi++) {
+    const a = zi * 2;
+    indices.push(a, a + 1, a + 2, a + 1, a + 3, a + 2);
+  }
+  const asphaltGeo = new THREE.BufferGeometry();
+  asphaltGeo.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  asphaltGeo.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
+  asphaltGeo.setIndex(indices);
+  asphaltGeo.computeVertexNormals();
+  addTrackedMesh(group, customTargets, asphaltGeo, materials.asphaltMat, "asphaltMat", [0, 0, 0]);
+
+  // Smoothly flaring outer curbs & sidewalks following exact road perimeter (ZERO clipping!)
   for (const side of [-1, 1]) {
-    const ramp = new THREE.Mesh(rampGeo, mats.crossAsphalt);
-    ramp.rotation.x = -Math.PI / 2;
-    ramp.rotation.z = side * -0.54; // ~31° diverging highway exit ramp
-    ramp.position.set(side * 25.5, 0.048, -32);
-    ramp.receiveShadow = true;
-    visual.add(ramp);
+    const curbPos = [];
+    const curbUvs = [];
+    const curbIdx = [];
+    const swPos = [];
+    const swUvs = [];
 
-    // Sidewalk/curb borders along ramp
-    const rail = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.65, 68), mats.pole);
-    rail.rotation.y = side * -0.54;
-    rail.position.set(side * 31.2, 0.35, -30);
-    visual.add(rail);
+    for (let zi = 0; zi <= segsZ; zi++) {
+      const t = zi / segsZ;
+      const zLocal = -t * INTERCHANGE_LENGTH;
+      const flare = 3.6 * 0.5 * (1 - Math.cos(Math.PI * 2 * t));
+      const edgeX = side * (ROAD_WIDTH * 0.5 + flare);
+
+      const xInner = side > 0 ? edgeX : edgeX - 0.5;
+      const xOuter = side > 0 ? edgeX + 0.5 : edgeX;
+      curbPos.push(xInner, 0.08, zLocal, xOuter, 0.08, zLocal);
+      curbUvs.push(0, t * 14, 1, t * 14);
+
+      const swInner = side > 0 ? edgeX + 0.5 : edgeX - 3.9;
+      const swOuter = side > 0 ? edgeX + 3.9 : edgeX - 0.5;
+      swPos.push(swInner, 0.09, zLocal, swOuter, 0.09, zLocal);
+      swUvs.push(0, t * 14, 1, t * 14);
+    }
+    for (let zi = 0; zi < segsZ; zi++) {
+      const a = zi * 2;
+      curbIdx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2);
+    }
+
+    const cGeo = new THREE.BufferGeometry();
+    cGeo.setAttribute("position", new THREE.Float32BufferAttribute(curbPos, 3));
+    cGeo.setAttribute("uv", new THREE.Float32BufferAttribute(curbUvs, 2));
+    cGeo.setIndex(curbIdx);
+    cGeo.computeVertexNormals();
+    addTrackedMesh(group, customTargets, cGeo, materials.curbMat, "curbMat", [0, 0, 0]);
+
+    const sGeo = new THREE.BufferGeometry();
+    sGeo.setAttribute("position", new THREE.Float32BufferAttribute(swPos, 3));
+    sGeo.setAttribute("uv", new THREE.Float32BufferAttribute(swUvs, 2));
+    sGeo.setIndex(curbIdx);
+    sGeo.computeVertexNormals();
+    addTrackedMesh(group, customTargets, sGeo, materials.sidewalkMat, "sidewalkMat", [0, 0, 0]);
   }
 
-  // 2. Overhead Highway Steel Truss Gantry spanning all 5 lanes
-  const gantryZ = -18;
-  const pillarGeo = new THREE.CylinderGeometry(0.28, 0.34, 8.2, 8);
-  const leftPillar = new THREE.Mesh(pillarGeo, mats.pole);
-  leftPillar.position.set(-10.8, 4.1, gantryZ);
-  const rightPillar = new THREE.Mesh(pillarGeo, mats.pole);
-  rightPillar.position.set(10.8, 4.1, gantryZ);
+  // Sleek Landscaped Central Boulevard Divider Island (safely between lanes 1 and 2 at x = -1.8!)
+  // Recall lanes are at [-7.2, -3.6, 0, +3.6, +7.2], so x = -1.8 sits cleanly between oncoming & cruising lanes!
+  const islandGroup = new THREE.Group();
+  islandGroup.position.set(-1.8, 0, -40);
 
-  const crossBeam = new THREE.Mesh(new THREE.BoxGeometry(22.4, 0.55, 0.55), mats.pole);
-  crossBeam.position.set(0, 7.8, gantryZ);
+  const islandBase = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.28, 26), extras.curbStoneMat);
+  islandBase.position.y = 0.14;
+  const islandLawn = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.32, 24.5), extras.lawnMat);
+  islandLawn.position.y = 0.16;
+  const noseCap = new THREE.Mesh(new THREE.CylinderGeometry(0.57, 0.57, 0.28, 12), extras.curbStoneMat);
+  noseCap.position.set(0, 0.14, 13);
+  const tailCap = new THREE.Mesh(new THREE.CylinderGeometry(0.57, 0.57, 0.28, 12), extras.curbStoneMat);
+  tailCap.position.set(0, 0.14, -13);
+  const chevronBeacon = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.9, 0.18), extras.chevronGlowMat);
+  chevronBeacon.position.set(0, 0.72, 13.0);
+  islandGroup.add(islandBase, islandLawn, noseCap, tailCap, chevronBeacon);
+  group.add(islandGroup);
 
-  const signMesh = new THREE.Mesh(new THREE.BoxGeometry(13.5, 3.0, 0.25), mats.signBoard);
-  signMesh.position.set(0, 7.2, gantryZ + 0.38);
+  // Overhead Highway Steel Route Sign Gantry at z = -16
+  const gantryZ = -16;
+  const pillarGeo = new THREE.CylinderGeometry(0.24, 0.3, 8.2, 8);
+  const lp = new THREE.Mesh(pillarGeo, extras.poleMat);
+  lp.position.set(-12.2, 4.1, gantryZ);
+  const rp = new THREE.Mesh(pillarGeo, extras.poleMat);
+  rp.position.set(12.2, 4.1, gantryZ);
+  const beam = new THREE.Mesh(new THREE.BoxGeometry(25.2, 0.5, 0.5), extras.poleMat);
+  beam.position.set(0, 7.9, gantryZ);
+  const sign = new THREE.Mesh(new THREE.BoxGeometry(14.0, 2.9, 0.22), extras.signMat);
+  sign.position.set(0, 7.2, gantryZ + 0.35);
+  group.add(lp, rp, beam, sign);
 
-  visual.add(leftPillar, rightPillar, crossBeam, signMesh);
+  group.userData.customMatTargets = customTargets;
 
   const seg = createRoadSegment({
     type: "interchange",
-    length: SEGMENT_LENGTH,
+    length: INTERCHANGE_LENGTH,
     layer: RoadLayer.GROUND,
     deltaX: 0,
     deltaY: 0,
-    visual,
+    visual: group,
     sampleLocalProfile: sampleFlatProfile
   });
 
+  // Mark as an interactive route-selector fork!
+  seg.isRouteSplit = true;
+  seg.splitTriggered = false;
   seg.hasCrossStreet = true;
-  seg.crossStreetLocalStart = -4;
-  seg.crossStreetLocalEnd = -40;
-  seg.exits = [
-    { id: "main", x: 0, y: 0, z: -SEGMENT_LENGTH, yaw: 0, layer: RoadLayer.GROUND },
-    { id: "exitLeft", x: -42, y: 0, z: -60, yaw: 0.54, layer: RoadLayer.GROUND },
-    { id: "exitRight", x: 42, y: 0, z: -60, yaw: -0.54, layer: RoadLayer.GROUND }
-  ];
-
+  seg.crossStreetLocalStart = -12;
+  seg.crossStreetLocalEnd = -68;
   return seg;
 }

@@ -1,186 +1,223 @@
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
-import { RoadLayer } from "../roadConstants.js";
-import {
-  createSharedHighwayGeometries,
-  createHighwayVisualGroup,
-  createRoadSegment
-} from "../roadSegment.js";
+import { ROAD_WIDTH, RoadLayer } from "../roadConstants.js";
+import { buildSegmentStripGeometry, createRoadSegment } from "../roadSegment.js";
 
 /* ================================================================
-   PROCEDURAL CITY ROUNDABOUT MODULE
-   - createRoundabout({ radius, innerRadius, exits, segments })
-   - Sweeps the 5-lane highway smoothly around the right side of an
-     illuminated circular city plaza island with 4 radiating avenues!
-   - C1-continuous entry & exit tangents (heading = 0 at t=0 and t=1),
-     guaranteeing zero collision with the island across all 5 lanes.
+   SEAMLESS PROCEDURAL CITY ROUNDABOUT PLAZA (60m)
+   - ZERO curbs or sidewalks slicing through the roundabout!
+   - One continuous dark tarmac plaza matching the exact highway shader.
+   - Smooth curved road spline guides all 5 lanes cleanly around the
+     illuminated landscaped circular island while West & East avenues
+     merge seamlessly into the circular plaza ring!
 ================================================================ */
 
 const ROUNDABOUT_LENGTH = 60;
-const ROUNDABOUT_SWEEP_X = 11.2; // Centerline sweeps +11.2m right around the central island
+const ROUNDABOUT_SWEEP_X = 11.4;
 const ISLAND_CENTER_X = -4.8;
 const ISLAND_CENTER_Z = -30;
 
-let _sharedRoundaboutGeos = null;
-let _sharedRoundaboutMats = null;
+let _sharedRoundaboutExtras = null;
 
 function sampleRoundaboutProfile(t, out) {
-  // Smooth C1 bump: x(t) = A * 0.5 * (1 - cos(2πt)) -> 0 at t=0, +A at t=0.5, 0 at t=1
   const twoPiT = Math.PI * 2 * t;
   out.x = ROUNDABOUT_SWEEP_X * 0.5 * (1 - Math.cos(twoPiT));
   out.y = 0;
 
-  // Analytical tangent: dx/dt = A * π * sin(2πt), dRoadX/dz = -(dx/dt) / length
   const dxDt = ROUNDABOUT_SWEEP_X * Math.PI * Math.sin(twoPiT);
   out.heading = Math.atan2(-dxDt / ROUNDABOUT_LENGTH, 1);
   out.slope = 0;
   return out;
 }
 
-function getSharedRoundaboutGeometries() {
-  if (!_sharedRoundaboutGeos) {
-    _sharedRoundaboutGeos = createSharedHighwayGeometries({
-      length: ROUNDABOUT_LENGTH,
-      segmentsZ: 20, // Smooth circular curve around plaza
-      profileFn: sampleRoundaboutProfile
-    });
-  }
-  return _sharedRoundaboutGeos;
-}
-
-function getSharedRoundaboutMaterials() {
-  if (_sharedRoundaboutMats) return _sharedRoundaboutMats;
-
-  // Circular plaza asphalt texture
+function createRoundaboutDashDecalTexture() {
   const canvas = document.createElement("canvas");
-  canvas.width = 256;
-  canvas.height = 256;
+  canvas.width = 512;
+  canvas.height = 512;
   const ctx = canvas.getContext("2d");
-  ctx.fillStyle = "#1e293b";
-  ctx.fillRect(0, 0, 256, 256);
-  ctx.strokeStyle = "rgba(255,255,255,0.65)";
+  ctx.clearRect(0, 0, 512, 512);
+
+  // Two crisp concentric white dashed roundabout lane rings
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.72)";
   ctx.lineWidth = 4;
-  ctx.setLineDash([14, 14]);
+  ctx.setLineDash([22, 22]);
   ctx.beginPath();
-  ctx.arc(128, 128, 92, 0, Math.PI * 2);
+  ctx.arc(256, 256, 155, 0, Math.PI * 2);
   ctx.stroke();
 
-  const ringTex = new THREE.CanvasTexture(canvas);
-  ringTex.colorSpace = THREE.SRGBColorSpace;
+  ctx.beginPath();
+  ctx.arc(256, 256, 205, 0, Math.PI * 2);
+  ctx.stroke();
 
-  _sharedRoundaboutMats = {
-    ringAsphalt: new THREE.MeshStandardMaterial({
-      map: ringTex,
-      roughness: 0.42,
-      metalness: 0.18
-    }),
-    avenueAsphalt: new THREE.MeshStandardMaterial({
-      color: "#1e293b",
-      roughness: 0.45,
-      metalness: 0.18
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+function getSharedRoundaboutExtras() {
+  if (_sharedRoundaboutExtras) return _sharedRoundaboutExtras;
+
+  const dashTex = createRoundaboutDashDecalTexture();
+
+  _sharedRoundaboutExtras = {
+    dashDecalMat: new THREE.MeshStandardMaterial({
+      map: dashTex,
+      transparent: true,
+      roughness: 0.5,
+      depthWrite: false
     }),
     islandCurb: new THREE.MeshStandardMaterial({
       color: "#cbd5e1",
-      roughness: 0.65,
-      metalness: 0.2
+      roughness: 0.68,
+      metalness: 0.12
     }),
     islandLawn: new THREE.MeshStandardMaterial({
       color: "#15803d",
       roughness: 0.9,
-      metalness: 0.05
+      metalness: 0.04
+    }),
+    treeTrunk: new THREE.MeshStandardMaterial({
+      color: "#78350f",
+      roughness: 0.9
+    }),
+    treeFoliage: new THREE.MeshStandardMaterial({
+      color: "#16a34a",
+      roughness: 0.8
     }),
     neonRing: new THREE.MeshStandardMaterial({
-      color: "#00efff",
-      emissive: "#00efff",
-      emissiveIntensity: 2.2,
-      roughness: 0.2
+      color: "#38bdf8",
+      emissive: "#0ea5e9",
+      emissiveIntensity: 1.6,
+      roughness: 0.25
     }),
     monument: new THREE.MeshStandardMaterial({
       color: "#e2e8f0",
-      metalness: 0.85,
-      roughness: 0.2
+      metalness: 0.8,
+      roughness: 0.22
     })
   };
-
-  return _sharedRoundaboutMats;
+  return _sharedRoundaboutExtras;
 }
 
-/**
- * Procedural Roundabout Generator: createRoundabout(options, materials)
- */
 export function createRoundabout(materials, options = {}) {
   const {
-    outerRadius = 22.5,
+    outerRadius = 25.5,
     islandRadius = 6.2,
-    segments = 32
+    segments = 36
   } = options;
 
-  const visual = createHighwayVisualGroup(
-    getSharedRoundaboutGeometries(),
-    materials,
-    "road-seg-roundabout"
-  );
+  const group = new THREE.Group();
+  group.name = "road-seg-roundabout";
+  const customTargets = [];
+  const extras = getSharedRoundaboutExtras();
 
-  const mats = getSharedRoundaboutMaterials();
+  const addTracked = (geo, mat, matKey, pos, rotX = 0) => {
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(pos[0], pos[1], pos[2]);
+    if (rotX) mesh.rotation.x = rotX;
+    mesh.receiveShadow = true;
+    group.add(mesh);
+    if (matKey) customTargets.push({ mesh, matKey });
+    return mesh;
+  };
 
-  // 1. Procedural Full Circular Roundabout Ring (centered to the left of main sweep)
-  const ringGeo = new THREE.RingGeometry(islandRadius, outerRadius, segments);
-  const ringMesh = new THREE.Mesh(ringGeo, mats.ringAsphalt);
-  ringMesh.rotation.x = -Math.PI / 2;
-  ringMesh.position.set(ISLAND_CENTER_X, 0.036, ISLAND_CENTER_Z);
-  ringMesh.receiveShadow = true;
-  visual.add(ringMesh);
+  // 1. Entry & Exit Straight Apron Stubs (z: 0..-9 and z: -51..-60) seamlessly matching main road
+  const stubGeo = buildSegmentStripGeometry({
+    length: 10, segmentsZ: 2, lateralOffset: 0, width: ROAD_WIDTH,
+    heightOffset: 0.04, uRepeat: 1, vRepeat: 10 / 16,
+    profileFn: (t, out) => { out.x = 0; out.y = 0; out.heading = 0; out.slope = 0; }
+  });
+  addTracked(stubGeo, materials.asphaltMat, "asphaltMat", [0, 0, 0]);
+  addTracked(stubGeo, materials.asphaltMat, "asphaltMat", [0, 0, -50]);
 
-  // 2. Radiating West & East City Avenues connecting into the roundabout ring
-  const avenueGeo = new THREE.PlaneGeometry(75, 14.5);
-  const westAve = new THREE.Mesh(avenueGeo, mats.avenueAsphalt);
-  westAve.rotation.x = -Math.PI / 2;
-  westAve.position.set(ISLAND_CENTER_X - outerRadius - 34, 0.034, ISLAND_CENTER_Z);
-  westAve.receiveShadow = true;
+  // 2. Unified Continuous Circular Asphalt Plaza (exact y = 0.04, unified plainAsphaltMat — ZERO seams!)
+  const ringGeo = new THREE.RingGeometry(islandRadius - 0.2, outerRadius, segments);
+  addTracked(ringGeo, materials.plainAsphaltMat, "plainAsphaltMat", [ISLAND_CENTER_X, 0.04, ISLAND_CENTER_Z], -Math.PI / 2);
 
-  const eastAve = new THREE.Mesh(avenueGeo, mats.avenueAsphalt);
-  eastAve.rotation.x = -Math.PI / 2;
-  eastAve.position.set(ISLAND_CENTER_X + outerRadius + 34, 0.034, ISLAND_CENTER_Z);
-  eastAve.receiveShadow = true;
-  visual.add(westAve, eastAve);
+  // Subtle curved asphalt blend strips connecting entry/exit smoothly into the ring
+  const blendGeo = buildSegmentStripGeometry({
+    length: ROUNDABOUT_LENGTH, segmentsZ: 18, lateralOffset: 0, width: ROAD_WIDTH,
+    heightOffset: 0.042, uRepeat: 1, vRepeat: 1, profileFn: sampleRoundaboutProfile
+  });
+  addTracked(blendGeo, materials.plainAsphaltMat, "plainAsphaltMat", [0, 0, 0]);
 
-  // 3. Raised Circular Center Plaza Island (stone curb + green lawn + glowing ring + landmark spire)
+  // Subtle concentric white dashed lane ring decal at y = 0.052 (zero Z-fighting)
+  const decalGeo = new THREE.PlaneGeometry(outerRadius * 1.9, outerRadius * 1.9);
+  const decal = new THREE.Mesh(decalGeo, extras.dashDecalMat);
+  decal.rotation.x = -Math.PI / 2;
+  decal.position.set(ISLAND_CENTER_X, 0.052, ISLAND_CENTER_Z);
+  group.add(decal);
+
+  // 3. Seamless Connecting West & East City Avenues (same unified avenueMat at exact y = 0.04!)
+  const aveLen = 78;
+  const aveW = 16.5;
+  const aveGeo = new THREE.PlaneGeometry(aveLen, aveW);
+  addTracked(aveGeo, materials.avenueMat, "avenueMat", [ISLAND_CENTER_X - outerRadius - aveLen * 0.5 + 2, 0.04, ISLAND_CENTER_Z], -Math.PI / 2);
+  addTracked(aveGeo, materials.avenueMat, "avenueMat", [ISLAND_CENTER_X + outerRadius + aveLen * 0.5 - 2, 0.04, ISLAND_CENTER_Z], -Math.PI / 2);
+
+  // Sidewalks framing West & East avenues cleanly outside the circular plaza
+  const aveSwGeo = new THREE.PlaneGeometry(aveLen, 3.2);
+  for (const sideZ of [-1, 1]) {
+    addTracked(aveSwGeo, materials.sidewalkMat, "sidewalkMat", [ISLAND_CENTER_X - outerRadius - aveLen * 0.5 + 2, 0.085, ISLAND_CENTER_Z + sideZ * (aveW * 0.5 + 1.6)], -Math.PI / 2);
+    addTracked(aveSwGeo, materials.sidewalkMat, "sidewalkMat", [ISLAND_CENTER_X + outerRadius + aveLen * 0.5 - 2, 0.085, ISLAND_CENTER_Z + sideZ * (aveW * 0.5 + 1.6)], -Math.PI / 2);
+  }
+
+  // 4. Outer Circular Stone Curb Ring Framing the Plaza (broken cleanly at entrances/exits via 4 arcs!)
+  const arcSpan = Math.PI * 0.28;
+  const arcAngles = [Math.PI * 0.11, Math.PI * 0.61, Math.PI * 1.11, Math.PI * 1.61];
+  for (const startAngle of arcAngles) {
+    const outerSwGeo = new THREE.RingGeometry(outerRadius, outerRadius + 3.2, 10, 1, startAngle, arcSpan);
+    addTracked(outerSwGeo, materials.sidewalkMat, "sidewalkMat", [ISLAND_CENTER_X, 0.085, ISLAND_CENTER_Z], -Math.PI / 2);
+  }
+
+  // 5. Landscaped Central Roundabout Island (stone curb, lawn, trees, architectural centerpiece)
   const islandGroup = new THREE.Group();
   islandGroup.position.set(ISLAND_CENTER_X, 0, ISLAND_CENTER_Z);
 
   const curbMesh = new THREE.Mesh(
-    new THREE.CylinderGeometry(islandRadius, islandRadius + 0.35, 0.45, 24),
-    mats.islandCurb
+    new THREE.CylinderGeometry(islandRadius, islandRadius + 0.3, 0.42, 28),
+    extras.islandCurb
   );
-  curbMesh.position.y = 0.225;
+  curbMesh.position.y = 0.21;
   curbMesh.receiveShadow = true;
-  islandGroup.add(curbMesh);
 
   const lawnMesh = new THREE.Mesh(
-    new THREE.CylinderGeometry(islandRadius - 0.4, islandRadius - 0.4, 0.5, 24),
-    mats.islandLawn
+    new THREE.CylinderGeometry(islandRadius - 0.35, islandRadius - 0.35, 0.46, 28),
+    extras.islandLawn
   );
-  lawnMesh.position.y = 0.26;
-  islandGroup.add(lawnMesh);
+  lawnMesh.position.y = 0.23;
 
-  // Glowing cyan roundabout guidance halo around island rim
-  const haloMesh = new THREE.Mesh(
-    new THREE.TorusGeometry(islandRadius + 0.08, 0.09, 8, 32),
-    mats.neonRing
+  const halo = new THREE.Mesh(
+    new THREE.TorusGeometry(islandRadius + 0.04, 0.06, 8, 36),
+    extras.neonRing
   );
-  haloMesh.rotation.x = Math.PI / 2;
-  haloMesh.position.y = 0.48;
-  islandGroup.add(haloMesh);
+  halo.rotation.x = Math.PI / 2;
+  halo.position.y = 0.44;
 
-  // Sleek futuristic city obelisk centerpiece
-  const spire = new THREE.Mesh(
-    new THREE.OctahedronGeometry(1.6, 0),
-    mats.monument
-  );
-  spire.scale.set(1, 3.4, 1);
+  // Sleek tapered city landmark sculpture in center
+  const plinth = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.8, 0.9, 12), extras.islandCurb);
+  plinth.position.y = 0.7;
+  const spire = new THREE.Mesh(new THREE.OctahedronGeometry(1.15, 0), extras.monument);
+  spire.scale.set(1, 3.2, 1);
   spire.position.y = 4.2;
-  islandGroup.add(spire);
 
-  visual.add(islandGroup);
+  // 3 ornamental park trees nestled on the roundabout island
+  const trunkGeo = new THREE.CylinderGeometry(0.14, 0.22, 1.8, 6);
+  const foliageGeo = new THREE.ConeGeometry(1.15, 2.8, 8);
+  for (let i = 0; i < 3; i++) {
+    const ang = (i * Math.PI * 2) / 3 + 0.4;
+    const tx = Math.cos(ang) * 3.4;
+    const tz = Math.sin(ang) * 3.4;
+    const tr = new THREE.Mesh(trunkGeo, extras.treeTrunk);
+    tr.position.set(tx, 1.3, tz);
+    const fl = new THREE.Mesh(foliageGeo, extras.treeFoliage);
+    fl.position.set(tx, 3.2, tz);
+    islandGroup.add(tr, fl);
+  }
+
+  islandGroup.add(curbMesh, lawnMesh, halo, plinth, spire);
+  group.add(islandGroup);
+
+  group.userData.customMatTargets = customTargets;
 
   const seg = createRoadSegment({
     type: "roundabout",
@@ -188,20 +225,13 @@ export function createRoundabout(materials, options = {}) {
     layer: RoadLayer.GROUND,
     deltaX: 0,
     deltaY: 0,
-    visual,
+    visual: group,
     sampleLocalProfile: sampleRoundaboutProfile
   });
 
-  // Clear roadside skyscrapers around the full roundabout plaza & radiating avenues
   seg.hasCrossStreet = true;
   seg.crossStreetLocalStart = -4;
   seg.crossStreetLocalEnd = -56;
-  seg.exits = [
-    { id: "main", x: 0, y: 0, z: -ROUNDABOUT_LENGTH, yaw: 0, layer: RoadLayer.GROUND },
-    { id: "west", x: ISLAND_CENTER_X - 80, y: 0, z: ISLAND_CENTER_Z, yaw: Math.PI / 2, layer: RoadLayer.GROUND },
-    { id: "east", x: ISLAND_CENTER_X + 80, y: 0, z: ISLAND_CENTER_Z, yaw: -Math.PI / 2, layer: RoadLayer.GROUND }
-  ];
-
   return seg;
 }
 

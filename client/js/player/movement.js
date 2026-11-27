@@ -8,6 +8,9 @@ import {
 import { playJumpSound, playDriftSound, playTurboBlowOffSound, playNitroBoostSound, playCarRevSound } from "../systems/audio.js";
 import { createTireSmoke, triggerCameraShake } from "../systems/effects.js";
 import { updateTunnelCulling } from "../world/tunnelCuller.js";
+import { findSegmentAtZ } from "../world/roadQuery.js";
+import { selectCityRoute } from "../world/roadGraph.js";
+import { showHUDMessage } from "../ui/hud.js";
 
 const CAMERA_BASE_OFFSET = new THREE.Vector3(0, 4.6, 8.8);
 const SLIDE_DURATION = 0.7;
@@ -127,6 +130,23 @@ function updateLaneMovement(player, deltaTime) {
   player.currentRoadLayer = pt.layer ?? 0;
   player.inTunnel = Boolean(pt.inTunnel);
   updateTunnelCulling(player.inTunnel);
+
+  // Interactive City Route Split: steering left or right through an interchange directs the city network!
+  const activeSeg = findSegmentAtZ(baseZ);
+  if (activeSeg && activeSeg.isRouteSplit && !activeSeg.splitTriggered) {
+    const zLocal = baseZ - activeSeg.zStart;
+    if (zLocal <= -26) {
+      activeSeg.splitTriggered = true;
+      const tookLeft = (player.currentLaneOffset || 0) < -1.8;
+      if (tookLeft) {
+        selectCityRoute("uptown");
+        showHUDMessage("↖ ROUTE: UPTOWN PLAZA");
+      } else {
+        selectCityRoute("skyway");
+        showHUDMessage("↗ ROUTE: EXPRESS SKYWAY");
+      }
+    }
+  }
 
   // Lateral drift slip angle & centrifugal body roll
   const driftSlip = shouldDrift ? Math.sign(difference) * -0.22 : 0;

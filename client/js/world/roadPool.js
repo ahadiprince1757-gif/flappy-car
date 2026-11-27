@@ -68,6 +68,7 @@ function _createPoolForType(type, maxSize, initialSize) {
     },
     resetFn: (seg) => {
       seg.active = false;
+      seg.splitTriggered = false;
       if (seg.visual) {
         seg.visual.visible = false;
       }

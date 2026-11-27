@@ -1,14 +1,10 @@
 import { MAX_ROAD_LATERAL_DRIFT, CURVE_DELTA_X } from "./roadConstants.js";
 
 /* ================================================================
-   CITY ROAD NETWORK GRAPH & CHUNK SEQUENCER
-   Assembles reusable road chunks into a rich, interconnected city:
-   - Chunk A (highway):     straight -> curve
-   - Chunk B (crossroad):   straight -> 4-way junction -> straight
-   - Chunk C (interchange): straight -> highway off-ramps & gantry
-   - Chunk D (roundabout):  straight -> procedural roundabout plaza -> straight
-   - Chunk E (flyover):     elevated overpass bridge over lower city avenue
-   - Chunk F (tunnel):      underground lit city underpass tunnel
+   INTERACTIVE CITY ROAD NETWORK GRAPH & DISTRICT ROUTER
+   - Streams interconnected city districts seamlessly.
+   - Responds LIVE when the player steers LEFT ("uptown") or RIGHT ("skyway")
+     through a drivable Boulevard Split Interchange!
 ================================================================ */
 
 const CHUNK_LIBRARY = {
@@ -22,11 +18,16 @@ const CHUNK_LIBRARY = {
   curveRight:  ["curveRight", "straight"]
 };
 
-// Directed city network transition graph — every chunk flows smoothly into varied next chunks
+// District-flavored route queues when player picks a branch at an interchange
+const DISTRICT_ROUTES = {
+  uptown: ["roundabout", "crossroad", "curveLeft", "crossroad", "interchange"],
+  skyway: ["flyover", "curveRight", "tunnel", "crossroad", "interchange"]
+};
+
 const TRANSITIONS = {
   opening:     ["interchange", "curveRight", "roundabout"],
   crossroad:   ["interchange", "flyover", "curveLeft", "curveRight", "roundabout"],
-  interchange: ["flyover", "crossroad", "tunnel", "curveLeft", "curveRight"],
+  interchange: ["flyover", "crossroad", "tunnel", "roundabout"],
   roundabout:  ["crossroad", "interchange", "flyover", "tunnel"],
   flyover:     ["crossroad", "roundabout", "curveLeft", "curveRight"],
   tunnel:      ["crossroad", "interchange", "roundabout"],
@@ -36,33 +37,47 @@ const TRANSITIONS = {
 
 let _currentChunkName = "opening";
 let _pendingSegments = [];
+let _preferredChunks = [];
 let _chunkStep = 0;
 
 export function resetRoadGraph() {
   _currentChunkName = "opening";
   _pendingSegments = [...CHUNK_LIBRARY.opening];
+  _preferredChunks = [];
   _chunkStep = 0;
 }
 
 /**
- * Choose the next city chunk using the road graph while bounding lateral highway drift.
+ * Called live when the player steers LEFT ("uptown") or RIGHT ("skyway") through a route split!
  */
-function chooseNextChunk(currentX) {
-  const candidates = TRANSITIONS[_currentChunkName] || TRANSITIONS.crossroad;
+export function selectCityRoute(routeKey) {
+  const route = DISTRICT_ROUTES[routeKey];
+  if (!route) return;
+  _preferredChunks = [...route];
+}
 
-  // Filter out curve directions that would push road beyond safe lateral bounds
+function chooseNextChunk(currentX) {
+  // Follow the player's chosen city district route first!
+  while (_preferredChunks.length > 0) {
+    let pick = _preferredChunks.shift();
+    if (pick === "curveRight" && currentX + CURVE_DELTA_X > MAX_ROAD_LATERAL_DRIFT) pick = "curveLeft";
+    if (pick === "curveLeft" && currentX - CURVE_DELTA_X < -MAX_ROAD_LATERAL_DRIFT) pick = "curveRight";
+    _currentChunkName = pick;
+    _chunkStep++;
+    return CHUNK_LIBRARY[pick] || CHUNK_LIBRARY.crossroad;
+  }
+
+  const candidates = TRANSITIONS[_currentChunkName] || TRANSITIONS.crossroad;
   const valid = [];
   for (let i = 0; i < candidates.length; i++) {
     const name = candidates[i];
     if (name === "curveRight" && currentX + CURVE_DELTA_X > MAX_ROAD_LATERAL_DRIFT) continue;
     if (name === "curveLeft" && currentX - CURVE_DELTA_X < -MAX_ROAD_LATERAL_DRIFT) continue;
-    // Keep major landmarks (roundabout, flyover, tunnel) well-paced
-    if (_chunkStep < 2 && (name === "tunnel" || name === "flyover")) continue;
+    if (_chunkStep < 1 && (name === "tunnel" || name === "flyover")) continue;
     valid.push(name);
   }
 
   const pool = valid.length > 0 ? valid : ["crossroad"];
-  // Deterministic-feeling rich variety with slight randomness so every run feels alive
   const pickIdx = (_chunkStep + Math.floor(Math.random() * pool.length)) % pool.length;
   _currentChunkName = pool[pickIdx];
   _chunkStep++;
@@ -70,9 +85,6 @@ function chooseNextChunk(currentX) {
   return CHUNK_LIBRARY[_currentChunkName] || CHUNK_LIBRARY.crossroad;
 }
 
-/**
- * Pop the next modular RoadSegment type for the chunk streamer.
- */
 export function getNextRoadSegmentType(currentX = 0) {
   if (_pendingSegments.length === 0) {
     const nextChunk = chooseNextChunk(currentX);

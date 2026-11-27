@@ -143,15 +143,27 @@ export function createHighwayVisualGroup(sharedGeos, materials, name) {
  * Apply a new stage's shared materials to an already-pooled visual group without recreating meshes.
  */
 export function applyMaterialsToVisual(visual, materials) {
-  const m = visual?.userData?.stripMeshes;
-  if (!m || !materials) return;
-  m.asphalt.material = materials.asphaltMat;
-  m.leftCurb.material = materials.curbMat;
-  m.rightCurb.material = materials.curbMat;
-  m.leftSidewalk.material = materials.sidewalkMat;
-  m.rightSidewalk.material = materials.sidewalkMat;
-  m.leftShoulder.material = materials.shoulderMat;
-  m.rightShoulder.material = materials.shoulderMat;
+  if (!visual || !materials) return;
+  const m = visual.userData?.stripMeshes;
+  if (m) {
+    if (m.asphalt) m.asphalt.material = materials.asphaltMat;
+    if (m.leftCurb) m.leftCurb.material = materials.curbMat;
+    if (m.rightCurb) m.rightCurb.material = materials.curbMat;
+    if (m.leftSidewalk) m.leftSidewalk.material = materials.sidewalkMat;
+    if (m.rightSidewalk) m.rightSidewalk.material = materials.sidewalkMat;
+    if (m.leftShoulder) m.leftShoulder.material = materials.shoulderMat;
+    if (m.rightShoulder) m.rightShoulder.material = materials.shoulderMat;
+  }
+  const custom = visual.userData?.customMatTargets;
+  if (custom) {
+    for (let i = 0; i < custom.length; i++) {
+      const entry = custom[i];
+      const targetMat = materials[entry.matKey];
+      if (targetMat && entry.mesh) {
+        entry.mesh.material = targetMat;
+      }
+    }
+  }
 }
 
 /**

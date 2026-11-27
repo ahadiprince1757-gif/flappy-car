@@ -7,24 +7,22 @@ import {
 } from "../roadSegment.js";
 
 /* ================================================================
-   CITY UNDERPASS / UNDERGROUND TUNNEL MODULE (120m)
-   - Approach dip (0m -> -3.6m) -> Lit enclosed tunnel (RoadLayer.UNDERGROUND = -1)
-     -> Exit rise (-3.6m -> 0m) back into open city skyline.
-   - Constructed from low-poly floor, left/right concrete tiled walls, ceiling,
-     glowing overhead LED bars, portal facades, AND a city overpass street above!
-   - Works with TunnelCuller to hide far exterior scenery & boost FPS inside!
+   SLEEK ARCHED CITY HIGHWAY TUNNEL (120m)
+   - Smooth curved concrete arch barrel (NOT a boxy gray cube!)
+   - Architectural tapered entrance/exit portals with recessed LED ribs
+   - Clean elevated city street deck running above the tunnel roof
+   - Integrates seamlessly with TunnelCuller for interior atmosphere & FPS boost
 ================================================================ */
 
 const TUNNEL_LENGTH = 120;
-const TUNNEL_DEPTH = 0;          // Ground-aligned underpass (zero ground-plane clipping!)
-const TUNNEL_CLEAR_HEIGHT = 8.4; // Generous ceiling height so chase camera never clips
+const TUNNEL_RADIUS = 11.4; // Generous 11.4m radius arch spanning 18m highway + sidewalks!
 
 let _sharedTunnelGeos = null;
-let _sharedTunnelMats = null;
+let _sharedTunnelExtras = null;
 
 function sampleTunnelProfile(t, out) {
   out.x = 0;
-  out.y = TUNNEL_DEPTH;
+  out.y = 0;
   out.heading = 0;
   out.slope = 0;
   return out;
@@ -34,84 +32,91 @@ function getSharedTunnelGeometries() {
   if (!_sharedTunnelGeos) {
     _sharedTunnelGeos = createSharedHighwayGeometries({
       length: TUNNEL_LENGTH,
-      segmentsZ: 24,
+      segmentsZ: 6,
       profileFn: sampleTunnelProfile
     });
   }
   return _sharedTunnelGeos;
 }
 
-function createTunnelWallTexture() {
+function createArchInteriorTexture() {
   const canvas = document.createElement("canvas");
   canvas.width = 256;
-  canvas.height = 128;
+  canvas.height = 256;
   const ctx = canvas.getContext("2d");
 
-  // Industrial tunnel concrete + reflective white ceramic tile lower band
-  ctx.fillStyle = "#334155";
-  ctx.fillRect(0, 0, 256, 68);
-  ctx.fillStyle = "#cbd5e1";
-  ctx.fillRect(0, 68, 256, 46);
-  ctx.fillStyle = "#f59e0b"; // Safety hazard stripe
-  ctx.fillRect(0, 114, 256, 14);
+  // Clean modern architectural concrete & bright lower ceramic tile wall
+  ctx.fillStyle = "#1e293b";
+  ctx.fillRect(0, 0, 256, 256);
 
-  // Tile seam grid
-  ctx.strokeStyle = "rgba(15, 23, 42, 0.25)";
-  ctx.lineWidth = 2;
-  for (let x = 0; x < 256; x += 32) {
+  // Subtle rib panel joints
+  ctx.strokeStyle = "rgba(148, 163, 184, 0.22)";
+  ctx.lineWidth = 3;
+  for (let y = 0; y < 256; y += 32) {
     ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, 128);
+    ctx.moveTo(0, y);
+    ctx.lineTo(256, y);
     ctx.stroke();
   }
 
+  // Bright reflective lower tile stripe along both sides of the arch base
+  ctx.fillStyle = "#cbd5e1";
+  ctx.fillRect(0, 0, 24, 256);
+  ctx.fillRect(232, 0, 24, 256);
+
+  // Subtle warm-amber safety guide line
+  ctx.fillStyle = "#f59e0b";
+  ctx.fillRect(24, 0, 5, 256);
+  ctx.fillRect(227, 0, 5, 256);
+
   const tex = new THREE.CanvasTexture(canvas);
-  tex.wrapS = THREE.RepeatWrapping;
-  tex.wrapT = THREE.ClampToEdgeWrapping;
-  tex.repeat.set(10, 1);
+  tex.wrapS = THREE.ClampToEdgeWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(1, 10);
   tex.colorSpace = THREE.SRGBColorSpace;
   return tex;
 }
 
-function getSharedTunnelMaterials() {
-  if (_sharedTunnelMats) return _sharedTunnelMats;
+function getSharedTunnelExtras() {
+  if (_sharedTunnelExtras) return _sharedTunnelExtras;
 
-  const wallTex = createTunnelWallTexture();
+  const archTex = createArchInteriorTexture();
 
-  _sharedTunnelMats = {
-    wall: new THREE.MeshStandardMaterial({
-      map: wallTex,
+  _sharedTunnelExtras = {
+    archInner: new THREE.MeshStandardMaterial({
+      map: archTex,
       roughness: 0.65,
-      metalness: 0.15
+      metalness: 0.15,
+      side: THREE.BackSide // Render crisp interior surface of the curved barrel!
     }),
-    ceiling: new THREE.MeshStandardMaterial({
-      color: "#0f172a",
-      roughness: 0.85,
-      metalness: 0.1
-    }),
-    portal: new THREE.MeshStandardMaterial({
+    archOuter: new THREE.MeshStandardMaterial({
       color: "#475569",
-      roughness: 0.6,
-      metalness: 0.3
+      roughness: 0.78,
+      metalness: 0.15,
+      side: THREE.FrontSide
     }),
-    ledLight: new THREE.MeshStandardMaterial({
+    portalConcrete: new THREE.MeshStandardMaterial({
+      color: "#cbd5e1",
+      roughness: 0.65,
+      metalness: 0.2
+    }),
+    ribMat: new THREE.MeshStandardMaterial({
+      color: "#334155",
+      roughness: 0.5,
+      metalness: 0.45
+    }),
+    ledStrip: new THREE.MeshStandardMaterial({
       color: "#e0f2fe",
       emissive: "#7dd3fc",
-      emissiveIntensity: 4.0
+      emissiveIntensity: 3.6
     }),
-    portalTrim: new THREE.MeshStandardMaterial({
+    portalAccent: new THREE.MeshStandardMaterial({
       color: "#00efff",
       emissive: "#00efff",
-      emissiveIntensity: 2.5
-    }),
-    upperRoad: new THREE.MeshStandardMaterial({
-      color: "#1e293b",
-      roughness: 0.45,
-      metalness: 0.18
+      emissiveIntensity: 2.2
     })
   };
-
-  return _sharedTunnelMats;
+  return _sharedTunnelExtras;
 }
 
 export function createTunnelSegment(materials) {
@@ -121,59 +126,73 @@ export function createTunnelSegment(materials) {
     "road-seg-tunnel"
   );
 
-  const mats = getSharedTunnelMaterials();
-
-  const tubeLength = 68;
+  const extras = getSharedTunnelExtras();
+  const tubeLen = 74;
   const tubeCenterZ = -60;
-  const halfInnerW = ROAD_WIDTH * 0.5 + 1.4; // 10.4m from center -> 20.8m wide tunnel
-  const wallCenterY = TUNNEL_DEPTH + TUNNEL_CLEAR_HEIGHT * 0.5;
-  const roofY = TUNNEL_DEPTH + TUNNEL_CLEAR_HEIGHT;
 
-  // 1. Left & Right Tiled Tunnel Walls
-  const wallGeo = new THREE.BoxGeometry(1.2, TUNNEL_CLEAR_HEIGHT, tubeLength);
-  for (const side of [-1, 1]) {
-    const wall = new THREE.Mesh(wallGeo, mats.wall);
-    wall.position.set(side * (halfInnerW + 0.6), wallCenterY, tubeCenterZ);
-    visual.add(wall);
-  }
-
-  // 2. Tunnel Ceiling Deck
-  const ceiling = new THREE.Mesh(
-    new THREE.BoxGeometry(halfInnerW * 2 + 2.4, 1.0, tubeLength),
-    mats.ceiling
+  // 1. Sleek Curved Semicircular Concrete Tunnel Vault (inner + outer shells)
+  // Cylinder rotated -PI/2 around X puts theta ∈ [-PI/2, +PI/2] cleanly in +Y (upper arch!)
+  const archGeo = new THREE.CylinderGeometry(
+    TUNNEL_RADIUS,
+    TUNNEL_RADIUS,
+    tubeLen,
+    18,
+    1,
+    true,
+    -Math.PI / 2,
+    Math.PI
   );
-  ceiling.position.set(0, roofY + 0.5, tubeCenterZ);
-  visual.add(ceiling);
+  archGeo.rotateX(-Math.PI / 2);
 
-  // 3. Entrance & Exit Architectural Portals with Neon Guidance Strips
-  const lintelGeo = new THREE.BoxGeometry(halfInnerW * 2 + 4.4, 2.2, 1.8);
-  const trimGeo = new THREE.BoxGeometry(halfInnerW * 2 + 0.4, 0.22, 0.28);
-  for (const portalZ of [tubeCenterZ + tubeLength * 0.5, tubeCenterZ - tubeLength * 0.5]) {
-    const lintel = new THREE.Mesh(lintelGeo, mats.portal);
-    lintel.position.set(0, roofY + 0.7, portalZ);
-    visual.add(lintel);
+  const innerArch = new THREE.Mesh(archGeo, extras.archInner);
+  innerArch.scale.set(1, 0.78, 1); // Sleek wide elliptical highway tunnel arch (~8.9m tall!)
+  innerArch.position.set(0, 0, tubeCenterZ);
 
-    const trim = new THREE.Mesh(trimGeo, mats.portalTrim);
-    trim.position.set(0, roofY - 0.15, portalZ + 0.95);
-    visual.add(trim);
+  const outerArch = new THREE.Mesh(archGeo, extras.archOuter);
+  outerArch.scale.set(1.04, 0.82, 1.0);
+  outerArch.position.set(0, 0, tubeCenterZ);
+  visual.add(innerArch, outerArch);
+
+  // 2. Sculpted Entrance & Exit Arch Portals with Neon Rim Strips
+  const portalArchGeo = new THREE.TorusGeometry(TUNNEL_RADIUS, 0.55, 8, 20, Math.PI);
+  const accentArchGeo = new THREE.TorusGeometry(TUNNEL_RADIUS - 0.35, 0.1, 6, 20, Math.PI);
+
+  for (const portalZ of [tubeCenterZ + tubeLen * 0.5, tubeCenterZ - tubeLen * 0.5]) {
+    const portalRing = new THREE.Mesh(portalArchGeo, extras.portalConcrete);
+    portalRing.scale.set(1.02, 0.80, 1);
+    portalRing.position.set(0, 0, portalZ);
+
+    const accentRing = new THREE.Mesh(accentArchGeo, extras.portalAccent);
+    accentRing.scale.set(1.01, 0.79, 1);
+    accentRing.position.set(0, 0, portalZ + (portalZ > tubeCenterZ ? 0.45 : -0.45));
+    visual.add(portalRing, accentRing);
   }
 
-  // 4. Rhythmic Glowing Overhead Tunnel LED Strips (high-speed depth sensation!)
-  const ledGeo = new THREE.BoxGeometry(6.5, 0.14, 1.6);
-  for (let z = tubeCenterZ + 28; z >= tubeCenterZ - 28; z -= 9.5) {
-    const led = new THREE.Mesh(ledGeo, mats.ledLight);
-    led.position.set(0, roofY - 0.08, z);
+  // 3. Rhythmic Structural Arch Ribs & Glowing Overhead LED Light Strips inside Tunnel
+  const ribGeo = new THREE.TorusGeometry(TUNNEL_RADIUS - 0.15, 0.18, 6, 16, Math.PI);
+  const ledGeo = new THREE.BoxGeometry(5.6, 0.12, 1.8);
+  const ceilingY = TUNNEL_RADIUS * 0.78 - 0.25;
+
+  for (let z = tubeCenterZ + 30; z >= tubeCenterZ - 30; z -= 10) {
+    const rib = new THREE.Mesh(ribGeo, extras.ribMat);
+    rib.scale.set(1, 0.78, 1);
+    rib.position.set(0, 0, z);
+    visual.add(rib);
+
+    const led = new THREE.Mesh(ledGeo, extras.ledStrip);
+    led.position.set(0, ceilingY, z);
     visual.add(led);
   }
 
-  // 5. Overhead City Avenue crossing ABOVE the tunnel roof!
-  const upperStreet = new THREE.Mesh(
-    new THREE.PlaneGeometry(180, 24),
-    mats.upperRoad
-  );
+  // 4. Clean Elevated Cross-City Boulevard running seamlessly ABOVE the tunnel vault!
+  const upperDeckY = TUNNEL_RADIUS * 0.82 + 0.15;
+  const upperStreet = new THREE.Mesh(new THREE.PlaneGeometry(180, 20), materials.avenueMat);
   upperStreet.rotation.x = -Math.PI / 2;
-  upperStreet.position.set(0, roofY + 1.05, tubeCenterZ);
+  upperStreet.position.set(0, upperDeckY, tubeCenterZ);
   visual.add(upperStreet);
+
+  if (!visual.userData.customMatTargets) visual.userData.customMatTargets = [];
+  visual.userData.customMatTargets.push({ mesh: upperStreet, matKey: "avenueMat" });
 
   const seg = createRoadSegment({
     type: "tunnel",
@@ -185,21 +204,18 @@ export function createTunnelSegment(materials) {
     sampleLocalProfile: sampleTunnelProfile
   });
 
-  // Override navigation sampler to report dynamic RoadLayer (UNDERGROUND inside tube, GROUND on ramps)
   const baseSampleWorld = seg.navigation.sampleWorld;
   seg.navigation.sampleWorld = (zWorld, lateralOffset, out) => {
     baseSampleWorld(zWorld, lateralOffset, out);
-    const zLocal = zWorld - seg.zStart; // in [-120, 0]
-    const insideTube = zLocal <= -24 && zLocal >= -96;
+    const zLocal = zWorld - seg.zStart;
+    const insideTube = zLocal <= -23 && zLocal >= -97;
     out.layer = insideTube ? RoadLayer.UNDERGROUND : RoadLayer.GROUND;
     out.inTunnel = insideTube;
     return out;
   };
 
-  // Clear outer buildings overlapping the tunnel portals & cross-avenue above
   seg.hasCrossStreet = true;
   seg.crossStreetLocalStart = -18;
   seg.crossStreetLocalEnd = -102;
-
   return seg;
 }
