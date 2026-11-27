@@ -164,7 +164,6 @@ function collectPowerUp(powerUp) {
     gameState.shieldActive = true;
     shieldTimer = SHIELD_DURATION;
     createBurst(position, 0x36baff, 16);
-    playPowerUpSound();
   } else {
     gameState.boostActive = true;
     boostTimer = BOOST_DURATION;
@@ -173,7 +172,6 @@ function collectPowerUp(powerUp) {
       gameState.baseSpeed * BOOST_MULTIPLIER
     );
     createBurst(position, 0xff7738, 16);
-    playPowerUpSound();
   }
 }
 

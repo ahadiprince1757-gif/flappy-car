@@ -134,7 +134,6 @@ function collectCoin(collectible) {
   saveData(data);
   gameState.coins = data.coins;
 
-  playCoinSound();
   createBurst(position, 0xffd54a, 9);
 }
 

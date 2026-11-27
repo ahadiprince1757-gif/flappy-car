@@ -595,47 +595,7 @@ export function isSynthBGMActive() {
 }
 
 export function playCoinSound() {
-  const context = initializeAudioContext();
-  if (!context || muted || !masterGain) return;
-
-  // Pentatonic arpeggio: each coin in quick succession steps up the scale
-  if (coinStreakTimer) clearTimeout(coinStreakTimer);
-  coinStreakTimer = setTimeout(() => { coinStreakCount = 0; }, 800);
-
-  const idx = Math.min(coinStreakCount, PENTATONIC_FREQS.length - 1);
-  const baseFreq = PENTATONIC_FREQS[idx];
-  coinStreakCount = (coinStreakCount + 1) % PENTATONIC_FREQS.length;
-
-  const now = context.currentTime;
-
-  // Primary chime tone
-  const osc1 = context.createOscillator();
-  const env1 = context.createGain();
-  osc1.type = "sine";
-  osc1.frequency.setValueAtTime(baseFreq, now);
-  osc1.frequency.exponentialRampToValueAtTime(baseFreq * 1.5, now + 0.08);
-  env1.gain.setValueAtTime(0.001, now);
-  env1.gain.exponentialRampToValueAtTime(0.28, now + 0.012);
-  env1.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
-  osc1.connect(env1);
-  env1.connect(masterGain);
-  osc1.start(now);
-  osc1.stop(now + 0.16);
-  osc1.onended = () => { osc1.disconnect(); env1.disconnect(); };
-
-  // Sparkle harmonic overtone
-  const osc2 = context.createOscillator();
-  const env2 = context.createGain();
-  osc2.type = "triangle";
-  osc2.frequency.setValueAtTime(baseFreq * 2, now + 0.02);
-  env2.gain.setValueAtTime(0.001, now + 0.02);
-  env2.gain.exponentialRampToValueAtTime(0.1, now + 0.04);
-  env2.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
-  osc2.connect(env2);
-  env2.connect(masterGain);
-  osc2.start(now + 0.02);
-  osc2.stop(now + 0.12);
-  osc2.onended = () => { osc2.disconnect(); env2.disconnect(); };
+  // Coin collection audio removed as requested
 }
 
 export function playJumpSound() {
@@ -649,26 +609,7 @@ export function playJumpSound() {
 }
 
 export function playPowerUpSound() {
-  const context = initializeAudioContext();
-  if (!context || muted || !masterGain) return;
-  const now = context.currentTime;
-
-  // Rising triple-chord power-up jingle
-  const notes = [330, 415, 523, 659, 830];
-  notes.forEach((freq, i) => {
-    const o = context.createOscillator();
-    const e = context.createGain();
-    o.type = "triangle";
-    o.frequency.setValueAtTime(freq, now + i * 0.065);
-    e.gain.setValueAtTime(0.001, now + i * 0.065);
-    e.gain.exponentialRampToValueAtTime(0.2, now + i * 0.065 + 0.025);
-    e.gain.exponentialRampToValueAtTime(0.001, now + i * 0.065 + 0.14);
-    o.connect(e);
-    e.connect(masterGain);
-    o.start(now + i * 0.065);
-    o.stop(now + i * 0.065 + 0.16);
-    o.onended = () => { o.disconnect(); e.disconnect(); };
-  });
+  // Powerup collection audio removed as requested
 }
 
 export function playCrashSound() {
