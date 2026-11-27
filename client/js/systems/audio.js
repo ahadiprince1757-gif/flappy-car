@@ -847,7 +847,7 @@ let realRevAudio = null;
 function getRealEngineAudio() {
   if (!realEngineAudio && typeof Audio !== "undefined") {
     realEngineAudio = new Audio("./assets/audio/car_engine.mp3");
-    realEngineAudio.loop = true;
+    realEngineAudio.loop = false;
     realEngineAudio.volume = muted ? 0 : Math.min(1, sfxVolume * 0.85);
   }
   return realEngineAudio;
@@ -856,6 +856,7 @@ function getRealEngineAudio() {
 function getRealRevAudio() {
   if (!realRevAudio && typeof Audio !== "undefined") {
     realRevAudio = new Audio("./assets/audio/car_rev.mp3");
+    realRevAudio.loop = true;
     realRevAudio.volume = muted ? 0 : Math.min(1, sfxVolume * 0.95);
   }
   return realRevAudio;
@@ -865,28 +866,26 @@ export function startEngineSound() {
   if (muted) return;
   const audio = getRealEngineAudio();
   if (audio) {
+    audio.loop = false;
+    audio.currentTime = 0;
     audio.volume = muted ? 0 : Math.min(1, sfxVolume * 0.85);
-    if (audio.paused) {
-      audio.play().catch(() => {});
-    }
+    audio.play().catch(() => {});
   }
 }
 
 export function updateEngineSound(speed, baseSpeed = 18) {
   if (muted) {
     if (realEngineAudio && !realEngineAudio.paused) realEngineAudio.pause();
+    if (realRevAudio && !realRevAudio.paused) realRevAudio.pause();
     return;
   }
-  const audio = getRealEngineAudio();
-  if (!audio) return;
 
-  if (audio.paused) {
-    audio.play().catch(() => {});
-  }
-
-  audio.volume = Math.min(1, sfxVolume * 0.85);
   const ratio = Math.max(0.75, Math.min(1.85, (speed || baseSpeed) / (baseSpeed || 18)));
-  audio.playbackRate = ratio;
+
+  // If accelerating with fuel button, dynamically pitch up the looping rev sound
+  if (realRevAudio && !realRevAudio.paused) {
+    realRevAudio.playbackRate = Math.max(0.9, Math.min(1.4, ratio * 0.95));
+  }
 }
 
 export function playCarRevSound() {
@@ -894,15 +893,18 @@ export function playCarRevSound() {
   const rev = getRealRevAudio();
   if (rev) {
     try {
-      rev.currentTime = 0;
+      rev.loop = true;
       rev.volume = Math.min(1, sfxVolume * 0.95);
-      rev.play().catch(() => {});
+      if (rev.paused) {
+        rev.currentTime = 0;
+        rev.play().catch(() => {});
+      }
     } catch {}
   }
 }
 
 export function stopCarRevSound() {
-  if (realRevAudio && !realRevAudio.paused) {
+  if (realRevAudio) {
     try {
       realRevAudio.pause();
       realRevAudio.currentTime = 0;

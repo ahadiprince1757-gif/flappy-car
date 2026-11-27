@@ -351,7 +351,12 @@ function updateNitro(deltaTime) {
       gameState.speed + (gameState.baseSpeed * NITRO_BOOST_SPEED - gameState.speed) * deltaTime * 4
     );
   } else {
-    _nitroActivePrev = false;
+    if (_nitroActivePrev) {
+      _nitroActivePrev = false;
+      if (!gameState.input.accelerate) {
+        stopCarRevSound();
+      }
+    }
     gameState.nitroDraining = false;
     // Passive nitro regeneration from speed (driving fast charges nitro slowly)
     const passiveCharge = Math.max(0, (gameState.speed - gameState.baseSpeed * 0.9) / gameState.baseSpeed) * 0.015;

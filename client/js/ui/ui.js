@@ -219,7 +219,6 @@ function finishRun(title, isWin, stats) {
         setGameplayVisible(true);
         revivePlayerAtCheckpoint();
         startEngineSound();
-  playCarRevSound();
       }
     });
   }
@@ -302,7 +301,6 @@ function _launchAdventure() {
   resizeRenderer();
 
   startEngineSound();
-  playCarRevSound();
 }
 
 function startSelectedRace(levelId) {
@@ -342,7 +340,6 @@ function startSelectedRace(levelId) {
   updateHUD(true);
 
   startEngineSound();
-  playCarRevSound();
 }
 
 function restartRun() {
@@ -375,7 +372,6 @@ function resumeGame() {
 
   initializeAudio();
   startEngineSound();
-  playCarRevSound();
 }
 
 function returnHome() {

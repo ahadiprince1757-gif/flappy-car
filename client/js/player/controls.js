@@ -153,6 +153,7 @@ function handleBlur() {
 }
 
 export function startAccelerate() {
+  if (gameState.status !== "playing") return;
   if (!gameState.input.accelerate) {
     playCarRevSound();
   }
