@@ -866,15 +866,27 @@ export function startEngineSound() {
   const audio = getRealEngineAudio();
   if (audio) {
     audio.volume = muted ? 0 : Math.min(1, sfxVolume * 0.85);
-    audio.play().catch(() => {});
+    if (audio.paused) {
+      audio.play().catch(() => {});
+    }
   }
 }
 
 export function updateEngineSound(speed, baseSpeed = 18) {
-  if (!realEngineAudio || muted) return;
-  realEngineAudio.volume = muted ? 0 : Math.min(1, sfxVolume * 0.85);
+  if (muted) {
+    if (realEngineAudio && !realEngineAudio.paused) realEngineAudio.pause();
+    return;
+  }
+  const audio = getRealEngineAudio();
+  if (!audio) return;
+
+  if (audio.paused) {
+    audio.play().catch(() => {});
+  }
+
+  audio.volume = Math.min(1, sfxVolume * 0.85);
   const ratio = Math.max(0.75, Math.min(1.85, (speed || baseSpeed) / (baseSpeed || 18)));
-  realEngineAudio.playbackRate = ratio;
+  audio.playbackRate = ratio;
 }
 
 export function playCarRevSound() {
@@ -883,8 +895,17 @@ export function playCarRevSound() {
   if (rev) {
     try {
       rev.currentTime = 0;
-      rev.volume = muted ? 0 : Math.min(1, sfxVolume * 0.95);
+      rev.volume = Math.min(1, sfxVolume * 0.95);
       rev.play().catch(() => {});
+    } catch {}
+  }
+}
+
+export function stopCarRevSound() {
+  if (realRevAudio && !realRevAudio.paused) {
+    try {
+      realRevAudio.pause();
+      realRevAudio.currentTime = 0;
     } catch {}
   }
 }

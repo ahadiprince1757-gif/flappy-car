@@ -6,6 +6,7 @@ import {
   slide
 } from "./movement.js";
 import { PerformanceMonitor } from "../core/perfMonitor.js";
+import { playCarRevSound, stopCarRevSound } from "../systems/audio.js";
 
 let controlsAttached = false;
 
@@ -66,6 +67,9 @@ function handleKeyDown(event) {
     // Up / W: Accelerate
     case "arrowup":
     case "w":
+      if (!event.repeat && !gameState.input.accelerate) {
+        playCarRevSound();
+      }
       gameState.input.accelerate = true;
       break;
 
@@ -114,6 +118,7 @@ function handleKeyUp(event) {
     case "arrowup":
     case "w":
       gameState.input.accelerate = false;
+      stopCarRevSound();
       break;
 
     case "arrowdown":
@@ -144,14 +149,19 @@ function handleBlur() {
   gameState.input.accelerate = false;
   gameState.input.brake = false;
   gameState.input.nitro = false;
+  stopCarRevSound();
 }
 
 export function startAccelerate() {
+  if (!gameState.input.accelerate) {
+    playCarRevSound();
+  }
   gameState.input.accelerate = true;
 }
 
 export function stopAccelerate() {
   gameState.input.accelerate = false;
+  stopCarRevSound();
 }
 
 export function startBrake() {
@@ -168,6 +178,7 @@ export function startNitro() {
 
 export function stopNitro() {
   gameState.input.nitro = false;
+  stopCarRevSound();
 }
 
 export function initializeControls() {
