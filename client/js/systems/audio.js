@@ -378,6 +378,20 @@ export function setMuted(value) {
     );
   }
 
+  if (activeRevGain && audioContext) {
+    activeRevGain.gain.setValueAtTime(muted ? 0 : Math.min(1, sfxVolume * 0.95), audioContext.currentTime);
+  }
+  if (activeIdleGain && audioContext) {
+    activeIdleGain.gain.setValueAtTime(muted ? 0 : Math.min(1, sfxVolume * 0.85), audioContext.currentTime);
+  }
+
+  if (activeRevGain && audioContext) {
+    activeRevGain.gain.setValueAtTime(muted ? 0 : Math.min(1, sfxVolume * 0.95), audioContext.currentTime);
+  }
+  if (activeIdleGain && audioContext) {
+    activeIdleGain.gain.setValueAtTime(muted ? 0 : Math.min(1, sfxVolume * 0.85), audioContext.currentTime);
+  }
+
   if (realEngineAudio) {
     realEngineAudio.volume = muted ? 0 : Math.min(1, sfxVolume * 0.85);
   }
@@ -390,16 +404,6 @@ export function setMuted(value) {
 
   if (musicPlayer) {
     musicPlayer.volume = muted ? 0 : musicVolume;
-  }
-
-  if (realEngineAudio) {
-    realEngineAudio.volume = muted ? 0 : Math.min(1, sfxVolume * 0.85);
-  }
-  if (realRevAudio) {
-    realRevAudio.volume = muted ? 0 : Math.min(1, sfxVolume * 0.95);
-  }
-  if (realIdleAudio) {
-    realIdleAudio.volume = muted ? 0 : Math.min(1, sfxVolume * 0.85);
   }
 
   updateMusicUI();
@@ -431,6 +435,13 @@ export function setSfxVolume(value) {
     );
   }
 
+  if (activeRevGain && audioContext) {
+    activeRevGain.gain.setValueAtTime(muted ? 0 : Math.min(1, sfxVolume * 0.95), audioContext.currentTime);
+  }
+  if (activeIdleGain && audioContext) {
+    activeIdleGain.gain.setValueAtTime(muted ? 0 : Math.min(1, sfxVolume * 0.85), audioContext.currentTime);
+  }
+
   if (realEngineAudio) {
     realEngineAudio.volume = muted ? 0 : Math.min(1, sfxVolume * 0.85);
   }
@@ -460,6 +471,13 @@ export function setMusicVolume(value) {
 
   if (musicPlayer) {
     musicPlayer.volume = muted ? 0 : musicVolume;
+  }
+
+  if (activeRevGain && audioContext) {
+    activeRevGain.gain.setValueAtTime(muted ? 0 : Math.min(1, sfxVolume * 0.95), audioContext.currentTime);
+  }
+  if (activeIdleGain && audioContext) {
+    activeIdleGain.gain.setValueAtTime(muted ? 0 : Math.min(1, sfxVolume * 0.85), audioContext.currentTime);
   }
 
   if (realEngineAudio) {
@@ -853,9 +871,49 @@ export function playRaceFailedSound() {
   });
 }
 
+// ── Triple-Channel Mobile WebAudio Buffer Engine with HTML5 Fallback ──
+const AUDIO_BUFFERS = {
+  engine: null,
+  rev: null,
+  idle: null
+};
+
+let activeRevSource = null;
+let activeRevGain = null;
+let activeIdleSource = null;
+let activeIdleGain = null;
+
+let isBuffersLoading = false;
+
 let realEngineAudio = null;
 let realRevAudio = null;
 let realIdleAudio = null;
+
+export async function preloadGameAudioBuffers() {
+  if (isBuffersLoading) return;
+  isBuffersLoading = true;
+
+  const ctx = initializeAudioContext();
+  if (!ctx) return;
+
+  const files = {
+    engine: "./assets/audio/car_engine.mp3",
+    rev: "./assets/audio/car_rev.mp3",
+    idle: "./assets/audio/car_idle.mp3"
+  };
+
+  await Promise.all(
+    Object.entries(files).map(async ([key, url]) => {
+      try {
+        const resp = await fetch(url);
+        const arrayBuffer = await resp.arrayBuffer();
+        AUDIO_BUFFERS[key] = await ctx.decodeAudioData(arrayBuffer);
+      } catch (err) {
+        console.warn(`[Audio] Failed to decode ${key}:`, err);
+      }
+    })
+  );
+}
 
 function getRealEngineAudio() {
   if (!realEngineAudio && typeof Audio !== "undefined") {
@@ -886,6 +944,30 @@ function getRealIdleAudio() {
 
 export function startEngineSound() {
   if (muted) return;
+  const ctx = initializeAudioContext();
+  if (ctx && ctx.state === "suspended") {
+    ctx.resume().catch(() => {});
+  }
+
+  // 1. WebAudio Buffer (Guaranteed on mobile without autoplay blocking)
+  if (ctx && AUDIO_BUFFERS.engine) {
+    try {
+      const source = ctx.createBufferSource();
+      source.buffer = AUDIO_BUFFERS.engine;
+      source.loop = false;
+
+      const gain = ctx.createGain();
+      gain.gain.value = muted ? 0 : Math.min(1, sfxVolume * 0.85);
+
+      source.connect(gain);
+      gain.connect(masterGain || ctx.destination);
+
+      source.start(0);
+      return;
+    } catch {}
+  }
+
+  // 2. HTML5 Audio Fallback
   const audio = getRealEngineAudio();
   if (audio) {
     audio.loop = false;
@@ -897,6 +979,34 @@ export function startEngineSound() {
 
 export function startIdleSound() {
   if (muted) return;
+  const ctx = initializeAudioContext();
+  if (ctx && ctx.state === "suspended") {
+    ctx.resume().catch(() => {});
+  }
+
+  // 1. WebAudio Buffer (Guaranteed on mobile without autoplay blocking)
+  if (ctx && AUDIO_BUFFERS.idle) {
+    if (activeIdleSource) return; // already looping
+
+    try {
+      const source = ctx.createBufferSource();
+      source.buffer = AUDIO_BUFFERS.idle;
+      source.loop = true;
+
+      const gain = ctx.createGain();
+      gain.gain.value = muted ? 0 : Math.min(1, sfxVolume * 0.85);
+
+      source.connect(gain);
+      gain.connect(masterGain || ctx.destination);
+
+      source.start(0);
+      activeIdleSource = source;
+      activeIdleGain = gain;
+      return;
+    } catch {}
+  }
+
+  // 2. HTML5 Audio Fallback
   const idle = getRealIdleAudio();
   if (idle) {
     idle.loop = true;
@@ -908,6 +1018,14 @@ export function startIdleSound() {
 }
 
 export function stopIdleSound() {
+  if (activeIdleSource) {
+    try {
+      activeIdleSource.stop();
+      activeIdleSource.disconnect();
+    } catch {}
+    activeIdleSource = null;
+    activeIdleGain = null;
+  }
   if (realIdleAudio && !realIdleAudio.paused) {
     try {
       realIdleAudio.pause();
@@ -918,17 +1036,15 @@ export function stopIdleSound() {
 
 export function updateEngineSound(speed, baseSpeed = 18, isAnyButtonPressed = false) {
   if (muted) {
+    stopIdleSound();
+    stopCarRevSound();
     if (realEngineAudio && !realEngineAudio.paused) realEngineAudio.pause();
-    if (realRevAudio && !realRevAudio.paused) realRevAudio.pause();
-    if (realIdleAudio && !realIdleAudio.paused) realIdleAudio.pause();
     return;
   }
 
   // Idle sound: loops continuously when the car is idle and player is not pressing any button
   if (!isAnyButtonPressed) {
-    if (realRevAudio && !realRevAudio.paused) {
-      stopCarRevSound();
-    }
+    stopCarRevSound();
     startIdleSound();
   } else {
     stopIdleSound();
@@ -937,14 +1053,47 @@ export function updateEngineSound(speed, baseSpeed = 18, isAnyButtonPressed = fa
   const ratio = Math.max(0.75, Math.min(1.85, (speed || baseSpeed) / (baseSpeed || 18)));
 
   // If accelerating with fuel button, dynamically pitch up the looping rev sound
+  const revPitch = Math.max(0.9, Math.min(1.4, ratio * 0.95));
+  if (activeRevSource && audioContext) {
+    activeRevSource.playbackRate.setValueAtTime(revPitch, audioContext.currentTime);
+  }
   if (realRevAudio && !realRevAudio.paused) {
-    realRevAudio.playbackRate = Math.max(0.9, Math.min(1.4, ratio * 0.95));
+    realRevAudio.playbackRate = revPitch;
   }
 }
 
 export function playCarRevSound() {
   if (muted) return;
   stopIdleSound();
+
+  const ctx = initializeAudioContext();
+  if (ctx && ctx.state === "suspended") {
+    ctx.resume().catch(() => {});
+  }
+
+  // 1. WebAudio Buffer (Guaranteed on mobile without autoplay blocking)
+  if (ctx && AUDIO_BUFFERS.rev) {
+    if (activeRevSource) return; // already looping
+
+    try {
+      const source = ctx.createBufferSource();
+      source.buffer = AUDIO_BUFFERS.rev;
+      source.loop = true;
+
+      const gain = ctx.createGain();
+      gain.gain.value = muted ? 0 : Math.min(1, sfxVolume * 0.95);
+
+      source.connect(gain);
+      gain.connect(masterGain || ctx.destination);
+
+      source.start(0);
+      activeRevSource = source;
+      activeRevGain = gain;
+      return;
+    } catch {}
+  }
+
+  // 2. HTML5 Audio Fallback
   const rev = getRealRevAudio();
   if (rev) {
     try {
@@ -959,6 +1108,14 @@ export function playCarRevSound() {
 }
 
 export function stopCarRevSound() {
+  if (activeRevSource) {
+    try {
+      activeRevSource.stop();
+      activeRevSource.disconnect();
+    } catch {}
+    activeRevSource = null;
+    activeRevGain = null;
+  }
   if (realRevAudio) {
     try {
       realRevAudio.pause();
@@ -968,22 +1125,50 @@ export function stopCarRevSound() {
 }
 
 export function stopEngineSound() {
+  stopIdleSound();
+  stopCarRevSound();
+
   if (realEngineAudio) {
     try {
       realEngineAudio.pause();
       realEngineAudio.currentTime = 0;
     } catch {}
   }
-  if (realRevAudio) {
-    try {
-      realRevAudio.pause();
-      realRevAudio.currentTime = 0;
-    } catch {}
-  }
-  if (realIdleAudio) {
-    try {
-      realIdleAudio.pause();
-      realIdleAudio.currentTime = 0;
-    } catch {}
-  }
 }
+
+/**
+ * Global Mobile User Gesture Audio Unlocker:
+ * Automatically unlocks WebAudio Context and primes audio elements on the very
+ * first touch/click anywhere on mobile screens.
+ */
+function setupMobileAudioUnlocker() {
+  if (typeof window === "undefined") return;
+
+  const unlock = () => {
+    const ctx = initializeAudioContext();
+    if (ctx && ctx.state === "suspended") {
+      ctx.resume().catch(() => {});
+    }
+    preloadGameAudioBuffers();
+
+    // Prime HTML5 Audio elements
+    if (typeof Audio !== "undefined") {
+      try {
+        const e = getRealEngineAudio();
+        const r = getRealRevAudio();
+        const i = getRealIdleAudio();
+        [e, r, i].forEach((a) => {
+          if (a && a.load) a.load();
+        });
+      } catch {}
+    }
+  };
+
+  ["touchstart", "touchend", "pointerdown", "mousedown", "click", "keydown"].forEach((evt) => {
+    window.addEventListener(evt, unlock, { passive: true });
+  });
+}
+
+// Start unlocker and buffer preloading immediately
+setupMobileAudioUnlocker();
+preloadGameAudioBuffers();

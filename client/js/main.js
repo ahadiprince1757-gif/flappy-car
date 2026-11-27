@@ -53,7 +53,8 @@ import {
 
 import {
   updateEngineSound,
-  stopEngineSound
+  stopEngineSound,
+  preloadGameAudioBuffers
 } from "./systems/audio.js";
 
 import {
@@ -179,9 +180,10 @@ function start() {
       render: renderGame
     });
 
-    // 8. Preload FBX car models & background buildings in background
+    // 8. Preload FBX car models & background buildings & audio buffers in background
     preloadBuildingModels();
     preloadTreeModels();
+    preloadGameAudioBuffers();
 
     // Spawn player immediately (will use stylish proxy if FBX is still parsing)
     createPlayer(gameState.selectedCar);
