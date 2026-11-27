@@ -1308,7 +1308,7 @@ button {
   padding: 20px 24px;
 }
 
-.hud-top { display: flex; gap: 12px; }
+.hud-top { display: none !important; }
 
 .hud-stat {
   display: flex;

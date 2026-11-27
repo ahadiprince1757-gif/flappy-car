@@ -21,28 +21,6 @@ export function initializeHUD() {
   }
 
   hudRoot.innerHTML = `
-    <div class="hud-top">
-      <div class="hud-stat">
-        <span class="hud-label">SCORE</span>
-        <strong id="hudScore">0</strong>
-      </div>
-
-      <div class="hud-stat hud-tier-badge">
-        <span class="hud-label">ZONE</span>
-        <strong id="hudTierName">CRUISING</strong>
-      </div>
-
-      <div class="hud-stat hud-coins-stat">
-        <span class="hud-label">COINS</span>
-        <strong id="hudCoins"><span class="hud-coin-icon">$</span> 0</strong>
-      </div>
-
-      <div class="hud-stat">
-        <span class="hud-label">SPEED</span>
-        <strong id="hudSpeed">0 MPH</strong>
-      </div>
-    </div>
-
     <!-- Dynamic Nitro Boost Gauge -->
     <div class="hud-nitro-container" id="hudNitroContainer">
       <div class="hud-nitro-labels">

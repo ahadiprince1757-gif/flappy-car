@@ -15,17 +15,17 @@ export function createPlayer(carId = gameState.selectedCar) {
   const config = getCarConfig(carId);
   const group = createCarModel(carId);
 
-  // Preserve existing runtime state if replacing an active player (e.g. proxy -> FBX upgrade)
-  const existing = gameState.player;
-  const currentLane = existing ? existing.lane : 1;
-  const currentLaneOffset = existing ? existing.currentLaneOffset : gameState.lanePositions[currentLane];
-  const targetLaneOffset = existing ? existing.targetLaneOffset : currentLaneOffset;
-  const baseZ = existing ? existing.baseZ : 4;
-  const jumpHeight = existing ? existing.jumpHeight : 0;
-  const isJumping = existing ? existing.isJumping : false;
-  const isSliding = existing ? existing.isSliding : false;
-  const verticalVelocity = existing ? existing.verticalVelocity : 0;
-  const currentY = existing && existing.group ? existing.group.position.y : null;
+  // Preserve existing runtime state ONLY if replacing mid-race (e.g. proxy -> FBX upgrade)
+  const isMidRunUpgrade = Boolean(existing && gameState.status === "playing");
+  const currentLane = isMidRunUpgrade ? existing.lane : 2;
+  const currentLaneOffset = isMidRunUpgrade ? existing.currentLaneOffset : (gameState.lanePositions[currentLane] || 0);
+  const targetLaneOffset = isMidRunUpgrade ? existing.targetLaneOffset : currentLaneOffset;
+  const baseZ = isMidRunUpgrade ? existing.baseZ : 4;
+  const jumpHeight = isMidRunUpgrade ? existing.jumpHeight : 0;
+  const isJumping = isMidRunUpgrade ? existing.isJumping : false;
+  const isSliding = isMidRunUpgrade ? existing.isSliding : false;
+  const verticalVelocity = isMidRunUpgrade ? existing.verticalVelocity : 0;
+  const currentY = isMidRunUpgrade && existing.group ? existing.group.position.y : null;
 
   if (existing?.group) {
     gameState.scene.remove(existing.group);
@@ -62,8 +62,8 @@ export function createPlayer(carId = gameState.selectedCar) {
     gameState.speed = config.speed;
   }
 
-  // Snap camera directly behind the car on first spawn
-  if (!existing && gameState.camera) {
+  // Snap camera directly behind the car on first spawn or reset
+  if (!isMidRunUpgrade && gameState.camera) {
     const pos = group.position;
     gameState.camera.position.set(pos.x, pos.y + 4.8, pos.z + 9.0);
     gameState.camera.lookAt(pos.x, pos.y + 1.2, pos.z - 10);

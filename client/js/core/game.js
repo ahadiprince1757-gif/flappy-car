@@ -150,7 +150,11 @@ export function renderGame() {
     gameState.underglowLight.position.set(wp.x, 0.25, wp.z);
   }
 
-  renderer.render(scene, camera);
+  try {
+    renderer.render(scene, camera);
+  } catch (err) {
+    console.error("Three.js render error:", err);
+  }
 }
 
 export function disposeGame() {

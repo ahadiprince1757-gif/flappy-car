@@ -257,8 +257,8 @@ function startAdventure() {
   const stageId = gameState.selectedStage || "city";
   const carId = gameState.selectedCar || "cyber";
 
-  // Rebuild stage for the selected environment
-  if (gameState.scene) {
+  // Rebuild stage ONLY if not already created or if stage has changed
+  if (gameState.scene && (!gameState.road || gameState.road.stageId !== stageId)) {
     createStage(stageId);
   }
 
@@ -297,6 +297,7 @@ function _launchAdventure() {
   setGameplayVisible(true);
   hideHUDMessage();
   updateHUD(true);
+  resizeRenderer();
 
   startEngineSound();
 }

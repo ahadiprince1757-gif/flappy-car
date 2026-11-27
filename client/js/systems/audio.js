@@ -511,106 +511,12 @@ export function initializeAudio() {
   audioInitialized = true;
   initializeAudioContext();
   setupCustomMusicPlayer();
-  // Auto-start built-in synthwave BGM if user hasn't loaded a custom track
-  if (!musicPlayer?.src && !muted) {
-    setTimeout(() => startSynthwaveBGM(), 200);
-  }
+  stopSynthwaveBGM();
 }
 
 export function startSynthwaveBGM() {
-  if (synthBGMActive) return;
-  const context = initializeAudioContext();
-  if (!context || muted || !masterGain) return;
-
-  synthBGMActive = true;
-
-  // Synthwave BGM: 4-bar looping pattern using bass synth + arp melody + kick pulse
-  // Tempo: 142 BPM
-  const BPS = SYNTH_BEAT_SEC; // seconds per beat
-  const BAR = BPS * 4; // 4 beats = 1 bar
-  const LOOP_BARS = 8; // 8-bar loop
-  const LOOP_DURATION = BAR * LOOP_BARS;
-
-  // Bass sequence (root notes per bar): D2 D2 A1 Bb1 (classic retrowave IV-I-V-VI)
-  const BASS_NOTES = [73.42, 73.42, 55, 58.27, 73.42, 73.42, 65.41, 61.74];
-  // Arp melody: D4 F#4 A4 C5 B4 A4 G4 F#4
-  const ARP_NOTES = [293.66, 369.99, 440, 523.25, 493.88, 440, 392, 369.99,
-                     329.63, 293.66, 261.63, 246.94, 293.66, 369.99, 440, 523.25];
-
-  const bgmGain = context.createGain();
-  bgmGain.gain.value = muted ? 0 : Math.min(0.09, musicVolume * 0.14);
-  bgmGain.connect(context.destination); // connect directly (not through SFX masterGain)
-  synthBGMNodes.push(bgmGain);
-
-  function scheduleLoop(startTime) {
-    if (!synthBGMActive) return;
-
-    // ── Bass synth ────────────────────────────────────────────────
-    for (let bar = 0; bar < LOOP_BARS; bar++) {
-      const freq = BASS_NOTES[bar % BASS_NOTES.length];
-      const t = startTime + bar * BAR;
-
-      const bassOsc = context.createOscillator();
-      const bassEnv = context.createGain();
-      bassOsc.type = "sawtooth";
-      bassOsc.frequency.setValueAtTime(freq, t);
-      bassEnv.gain.setValueAtTime(0.001, t);
-      bassEnv.gain.exponentialRampToValueAtTime(0.9, t + 0.02);
-      bassEnv.gain.exponentialRampToValueAtTime(0.4, t + BPS * 1.5);
-      bassEnv.gain.exponentialRampToValueAtTime(0.001, t + BAR - 0.04);
-      bassOsc.connect(bassEnv);
-      bassEnv.connect(bgmGain);
-      bassOsc.start(t);
-      bassOsc.stop(t + BAR);
-      bassOsc.onended = () => { bassOsc.disconnect(); bassEnv.disconnect(); };
-      synthBGMNodes.push(bassOsc, bassEnv);
-    }
-
-    // ── Arp melody ───────────────────────────────────────────────
-    for (let step = 0; step < ARP_NOTES.length * 2; step++) {
-      const freq = ARP_NOTES[step % ARP_NOTES.length];
-      const t = startTime + step * (BPS / 2);
-      if (t >= startTime + LOOP_DURATION) break;
-
-      const arpOsc = context.createOscillator();
-      const arpEnv = context.createGain();
-      arpOsc.type = "triangle";
-      arpOsc.frequency.setValueAtTime(freq, t);
-      arpEnv.gain.setValueAtTime(0.001, t);
-      arpEnv.gain.exponentialRampToValueAtTime(0.5, t + 0.015);
-      arpEnv.gain.exponentialRampToValueAtTime(0.001, t + BPS / 2 - 0.02);
-      arpOsc.connect(arpEnv);
-      arpEnv.connect(bgmGain);
-      arpOsc.start(t);
-      arpOsc.stop(t + BPS / 2);
-      arpOsc.onended = () => { arpOsc.disconnect(); arpEnv.disconnect(); };
-      synthBGMNodes.push(arpOsc, arpEnv);
-    }
-
-    // ── Kick drum pulse (every beat) ─────────────────────────────
-    for (let beat = 0; beat < LOOP_BARS * 4; beat++) {
-      const t = startTime + beat * BPS;
-      const kickOsc = context.createOscillator();
-      const kickEnv = context.createGain();
-      kickOsc.type = "sine";
-      kickOsc.frequency.setValueAtTime(120, t);
-      kickOsc.frequency.exponentialRampToValueAtTime(35, t + 0.1);
-      kickEnv.gain.setValueAtTime(0.001, t);
-      kickEnv.gain.exponentialRampToValueAtTime(0.6, t + 0.005);
-      kickEnv.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
-      kickOsc.connect(kickEnv);
-      kickEnv.connect(bgmGain);
-      kickOsc.start(t);
-      kickOsc.stop(t + 0.16);
-      kickOsc.onended = () => { kickOsc.disconnect(); kickEnv.disconnect(); };
-      synthBGMNodes.push(kickOsc, kickEnv);
-    }
-
-    // Schedule next loop
-    synthBGMTimeout = setTimeout(() => scheduleLoop(startTime + LOOP_DURATION), (LOOP_DURATION - 0.5) * 1000);
-  }
-
-  scheduleLoop(context.currentTime + 0.1);
+  // Continuous synthwave buzzing background audio permanently disabled
+  stopSynthwaveBGM();
 }
 
 export function stopSynthwaveBGM() {

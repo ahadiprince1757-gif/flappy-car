@@ -550,11 +550,13 @@ function updateDynamicStageProgression(road, deltaTime) {
   const stageProgress = (loopDist % 1000) / 1000;
   const blendT = stageProgress > 0.7 ? (stageProgress - 0.7) / 0.3 : 0;
 
-  const currentSky = new THREE.Color(stageConfig.skyColor);
-  const currentFog = new THREE.Color(stageConfig.fogColor);
+  const currentSky = new THREE.Color(stageConfig.skyColor || "#7dd3fc");
+  const currentFog = new THREE.Color(stageConfig.fogColor || "#bae6fd");
+  const nextSky = new THREE.Color(nextConfig.skyColor || stageConfig.skyColor || "#7dd3fc");
+  const nextFog = new THREE.Color(nextConfig.fogColor || stageConfig.fogColor || "#bae6fd");
 
-  const targetSky = currentSky.lerp(new THREE.Color(nextConfig.skyColor), blendT);
-  const targetFog = currentFog.lerp(new THREE.Color(nextConfig.fogColor), blendT);
+  const targetSky = currentSky.clone().lerp(nextSky, blendT);
+  const targetFog = currentFog.clone().lerp(nextFog, blendT);
 
   if (gameState.scene.background instanceof THREE.Color) {
     gameState.scene.background.lerp(targetSky, deltaTime * 2.0);
@@ -569,26 +571,29 @@ export function removeStage() {
   const road = gameState.road;
   if (!road) return;
 
-  gameState.scene?.remove(road.group);
+  if (gameState.scene && road.group) {
+    gameState.scene.remove(road.group);
+  }
 
+  // Dispose ONLY the road's own unique strip geometries, materials, and textures
+  // NEVER traverse and dispose shared FBX building and tree models from asset cache!
   if (road.geometries) {
-    for (const geo of road.geometries) geo?.dispose();
+    for (const geo of road.geometries) {
+      try { geo?.dispose(); } catch {}
+    }
   }
 
   if (road.materials) {
-    for (const mat of road.materials) mat?.dispose();
+    for (const mat of road.materials) {
+      try { mat?.dispose(); } catch {}
+    }
   }
 
   if (road.textures) {
-    for (const tex of road.textures) tex?.dispose();
+    for (const tex of road.textures) {
+      try { tex?.dispose(); } catch {}
+    }
   }
-
-  road.group.traverse((object) => {
-    if (!object.isMesh) return;
-    object.geometry?.dispose();
-    const mats = Array.isArray(object.material) ? object.material : [object.material];
-    for (const m of mats) m?.dispose();
-  });
 
   gameState.road = null;
 }
