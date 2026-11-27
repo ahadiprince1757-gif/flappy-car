@@ -16,6 +16,7 @@ export function createPlayer(carId = gameState.selectedCar) {
   const group = createCarModel(carId);
 
   // Preserve existing runtime state ONLY if replacing mid-race (e.g. proxy -> FBX upgrade)
+  const existing = gameState.player;
   const isMidRunUpgrade = Boolean(existing && gameState.status === "playing");
   const currentLane = isMidRunUpgrade ? existing.lane : 2;
   const currentLaneOffset = isMidRunUpgrade ? existing.currentLaneOffset : (gameState.lanePositions[currentLane] || 0);

@@ -1,4 +1,4 @@
-import * as THREE from "three";
+import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
 import { getAllCars, getCarConfig } from "./cars.js";
 import { getAllStages, getStageConfig } from "../stages/stages.js";
 import {

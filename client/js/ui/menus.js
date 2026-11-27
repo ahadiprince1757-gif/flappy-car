@@ -98,7 +98,6 @@ function transitionToScreen(targetScreenId, prepareFn) {
 }
 
 export function showHomeScreen() {
-  stopCarSelectViewer();
   transitionToScreen("homeScreen");
 }
 
@@ -109,7 +108,6 @@ export function showCarSelectScreen() {
 }
 
 export function showLeaderboardScreen() {
-  stopCarSelectViewer();
   transitionToScreen("leaderboardScreen", () => {
     renderLeaderboard();
   });
