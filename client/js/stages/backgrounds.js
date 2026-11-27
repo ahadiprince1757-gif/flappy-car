@@ -388,6 +388,20 @@ function buildFallbackBuilding(stage, rng) {
   return group;
 }
 
+function buildFallbackTree(stage, rng) {
+  const group = new THREE.Group();
+  const trunkMat = getMat("#78350f", { roughness: 0.9, metalness: 0.1 });
+  const leafColors = stage.buildingColors || ["#16a34a", "#22c55e", "#15803d"];
+  const leafColor = leafColors[Math.floor(rng() * leafColors.length)] || "#16a34a";
+  const leafMat = getMat(leafColor, { roughness: 0.75, metalness: 0.1 });
+
+  cyl(group, 0.22, 0.35, 3.2, 6, [0, 1.6, 0], trunkMat, false);
+  const foliage = new THREE.Mesh(new THREE.ConeGeometry(1.9, 4.6, 8), leafMat);
+  foliage.position.y = 4.8;
+  group.add(foliage);
+  return group;
+}
+
 /* ── Street Lamp ─────────────────────────────────────────────── */
 function createStreetLamp() {
   const group = new THREE.Group();
@@ -604,8 +618,7 @@ export function createBackground(stageId = "city") {
     }
 
     if (!bldgObj) {
-      // Clean placeholder until FBX completes caching — no procedural box fallbacks!
-      bldgObj = new THREE.Group();
+      bldgObj = buildFallbackBuilding(stage, rng);
     }
 
     const pt = getRoadPoint(zPos, lateralDist);
@@ -639,7 +652,7 @@ export function createBackground(stageId = "city") {
     }
 
     if (!treeObj) {
-      treeObj = new THREE.Group();
+      treeObj = buildFallbackTree(stage, rng);
     }
 
     const treePt = getRoadPoint(zPos, treeDist);

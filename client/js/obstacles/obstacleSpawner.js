@@ -81,45 +81,13 @@ function getRequiredSpawnDistance() {
 
 let currentSpawnDistanceTarget = 24;
 
-export function spawnObstacleNow(
-  type = getProgressiveObstacleType(),
-  lane = selectProceduralLane()
-) {
-  const laneCount = gameState.lanePositions?.length || 3;
-  const safeLane = Math.max(0, Math.min(laneCount - 1, Math.floor(lane)));
-  const spawnZ = SPAWNER_CONFIG.spawnDistance;
-
-  const obstacle = createObstacle(type, safeLane, spawnZ);
-
-  if (obstacle) {
-    // Slalom challenge on multi-lane highways
-    if (laneCount >= 5 && Math.random() < 0.35) {
-      const secondLane = (safeLane + (Math.random() < 0.5 ? 2 : 3)) % laneCount;
-      const secondType = getProgressiveObstacleType();
-      createObstacle(secondType, secondLane, spawnZ);
-    }
-  }
-
-  return obstacle;
+export function spawnObstacleNow() {
+  return null;
 }
 
-/**
- * Distance-based Spawner Update
- * Independent of browser timer throttling and variable FPS
- */
 export function updateObstacleSpawner(dt) {
-  if (gameState.status !== "playing") return;
-  if (!Number.isFinite(dt) || dt <= 0) return;
-
-  const currentSpeed = Math.max(gameState.speed || 1, 1);
-  const distanceTraveled = currentSpeed * dt;
-  distanceSinceLastSpawn += distanceTraveled;
-
-  if (distanceSinceLastSpawn >= currentSpawnDistanceTarget) {
-    spawnObstacleNow();
-    distanceSinceLastSpawn = 0;
-    currentSpawnDistanceTarget = getRequiredSpawnDistance();
-  }
+  // Obstacles removed completely per player request
+  return;
 }
 
 export function resetObstacleSpawner() {
