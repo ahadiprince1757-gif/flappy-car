@@ -2039,11 +2039,7 @@ button {
 }
 
 .hud-top {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  pointer-events: none;
-  padding-right: 56px; /* reserve space so SPEED never collides with pause button */
+  display: none !important;
 }
 
 .hud-stat {
@@ -3193,16 +3189,8 @@ button {
 }
 
 .hud-top {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: clamp(8px, 2.5vw, 20px);
-  background: rgba(2, 12, 24, 0.75);
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-  border: 1px solid rgba(0, 239, 255, 0.22);
-  border-radius: 999px;
-  padding: 8px 18px;
+  display: none !important;
+}
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 16px rgba(0, 239, 255, 0.12);
 }
 

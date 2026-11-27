@@ -13,16 +13,22 @@ export function startGameLoop({ update, render }) {
   function frame(timestamp) {
     if (!running) return;
 
-    const deltaTime = previousTime === 0
-      ? 0.016
-      : Math.min((timestamp - previousTime) / 1000, MAX_DELTA_TIME);
+    try {
+      const deltaTime = previousTime === 0
+        ? 0.016
+        : Math.min((timestamp - previousTime) / 1000, MAX_DELTA_TIME);
 
-    previousTime = timestamp;
+      previousTime = timestamp;
 
-    update(deltaTime, timestamp);
-    render();
-
-    animationFrameId = requestAnimationFrame(frame);
+      update(deltaTime, timestamp);
+      render();
+    } catch (err) {
+      console.error("Game loop frame error:", err);
+    } finally {
+      if (running) {
+        animationFrameId = requestAnimationFrame(frame);
+      }
+    }
   }
 
   animationFrameId = requestAnimationFrame(frame);

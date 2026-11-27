@@ -5,7 +5,7 @@ import {
   getRoadHeight,
   getRoadSlope
 } from "../stages/stageRenderer.js";
-import { playJumpSound, playDriftSound, playTurboBlowOffSound, playNitroBoostSound } from "../systems/audio.js";
+import { playJumpSound, playDriftSound, playTurboBlowOffSound, playNitroBoostSound, playCarRevSound } from "../systems/audio.js";
 import { createTireSmoke, triggerCameraShake } from "../systems/effects.js";
 
 const CAMERA_BASE_OFFSET = new THREE.Vector3(0, 4.6, 8.8);
@@ -340,6 +340,7 @@ function updateNitro(deltaTime) {
     if (!_nitroActivePrev) {
       _nitroActivePrev = true;
       playNitroBoostSound();
+      playCarRevSound();
       triggerCameraShake(0.18, 0.25);
     }
     // Drain nitro and apply speed boost

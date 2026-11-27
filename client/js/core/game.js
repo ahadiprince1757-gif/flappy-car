@@ -136,7 +136,7 @@ export function resizeRenderer() {
 
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
-  renderer.setSize(w, h, false);
+  renderer.setSize(w, h, true);
 }
 
 export function renderGame() {

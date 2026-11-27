@@ -378,8 +378,22 @@ export function setMuted(value) {
     );
   }
 
+  if (realEngineAudio) {
+    realEngineAudio.volume = muted ? 0 : Math.min(1, sfxVolume * 0.85);
+  }
+  if (realRevAudio) {
+    realRevAudio.volume = muted ? 0 : Math.min(1, sfxVolume * 0.95);
+  }
+
   if (musicPlayer) {
     musicPlayer.volume = muted ? 0 : musicVolume;
+  }
+
+  if (realEngineAudio) {
+    realEngineAudio.volume = muted ? 0 : Math.min(1, sfxVolume * 0.85);
+  }
+  if (realRevAudio) {
+    realRevAudio.volume = muted ? 0 : Math.min(1, sfxVolume * 0.95);
   }
 
   updateMusicUI();
@@ -411,6 +425,13 @@ export function setSfxVolume(value) {
     );
   }
 
+  if (realEngineAudio) {
+    realEngineAudio.volume = muted ? 0 : Math.min(1, sfxVolume * 0.85);
+  }
+  if (realRevAudio) {
+    realRevAudio.volume = muted ? 0 : Math.min(1, sfxVolume * 0.95);
+  }
+
   updateMusicUI();
   return sfxVolume;
 }
@@ -430,6 +451,13 @@ export function setMusicVolume(value) {
 
   if (musicPlayer) {
     musicPlayer.volume = muted ? 0 : musicVolume;
+  }
+
+  if (realEngineAudio) {
+    realEngineAudio.volume = muted ? 0 : Math.min(1, sfxVolume * 0.85);
+  }
+  if (realRevAudio) {
+    realRevAudio.volume = muted ? 0 : Math.min(1, sfxVolume * 0.95);
   }
 
   updateMusicUI();
@@ -813,28 +841,65 @@ export function playRaceFailedSound() {
   });
 }
 
+let realEngineAudio = null;
+let realRevAudio = null;
+
+function getRealEngineAudio() {
+  if (!realEngineAudio && typeof Audio !== "undefined") {
+    realEngineAudio = new Audio("./assets/audio/car_engine.mp3");
+    realEngineAudio.loop = true;
+    realEngineAudio.volume = muted ? 0 : Math.min(1, sfxVolume * 0.85);
+  }
+  return realEngineAudio;
+}
+
+function getRealRevAudio() {
+  if (!realRevAudio && typeof Audio !== "undefined") {
+    realRevAudio = new Audio("./assets/audio/car_rev.mp3");
+    realRevAudio.volume = muted ? 0 : Math.min(1, sfxVolume * 0.95);
+  }
+  return realRevAudio;
+}
+
 export function startEngineSound() {
-  // Continuous engine hum/motion sound disabled per user preference
-  return;
+  if (muted) return;
+  const audio = getRealEngineAudio();
+  if (audio) {
+    audio.volume = muted ? 0 : Math.min(1, sfxVolume * 0.85);
+    audio.play().catch(() => {});
+  }
 }
 
 export function updateEngineSound(speed, baseSpeed = 18) {
-  // Continuous engine hum/motion sound disabled per user preference
-  return;
+  if (!realEngineAudio || muted) return;
+  realEngineAudio.volume = muted ? 0 : Math.min(1, sfxVolume * 0.85);
+  const ratio = Math.max(0.75, Math.min(1.85, (speed || baseSpeed) / (baseSpeed || 18)));
+  realEngineAudio.playbackRate = ratio;
+}
+
+export function playCarRevSound() {
+  if (muted) return;
+  const rev = getRealRevAudio();
+  if (rev) {
+    try {
+      rev.currentTime = 0;
+      rev.volume = muted ? 0 : Math.min(1, sfxVolume * 0.95);
+      rev.play().catch(() => {});
+    } catch {}
+  }
 }
 
 export function stopEngineSound() {
-  if (!engineOscillator) return;
-
-  try {
-    engineOscillator.stop();
-  } catch {
-    // Already stopped
+  if (realEngineAudio) {
+    try {
+      realEngineAudio.pause();
+      realEngineAudio.currentTime = 0;
+    } catch {}
   }
-
-  engineOscillator.disconnect();
-  engineGain?.disconnect();
-
-  engineOscillator = null;
-  engineGain = null;
+  if (realRevAudio) {
+    try {
+      realRevAudio.pause();
+      realRevAudio.currentTime = 0;
+    } catch {}
+  }
 }
