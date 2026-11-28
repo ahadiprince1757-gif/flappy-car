@@ -1,11 +1,9 @@
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
 import { FBXLoader } from "../core/FBXLoader.js";
-import { OBJLoader } from "../core/OBJLoader.js";
-import { MTLLoader } from "../core/MTLLoader.js";
 
 /* ================================================================
-   CAR MODEL LOADER (FBX Primary with OBJ Fallback)
-   Loads real 3D downloaded car models from FBX:
+   CAR MODEL LOADER — PURE 3D FBX ONLY
+   Loads real 3D downloaded car models strictly from FBX:
    - Cop.fbx (Police cruiser with red & blue siren bar)
    - Taxi.fbx (NYC-style yellow cab with roof taxi sign)
    - SportsCar.fbx (Low-slung aerodynamic sports coupe)
@@ -43,7 +41,7 @@ let _carsReady = false;
 const _readyCallbacks = [];
 
 /**
- * Preload all car models asynchronously via FBX
+ * Preload all car models asynchronously via FBX (Pure FBX only)
  */
 export function preloadCarModels(onComplete) {
   if (onComplete) _readyCallbacks.push(onComplete);
@@ -55,17 +53,14 @@ export function preloadCarModels(onComplete) {
   _carsLoading = true;
 
   const fbxLoader = new FBXLoader();
-  const mtlLoader = new MTLLoader();
-  const objLoader = new OBJLoader();
+  fbxLoader.setPath(CAR_MODEL_BASE);
 
   const keys = Object.keys(CAR_MODELS);
   let pending = keys.length;
 
   for (const key of keys) {
     const info = CAR_MODELS[key];
-    fbxLoader.setPath(CAR_MODEL_BASE);
 
-    // 1. Try loading FBX first
     fbxLoader.load(
       `${info.file}.fbx`,
       (group) => {
@@ -76,44 +71,8 @@ export function preloadCarModels(onComplete) {
       },
       undefined,
       (err) => {
-        console.warn(`FBX load failed for ${info.file}.fbx, falling back to OBJ...`, err);
-        // 2. Fallback to OBJ + MTL
-        mtlLoader.setPath(CAR_MODEL_BASE);
-        mtlLoader.load(
-          `${info.file}.mtl`,
-          (materials) => {
-            materials.preload();
-            objLoader.setMaterials(materials);
-            objLoader.setPath(CAR_MODEL_BASE);
-            objLoader.load(
-              `${info.file}.obj`,
-              (group) => {
-                enhanceCarMaterials(group);
-                const configured = configureCarGroup(group, info);
-                _carCache.set(key, configured);
-                checkDone();
-              },
-              undefined,
-              () => checkDone()
-            );
-          },
-          undefined,
-          () => {
-            objLoader.setMaterials(null);
-            objLoader.setPath(CAR_MODEL_BASE);
-            objLoader.load(
-              `${info.file}.obj`,
-              (group) => {
-                enhanceCarMaterials(group);
-                const configured = configureCarGroup(group, info);
-                _carCache.set(key, configured);
-                checkDone();
-              },
-              undefined,
-              () => checkDone()
-            );
-          }
-        );
+        console.error(`[CarLoader] Failed to load FBX model ${info.file}.fbx:`, err);
+        checkDone();
       }
     );
   }

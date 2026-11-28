@@ -14,6 +14,10 @@ export function createPlayer(carId = gameState.selectedCar) {
 
   const config = getCarConfig(carId);
   const group = createCarModel(carId);
+  if (!group) {
+    // Pure FBX not yet in cache — caller will await preloadCarModels()
+    return false;
+  }
 
   // Preserve existing runtime state ONLY if replacing mid-race (e.g. proxy -> FBX upgrade)
   const existing = gameState.player;

@@ -145,6 +145,9 @@ export function renderGame() {
   const { scene, camera, renderer, player } = gameState;
   if (!scene || !camera || !renderer) return;
 
+  // Never render the 3D world while fullscreen menus are open (prevents flash & saves mobile GPU)
+  if (gameState.status === "menu" || gameState.status === "loading") return;
+
   /* Keep underglow point-light attached to player car group */
   if (gameState.underglowLight && player?.group) {
     player.group.getWorldPosition(_worldPosition);

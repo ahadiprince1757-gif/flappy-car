@@ -13,7 +13,7 @@ import {
   updateStage
 } from "./stages/stageRenderer.js";
 
-import { preloadBuildingModels, preloadTreeModels } from "./stages/backgrounds.js";
+import { preloadBuildingModels, preloadTreeModels, upgradeBackgroundToFBX } from "./stages/backgrounds.js";
 import { preloadCarModels } from "./cars/carModelLoader.js";
 
 import {
@@ -182,19 +182,20 @@ function start() {
       render: renderGame
     });
 
-    // 8. Preload FBX car models & background buildings & audio buffers in background
-    preloadBuildingModels();
-    preloadTreeModels();
+    // 8. Preload pure 3D FBX models & audio buffers in background (upgrading scene immediately when ready!)
+    preloadBuildingModels(() => {
+      upgradeBackgroundToFBX(gameState.road?.background);
+    });
+    preloadTreeModels(() => {
+      upgradeBackgroundToFBX(gameState.road?.background);
+    });
     preloadGameAudioBuffers();
 
-    // Spawn player immediately (will use stylish proxy if FBX is still parsing)
-    createPlayer(gameState.selectedCar);
-
     preloadCarModels(() => {
-      if (gameState.scene && gameState.player?.group?.userData?.isPlaceholder) {
+      if (gameState.scene && !gameState.player?.group) {
         createPlayer(gameState.selectedCar);
       }
-      console.info("FBX car models ready. Player active.");
+      console.info("Pure 3D FBX car models ready.");
     });
 
     console.info("Flappy Car 3D successfully initialized.");

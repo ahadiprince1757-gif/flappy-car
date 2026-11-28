@@ -20,10 +20,9 @@ const corsOrigin = process.env.CORS_ORIGIN || '*';
 app.use(cors({ origin: corsOrigin === '*' ? '*' : corsOrigin.split(',').map(s => s.trim()) }));
 app.use(express.json());
 
-// Set explicit MIME types for 3D model files before static handler
+// Set explicit MIME type for 3D FBX model files before static handler
 express.static.mime.define({
-  'application/octet-stream': ['fbx'],
-  'text/plain': ['obj', 'mtl']
+  'application/octet-stream': ['fbx']
 });
 
 // REST API routes

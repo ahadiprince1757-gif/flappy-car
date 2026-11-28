@@ -2,7 +2,7 @@
  * Flappy Car 3D — Service Worker (PWA Offline & Asset Cache)
  */
 
-const CACHE_NAME = "flappy-car-v3.9";
+const CACHE_NAME = "flappy-car-v4.0";
 
 const CORE_ASSETS = [
   "./",

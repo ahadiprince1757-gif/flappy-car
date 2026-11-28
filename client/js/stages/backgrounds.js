@@ -327,7 +327,7 @@ function spawnFBXBuilding(file, textureName) {
   return clone;
 }
 
-/* ── Fallback 3D Building (used while FBX loads) ──────────────── */
+/* ── Pure FBX Mode: No procedural box buildings or cone trees ─── */
 const _matCache = new Map();
 function getMat(color, opts = {}) {
   const key = `${color}_${opts.roughness ?? 0.7}_${opts.metalness ?? 0.2}_${opts.emissive ?? ""}`;
@@ -364,43 +364,6 @@ function cyl(parent, rTop, rBot, h, segs, pos, material, cast = true) {
 function makeRNG(seed) {
   let v = (seed >>> 0) || 1;
   return () => { v = (v * 1664525 + 1013904223) >>> 0; return v / 4294967296; };
-}
-
-function buildFallbackBuilding(stage, rng) {
-  const group = new THREE.Group();
-  const w = 7.5 + rng() * 2.5;
-  const h = 12 + rng() * 16;
-  const d = 7.5 + rng() * 2.0;
-
-  const wallColors = stage.buildingColors || ["#1e293b", "#334155", "#0f172a"];
-  const wallCol = wallColors[Math.floor(rng() * wallColors.length)];
-  box(group, [w, h, d], [0, h / 2, 0], getMat(wallCol, { roughness: 0.6, metalness: 0.3 }));
-
-  const frontZ = d / 2 + 0.08;
-  const winMat = getMat("#38bdf8", { emissive: "#0284c7", emissiveIntensity: 0.6 });
-  const floors = Math.floor(h / 3.2);
-  const cols = Math.floor(w / 2.2);
-  for (let f = 1; f < floors; f++) {
-    for (let c = 0; c < cols; c++) {
-      const wx = -w / 2 + ((c + 0.5) / cols) * w;
-      box(group, [0.9, 1.5, 0.12], [wx, f * 3.2, frontZ], winMat, false);
-    }
-  }
-  return group;
-}
-
-function buildFallbackTree(stage, rng) {
-  const group = new THREE.Group();
-  const trunkMat = getMat("#78350f", { roughness: 0.9, metalness: 0.1 });
-  const leafColors = stage.buildingColors || ["#16a34a", "#22c55e", "#15803d"];
-  const leafColor = leafColors[Math.floor(rng() * leafColors.length)] || "#16a34a";
-  const leafMat = getMat(leafColor, { roughness: 0.75, metalness: 0.1 });
-
-  cyl(group, 0.22, 0.35, 3.2, 6, [0, 1.6, 0], trunkMat, false);
-  const foliage = new THREE.Mesh(new THREE.ConeGeometry(1.9, 4.6, 8), leafMat);
-  foliage.position.y = 4.8;
-  group.add(foliage);
-  return group;
 }
 
 /* ── Street Lamp ─────────────────────────────────────────────── */
@@ -619,7 +582,8 @@ export function createBackground(stageId = "city") {
     }
 
     if (!bldgObj) {
-      bldgObj = buildFallbackBuilding(stage, rng);
+      // Lightweight invisible anchor until FBX preload completes (zero procedural box buildings!)
+      bldgObj = new THREE.Group();
     }
 
     const pt = getRoadPoint(zPos, lateralDist);
@@ -654,7 +618,8 @@ export function createBackground(stageId = "city") {
     }
 
     if (!treeObj) {
-      treeObj = buildFallbackTree(stage, rng);
+      // Lightweight invisible anchor until FBX tree preload completes (zero cone trees!)
+      treeObj = new THREE.Group();
     }
 
     const treePt = getRoadPoint(zPos, treeDist);
@@ -743,11 +708,47 @@ export function updateBackground(background, deltaTime, speed) {
       }
     }
 
-    // Hot-swap fallback → real FBX 3D tree when ready
+    // Hot-swap anchor → real FBX 3D tree when ready
     if (entry.isTree && !entry.isFBX && _treesReady) {
       const realTree = spawnFBXTree(entry.treeFile);
       if (realTree) {
         realTree.position.copy(obj.position);
+        realTree.visible = obj.visible;
+        background.remove(obj);
+        background.add(realTree);
+        entry.object = realTree;
+        entry.isFBX = true;
+      }
+    }
+  }
+}
+
+/**
+ * Immediately populates all background anchors with real 3D FBX buildings & trees
+ * the exact moment FBX preloading finishes (even while player is still in menu!).
+ */
+export function upgradeBackgroundToFBX(background) {
+  if (!background) return;
+  const items = background.userData.sceneryObjects ?? [];
+
+  for (const entry of items) {
+    const obj = entry.object;
+    if (entry.isBuilding && !entry.isFBX && _buildingsReady) {
+      const realFBX = spawnFBXBuilding(entry.fbxFile, entry.texName);
+      if (realFBX) {
+        realFBX.position.copy(obj.position);
+        realFBX.rotation.copy(obj.rotation);
+        realFBX.visible = !isCrossStreetZone(entry.roadZ);
+        background.remove(obj);
+        background.add(realFBX);
+        entry.object = realFBX;
+        entry.isFBX = true;
+      }
+    } else if (entry.isTree && !entry.isFBX && _treesReady) {
+      const realTree = spawnFBXTree(entry.treeFile);
+      if (realTree) {
+        realTree.position.copy(obj.position);
+        realTree.visible = !isCrossStreetZone(entry.roadZ);
         background.remove(obj);
         background.add(realTree);
         entry.object = realTree;

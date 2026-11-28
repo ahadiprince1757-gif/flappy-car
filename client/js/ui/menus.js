@@ -54,8 +54,6 @@ function bindClick(id, callback) {
   element.dataset.menuBound = "true";
 }
 
-let isTransitioning = false;
-
 function transitionToScreen(targetScreenId, prepareFn) {
   const target = byId(targetScreenId);
   if (!target) return;
@@ -71,29 +69,16 @@ function transitionToScreen(targetScreenId, prepareFn) {
   hide(byId("pauseMenu"));
   hide(byId("settingsModal"));
 
-  const current = screens.find(el => !el.hidden && el.style.display !== "none" && el.id !== targetScreenId);
+  // Prepare & display target BEFORE hiding current screen so the 3D canvas NEVER flashes through!
+  if (prepareFn) prepareFn();
+  target.classList.remove("screen-fade-out");
+  show(target);
 
-  if (current && !isTransitioning) {
-    isTransitioning = true;
-    current.classList.add("screen-fade-out");
-
-    setTimeout(() => {
-      screens.forEach(s => {
-        if (s !== target) {
-          hide(s);
-          s.classList.remove("screen-fade-out");
-        }
-      });
-      show(target);
-      if (prepareFn) prepareFn();
-      isTransitioning = false;
-    }, 150);
-  } else {
-    screens.forEach(s => {
-      if (s !== target) hide(s);
-    });
-    show(target);
-    if (prepareFn) prepareFn();
+  for (const s of screens) {
+    if (s !== target) {
+      s.classList.remove("screen-fade-out");
+      hide(s);
+    }
   }
 }
 
