@@ -2,7 +2,7 @@
  * Flappy Car 3D — Service Worker (PWA Offline & Asset Cache)
  */
 
-const CACHE_NAME = "flappy-car-v4.0";
+const CACHE_NAME = "flappy-car-v4.1";
 
 const CORE_ASSETS = [
   "./",
@@ -12,7 +12,7 @@ const CORE_ASSETS = [
   "./assets/logo.png",
   "./assets/logo.jpg",
   "./assets/icon.svg",
-  "./assets/tixar.png",
+  "./assets/tixar.webp",
   "./assets/audio/car_engine.mp3",
   "./assets/audio/car_idle.mp3",
   "./assets/audio/car_rev.mp3",
@@ -20,6 +20,7 @@ const CORE_ASSETS = [
   "./js/core/game.js",
   "./js/core/gameState.js",
   "./js/core/gameLoop.js",
+  "./js/core/qualityManager.js",
   "./js/core/storage.js",
   "./js/core/FBXLoader.js",
   "./js/core/fflate.module.js",
@@ -33,6 +34,7 @@ const CORE_ASSETS = [
   "./js/world/roadQuery.js",
   "./js/world/roadGraph.js",
   "./js/world/tunnelCuller.js",
+  "./js/world/instancedScenery.js",
   "./js/world/segments/straightSegment.js",
   "./js/world/segments/curveSegment.js",
   "./js/world/segments/junctionSegment.js",

@@ -34,10 +34,47 @@ export function changeLane(direction) {
   const player = gameState.player;
   if (!player || gameState.status !== "playing") return;
 
+  const maxLane = gameState.lanePositions.length - 1;
+  const atOuterEdge = (direction < 0 && player.lane === 0) || (direction > 0 && player.lane === maxLane);
+
+  // Drivable 4-Way Crossroad Turn: steering past the outer turn lane inside a crossroad executes a 90° city turn!
+  if (atOuterEdge) {
+    const baseZ = player.baseZ ?? 4;
+    const activeSeg = findSegmentAtZ(baseZ);
+    if (activeSeg && activeSeg.isCrossroadTurn && !activeSeg.turnTaken) {
+      const zLocal = baseZ - activeSeg.zStart;
+      if (zLocal <= -2 && zLocal >= -34) {
+        activeSeg.turnTaken = true;
+        player.turnAnimTimer = 0.58;
+        player.turnAnimDir = direction; // -1 = left onto West Ave, +1 = right onto East Blvd
+
+        // Smoothly sweep car into the center lane of the new connecting city avenue
+        const centerLane = Math.floor(gameState.lanePositions.length / 2);
+        player.lane = centerLane;
+        player.targetLaneOffset = gameState.lanePositions[centerLane];
+        gameState.currentLane = centerLane;
+
+        // Reward stylish crossroad cornering with drift audio + nitro boost + district routing!
+        playDriftSound();
+        triggerCameraShake(0.16, 0.28);
+        gameState.nitro = Math.min(1, (gameState.nitro ?? 0) + 0.25);
+
+        if (direction < 0) {
+          selectCityRoute("uptown");
+          showHUDMessage("↰ TURNED LEFT · WEST AVE");
+        } else {
+          selectCityRoute("skyway");
+          showHUDMessage("↱ TURNED RIGHT · EAST BLVD");
+        }
+        return;
+      }
+    }
+  }
+
   const nextLane = THREE.MathUtils.clamp(
     player.lane + direction,
     0,
-    gameState.lanePositions.length - 1
+    maxLane
   );
 
   if (nextLane === player.lane) return;
@@ -148,10 +185,26 @@ function updateLaneMovement(player, deltaTime) {
     }
   }
 
-  // Lateral drift slip angle & centrifugal body roll
+  // Lateral drift slip angle, crossroad 90° drift-turn sweep & centrifugal body roll
+  let crossroadTurnYaw = 0;
+  let crossroadTurnRoll = 0;
+  if (player.turnAnimTimer && player.turnAnimTimer > 0) {
+    player.turnAnimTimer = Math.max(0, player.turnAnimTimer - deltaTime);
+    const turnPhase = Math.sin((player.turnAnimTimer / 0.58) * Math.PI);
+    crossroadTurnYaw = -(player.turnAnimDir || 1) * 0.62 * turnPhase;
+    crossroadTurnRoll = (player.turnAnimDir || 1) * 0.16 * turnPhase;
+
+    if (Math.random() < 0.7) {
+      _rearPosL.set(pt.x - 0.55, pt.y + 0.15, pt.z + 1.2);
+      _rearPosR.set(pt.x + 0.55, pt.y + 0.15, pt.z + 1.2);
+      createTireSmoke(_rearPosL, 1.4);
+      createTireSmoke(_rearPosR, 1.4);
+    }
+  }
+
   const driftSlip = shouldDrift ? Math.sign(difference) * -0.22 : 0;
-  const targetYaw = pt.heading + THREE.MathUtils.clamp(difference * 0.14, -0.18, 0.18) + driftSlip;
-  const bodyRoll = THREE.MathUtils.clamp(difference * -0.16, -0.25, 0.25);
+  const targetYaw = pt.heading + THREE.MathUtils.clamp(difference * 0.14, -0.18, 0.18) + driftSlip + crossroadTurnYaw;
+  const bodyRoll = THREE.MathUtils.clamp(difference * -0.16, -0.25, 0.25) + crossroadTurnRoll;
 
   player.group.rotation.y = THREE.MathUtils.damp(player.group.rotation.y, targetYaw, shouldDrift ? 9 : 14, deltaTime);
   player.group.rotation.z = THREE.MathUtils.damp(player.group.rotation.z, bodyRoll, 10, deltaTime);

@@ -64,6 +64,7 @@ import {
 
 import { initializeUI, updateUI } from "./ui/ui.js";
 import { PerformanceMonitor } from "./core/perfMonitor.js";
+import { QualityManager } from "./core/qualityManager.js";
 
 function loadSavedSelections() {
   const data = loadData();
@@ -129,6 +130,7 @@ function updateGame(deltaTime) {
   updateEffects(deltaTime);
   updateUI();
   PerformanceMonitor.update();
+  QualityManager.update(deltaTime);
 }
 
 function start() {
@@ -144,8 +146,9 @@ function start() {
   try {
     loadSavedSelections();
 
-    // 1. Initialize 3D Engine & Viewport
+    // 1. Initialize 3D Engine & Viewport + Adaptive Quality Tier
     initializeGame(canvas);
+    QualityManager.applyTier(QualityManager.activeTier);
 
     // 2. Build 3D Stage Environment & Backgrounds
     createStage(gameState.selectedStage);

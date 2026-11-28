@@ -79,17 +79,57 @@ function createGantrySignTexture() {
   return tex;
 }
 
+function createTurnArrowsTexture() {
+  const canvas = document.createElement("canvas");
+  canvas.width = 512;
+  canvas.height = 128;
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, 512, 128);
+
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.font = "bold 76px system-ui, sans-serif";
+
+  // Far-left lane (lane 0): glowing cyan Left Turn arrow
+  ctx.fillStyle = "rgba(56, 189, 248, 0.9)";
+  ctx.fillText("↰", 52, 64);
+
+  // Center lanes (1-3): crisp white Straight arrows
+  ctx.fillStyle = "rgba(248, 250, 252, 0.72)";
+  ctx.fillText("↑", 154, 64);
+  ctx.fillText("↑", 256, 64);
+  ctx.fillText("↑", 358, 64);
+
+  // Far-right lane (lane 4): glowing cyan Right Turn arrow
+  ctx.fillStyle = "rgba(56, 189, 248, 0.9)";
+  ctx.fillText("↱", 460, 64);
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
 function getSharedJunctionExtras() {
   if (_sharedJunctionDecals) return _sharedJunctionDecals;
 
   const cwTex = createCrosswalkTexture();
   const signTex = createGantrySignTexture();
+  const arrowTex = createTurnArrowsTexture();
 
   _sharedJunctionDecals = {
     crosswalkMat: new THREE.MeshStandardMaterial({
       map: cwTex,
       transparent: true,
       roughness: 0.5,
+      depthWrite: false
+    }),
+    turnArrowMat: new THREE.MeshStandardMaterial({
+      map: arrowTex,
+      emissiveMap: arrowTex,
+      emissive: new THREE.Color("#38bdf8"),
+      emissiveIntensity: 0.6,
+      transparent: true,
+      roughness: 0.4,
       depthWrite: false
     }),
     poleMat: new THREE.MeshStandardMaterial({
@@ -264,6 +304,12 @@ export function createJunctionSegment(materials) {
   cwRight.position.set(halfRoad + 1.6, 0.055, -20);
   group.add(cwNear, cwFar, cwLeft, cwRight);
 
+  // E2. Glowing Painted Turn-Lane Guide Arrows on approach (signals drivable Left/Right crossroad turns!)
+  const arrowDecal = new THREE.Mesh(new THREE.PlaneGeometry(ROAD_WIDTH - 0.8, 4.6), extras.turnArrowMat);
+  arrowDecal.rotation.x = -Math.PI / 2;
+  arrowDecal.position.set(0, 0.056, -5.2);
+  group.add(arrowDecal);
+
   // F. Sleek Modern Corner Traffic Signals
   group.add(buildTrafficLight(extras, -(halfRoad + 1.4), -30.2, 1));
   group.add(buildTrafficLight(extras, +(halfRoad + 1.4), -30.2, -1));
@@ -280,6 +326,8 @@ export function createJunctionSegment(materials) {
     sampleLocalProfile: sampleFlatProfile
   });
 
+  seg.isCrossroadTurn = true;
+  seg.turnTaken = false;
   seg.hasCrossStreet = true;
   seg.crossStreetLocalStart = -6;
   seg.crossStreetLocalEnd = -34;

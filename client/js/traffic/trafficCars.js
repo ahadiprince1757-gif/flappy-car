@@ -8,6 +8,7 @@ import {
 } from "../stages/stageRenderer.js";
 import { buildTrafficCar } from "./trafficRenderer.js";
 import { ObjectManager } from "../core/objectPool.js";
+import { QualityManager } from "../core/qualityManager.js";
 
 /*
  * TRAFFIC CAR MANAGER
@@ -56,6 +57,14 @@ export function initTraffic(scene) {
 // ── Spawn a car into the pool ─────────────────────────────────────
 function spawnCar(playerZ) {
   if (!_scene) return;
+
+  // Enforce QualityManager adaptive traffic cap on mobile/low presets
+  const trafficCap = QualityManager.getPreset().trafficCap || POOL_SIZE;
+  let activeCount = 0;
+  for (let i = 0; i < _pool.length; i++) {
+    if (_pool[i].active) activeCount++;
+  }
+  if (activeCount >= trafficCap) return;
 
   let entry = _pool.find(e => !e.active);
 

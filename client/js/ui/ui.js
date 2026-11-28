@@ -1,4 +1,5 @@
 import { gameState } from "../core/gameState.js";
+import { resizeRenderer } from "../core/game.js";
 import {
   initializeHUD,
   updateHUD,

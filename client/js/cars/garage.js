@@ -47,7 +47,8 @@ export function renderCarSelectionScreen(filterCat = activeCategoryFilter) {
   container.innerHTML = "";
 
   for (const car of filteredCars) {
-    const isOwned = wallet.unlockedCars.includes(car.id);
+    const ownedList = Array.isArray(wallet.ownedCars) ? wallet.ownedCars : ["cyber"];
+    const isOwned = ownedList.includes(car.id);
     const isSelected = wallet.selectedCar === car.id;
 
     const card = document.createElement("div");
@@ -80,7 +81,7 @@ export function renderCarSelectionScreen(filterCat = activeCategoryFilter) {
 
     const img = document.createElement("img");
     img.className = "car-card-thumb";
-    img.src = car.image || `./assets/images/cars/${car.id}.jpg`;
+    img.src = car.image || `./assets/images/cars/${car.id}.webp`;
     img.alt = car.name;
     img.loading = "lazy";
     imgBox.append(img);

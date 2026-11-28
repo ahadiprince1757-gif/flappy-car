@@ -386,11 +386,11 @@ function createStreetLamp() {
 
 /* ── Old Procedural Cone Trees Permanently Removed — Replaced with Real 3D FBX Models ── */
 
-/* ── Panoramic Horizon Backdrop ──────────────────────────────── */
+/* ── Panoramic Horizon Backdrop (1024x256 — 75% less VRAM) ───── */
 function createHorizonTexture(stage) {
   const canvas = document.createElement("canvas");
-  canvas.width = 2048;
-  canvas.height = 512;
+  canvas.width = 1024;
+  canvas.height = 256;
   const ctx = canvas.getContext("2d");
 
   const skyColor = stage.skyColor || "#38bdf8";
@@ -408,9 +408,9 @@ function createHorizonTexture(stage) {
                   stage.scenery === "savannah" ? "rgba(146, 64, 14, 0.40)" :
                   "rgba(30, 58, 138, 0.22)";
   ctx.beginPath();
-  ctx.moveTo(0, 360);
-  for (let x = 0; x <= canvas.width; x += 32) {
-    const y = 260 + Math.sin(x * 0.006) * 45 + Math.cos(x * 0.014) * 28;
+  ctx.moveTo(0, 180);
+  for (let x = 0; x <= canvas.width; x += 16) {
+    const y = 130 + Math.sin(x * 0.012) * 22 + Math.cos(x * 0.028) * 14;
     ctx.lineTo(x, y);
   }
   ctx.lineTo(canvas.width, canvas.height);
@@ -418,12 +418,12 @@ function createHorizonTexture(stage) {
   ctx.closePath();
   ctx.fill();
 
-  const fogGrad = ctx.createLinearGradient(0, 240, 0, canvas.height);
+  const fogGrad = ctx.createLinearGradient(0, 120, 0, canvas.height);
   fogGrad.addColorStop(0.0, "rgba(255, 255, 255, 0)");
   fogGrad.addColorStop(0.55, hexToRgba(fogColor, 0.75));
   fogGrad.addColorStop(1.0, hexToRgba(fogColor, 1.0));
   ctx.fillStyle = fogGrad;
-  ctx.fillRect(0, 240, canvas.width, canvas.height - 240);
+  ctx.fillRect(0, 120, canvas.width, canvas.height - 120);
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
@@ -640,19 +640,7 @@ export function createBackground(stageId = "city") {
     });
   }
 
-  // Street lamps
-  for (let z = 10; z > -WORLD_LENGTH; z -= 36) {
-    for (const side of [-1, 1]) {
-      const lamp = createStreetLamp();
-      const lateralDist = side * 8.6;
-      const pt = getRoadPoint(z, lateralDist);
-      const rotOffset = side > 0 ? -Math.PI : 0;
-      lamp.position.set(pt.x, pt.y + 0.05, pt.z);
-      lamp.rotation.y = pt.heading + rotOffset;
-      group.add(lamp);
-      items.push({ object: lamp, lateralDist, side, rotationOffset: rotOffset, roadZ: z, yOffset: 0.05 });
-    }
-  }
+  // Street lamps & roadside posts are now batched in world/instancedScenery.js (5 InstancedMesh draw calls!)
 
   group.userData.sceneryObjects = items;
   group.userData.worldLength = WORLD_LENGTH;
@@ -667,7 +655,7 @@ const _bgRoadPt = { x: 0, y: 0, z: 0, heading: 0, slope: 0 };
 /* ================================================================
    updateBackground
 =============================================================== */
-export function updateBackground(background, deltaTime, speed) {
+export function updateBackground(background, deltaTime, speed, lodFarDist = 155) {
   if (!background) return;
 
   const items = background.userData.sceneryObjects ?? [];
@@ -685,8 +673,9 @@ export function updateBackground(background, deltaTime, speed) {
 
     const pt = getRoadPoint(entry.roadZ, entry.lateralDist, _bgRoadPt);
 
-    // Clear skyscrapers, trees, and lamps overlapping intersecting cross-avenues, roundabouts, off-ramps, & tunnels
-    const isClearZone = isCrossStreetZone(entry.roadZ);
+    // 4-Tier LOD & Cross-Street Culling: hide buildings/trees beyond active LOD distance or inside cross-streets
+    const withinLod = entry.roadZ > -lodFarDist;
+    const isClearZone = !withinLod || isCrossStreetZone(entry.roadZ);
     obj.visible = !isClearZone;
     if (!isClearZone) {
       // Keep buildings/trees anchored on ground (y = 0) even when highway rises onto flyovers

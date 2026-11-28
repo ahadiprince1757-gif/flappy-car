@@ -64,10 +64,15 @@ export function preloadCarModels(onComplete) {
     fbxLoader.load(
       `${info.file}.fbx`,
       (group) => {
-        enhanceCarMaterials(group);
-        const configured = configureCarGroup(group, info);
-        _carCache.set(key, configured);
-        checkDone();
+        try {
+          enhanceCarMaterials(group);
+          const configured = configureCarGroup(group, info);
+          _carCache.set(key, configured);
+        } catch (err) {
+          console.error(`[CarLoader] Error configuring FBX ${info.file}.fbx:`, err);
+        } finally {
+          checkDone();
+        }
       },
       undefined,
       (err) => {

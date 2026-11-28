@@ -17,6 +17,12 @@ import { initRoadPool, acquireSegment, releaseSegment, releaseAllSegments } from
 import { resetRoadGraph, getNextRoadSegmentType } from "../world/roadGraph.js";
 import { resetTunnelCulling } from "../world/tunnelCuller.js";
 import {
+  createInstancedScenery,
+  updateInstancedScenery,
+  disposeInstancedScenery
+} from "../world/instancedScenery.js";
+import { QualityManager } from "../core/qualityManager.js";
+import {
   setActiveRoadSegments,
   queryRoadPoint,
   queryRoadHeight,
@@ -174,10 +180,11 @@ export function createStage(stageId = "city") {
   // Register active segments with RoadQuery BEFORE creating posts & scenery
   setActiveRoadSegments(activeSegments);
 
-  // 3. Dynamic Roadside Reflector Posts
-  const postData = createRoadsidePosts(config, group);
+  // 3. Instanced Roadside Posts, Streetlamps & Tier-3 Far Skyline (5 InstancedMesh draw calls total!)
+  const instancedScenery = createInstancedScenery(config);
+  group.add(instancedScenery.group);
 
-  // 4. Scenery Background (City buildings, trees, lamps, sky dome)
+  // 4. Scenery Background (Pure 3D FBX City buildings, FBX trees, sky dome)
   const background = createBackground(stageId);
   group.add(background);
 
@@ -201,12 +208,10 @@ export function createStage(stageId = "city") {
     roadSegmentsGroup,
     activeSegments,
     materialsBundle: materials,
+    instancedScenery,
     background,
     stageId,
-    config,
-    posts: postData.posts,
-    postGeometries: postData.geometries,
-    postMats: postData.materials
+    config
   };
 
   gameState.selectedStage = stageId;
@@ -260,26 +265,13 @@ export function updateStage(deltaTime) {
     }
   }
 
-  // 4. Scroll Roadside Posts along modular road curve (hide inside cross-streets & plazas)
-  for (let i = 0; i < road.posts.length; i++) {
-    const post = road.posts[i];
-    post.userData.roadZ += movement;
+  const lodFar = QualityManager.getPreset().lodFar || 155;
 
-    if (post.userData.roadZ > TRACK_START_Z) {
-      post.userData.roadZ -= TRACK_LENGTH;
-    }
+  // 4. Update Batched InstancedMesh Scenery (Posts, Streetlamps, Far Skyline Towers)
+  updateInstancedScenery(road.instancedScenery, movement, lodFar);
 
-    const inCross = isCrossStreetZone(post.userData.roadZ);
-    post.visible = !inCross;
-    if (!inCross) {
-      const pt = getRoadPoint(post.userData.roadZ, post.userData.lateralOffset, _stageRoadPt);
-      post.position.set(pt.x, pt.y + 0.08, pt.z);
-      post.rotation.y = pt.heading;
-    }
-  }
-
-  // 5. Scroll Scenery along modular road curve
-  updateBackground(road.background, deltaTime, gameState.speed);
+  // 5. Scroll Pure 3D FBX Scenery along modular road curve with LOD distance
+  updateBackground(road.background, deltaTime, gameState.speed, lodFar);
 
   // 6. Update odometer
   gameState.distance += movement;
@@ -344,17 +336,9 @@ export function removeStage() {
     gameState.scene.remove(road.group);
   }
 
-  // Dispose only stage-local post geometries/materials
-  if (road.postGeometries) {
-    for (const geo of road.postGeometries) {
-      try { geo?.dispose(); } catch {}
-    }
-  }
-
-  if (road.postMats) {
-    for (const mat of road.postMats) {
-      try { mat?.dispose(); } catch {}
-    }
+  // Dispose instanced scenery buffers cleanly
+  if (road.instancedScenery) {
+    disposeInstancedScenery(road.instancedScenery);
   }
 
   gameState.road = null;

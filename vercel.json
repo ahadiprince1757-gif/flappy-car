@@ -12,7 +12,7 @@
   ],
   "headers": [
     {
-      "source": "/(.*)\\.(fbx|png|jpg|jpeg|svg|mp3|wav|ogg)",
+      "source": "/(.*)\\.(fbx|png|jpg|jpeg|webp|svg|mp3|wav|ogg)",
       "headers": [
         {
           "key": "Cache-Control",
